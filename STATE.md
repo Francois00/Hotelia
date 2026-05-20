@@ -27,6 +27,7 @@ El proyecto está en **Fase de consolidación**: el backend (API REST completa),
 | M11 | Control de accesos por rol | ✅ | ✅ | ⬜ | ✅ Completo |
 | M12 | Confort del huésped | ⬜ | ⬜ | ⬜ | ⬜ Pendiente |
 | — | Dashboard / Revenue | ✅ | ✅ | ⬜ | ✅ Completo |
+| — | Checkout Wizard | ✅ | ✅ | ⬜ | ✅ Completo |
 | — | Reservas CRUD | ✅ | ✅ | ⬜ | ✅ Completo |
 | — | CRM / Segmentación | ✅ | ✅ | ⬜ | ✅ Completo |
 | — | QR Check-in | ✅ | ✅ | ⬜ | ✅ Completo |
@@ -43,7 +44,8 @@ El proyecto está en **Fase de consolidación**: el backend (API REST completa),
 - **Check-in Manual (M01)**: wizard completo con Redis lock + `FOR UPDATE NOWAIT`, fuego-y-olvida a SUNAT/WhatsApp/n8n
 - **Turno de Caja (M03)**: apertura/cierre con bcrypt PIN, SHA256 firma_hash, resumen en tiempo real, PDF con PDFKit
 - **Gestión de Habitaciones (M07)**: CRUD completo, fotos, tipos custom, reglas de temporada, tarifa sugerida via ia-service
-- **Frontend SPA**: Login, Dashboard (KPIs + forecast), Habitaciones, Reservas, Check-in Manual, Turno Activo, Historial Turnos, Revenue, CRM, Concierge IA
+- **Checkout Wizard**: wizard 3 pasos (folio + cargos, pagos multi-método, comprobante BOLETA/FACTURA), modal éxito con impresión; botón [Checkout] en tabla Reservas para estado CHECKIN_REALIZADO
+- **Frontend SPA**: Login, Dashboard (KPIs + forecast), Habitaciones, Reservas, Check-in Manual, Turno Activo, Historial Turnos, Revenue, CRM, Concierge IA, Checkout Wizard
 - **AI Service**: FastAPI con 7 routers — forecast (Prophet), pricing dinámico, CRM/segmentación, housekeeping, alertas, reviews NLP, concierge (Claude Anthropic)
 - **n8n Flows**: 5 flujos JSON listos para importar (checkin, checkout, encuesta, alerta mantenimiento, segmentación semanal)
 - **Docker Compose**: stack completo con 6 servicios (db, redis, n8n, backend, ia-service, frontend) en red `hotel_network`
@@ -74,7 +76,6 @@ El proyecto está en **Fase de consolidación**: el backend (API REST completa),
 - **Pantalla de pagos independiente**: flujo Niubiz fuera del wizard de check-in
 - **Pantalla de canal sync log**: historial de webhooks OTA recibidos
 - **Frontend para alertas de mantenimiento**: página dedicada para HOUSEKEEPING/MANTENIMIENTO
-- **Checkout flow**: la ruta existe en backend (`PATCH /reservas/:id/estado`) pero no hay wizard frontend de checkout
 
 ---
 
@@ -124,7 +125,7 @@ Orden probable de implementación según las migraciones:
 
 2. **[SEGURIDAD ALTA]** Cambiar el `N8N_ENCRYPTION_KEY` y `BACKEND_SERVICE_TOKEN` por defecto en `docker-compose.yml` antes de deploy.
 
-3. **[FUNCIONALIDAD]** Implementar checkout wizard en frontend: cambiar `estado` a `CHECKOUT_REALIZADO`, mostrar resumen del folio, permitir pago pendiente.
+3. ~~**[FUNCIONALIDAD]** Implementar checkout wizard en frontend~~ ✅ Completado 2026-05-20
 
 4. **[FUNCIONALIDAD]** Crear página frontend de alertas de mantenimiento para roles HOUSEKEEPING y MANTENIMIENTO.
 
