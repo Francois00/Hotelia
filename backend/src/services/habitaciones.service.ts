@@ -23,13 +23,14 @@ export const ESTADOS_MANUALES: EstadoHabitacion[] = [
 // ─── Interfaces ───────────────────────────────────────────────────────────────
 
 export interface ListarHabitacionesQuery {
-  estado?:       EstadoHabitacion;
-  tipo?:         TipoHabitacion;
-  piso?:         number;
-  capacidad?:    number;
-  visible_otas?: boolean;
-  page?:         number;
-  limit?:        number;
+  estado?:        EstadoHabitacion;
+  tipo?:          TipoHabitacion;
+  piso?:          number;
+  capacidad?:     number;
+  visible_otas?:  boolean;
+  incluir_huesped?: boolean;
+  page?:          number;
+  limit?:         number;
 }
 
 export interface DisponiblesQuery {
@@ -94,6 +95,26 @@ function validarTarifas(base: number, minima?: number, maxima?: number): void {
 
 // ─── Operaciones ──────────────────────────────────────────────────────────────
 
+// Sync room state with active check-ins and ensure no ghost OCUPADA rooms
+export async function sincronizarEstadosHabitaciones(): Promise<void> {
+  await prisma.$executeRaw`
+    UPDATE habitaciones
+    SET estado = 'OCUPADA'
+    WHERE id IN (
+      SELECT habitacion_id FROM reservas WHERE estado = 'CHECKIN_REALIZADO'
+    )
+    AND estado != 'OCUPADA'
+  `;
+  await prisma.$executeRaw`
+    UPDATE habitaciones
+    SET estado = 'DISPONIBLE'
+    WHERE estado = 'OCUPADA'
+    AND id NOT IN (
+      SELECT habitacion_id FROM reservas WHERE estado = 'CHECKIN_REALIZADO'
+    )
+  `;
+}
+
 export async function listarHabitaciones(query: ListarHabitacionesQuery) {
   const page  = query.page  ?? 1;
   const limit = Math.min(query.limit ?? 20, 100);
@@ -106,22 +127,74 @@ export async function listarHabitaciones(query: ListarHabitacionesQuery) {
   if (query.capacidad !== undefined)      where.capacidad    = { gte: query.capacidad };
   if (query.visible_otas !== undefined)   where.visible_otas = query.visible_otas;
 
+  // Auto-fix any state desync before returning
+  if (query.incluir_huesped) {
+    await sincronizarEstadosHabitaciones();
+  }
+
   const [total, habitaciones] = await Promise.all([
     prisma.habitacion.count({ where }),
     prisma.habitacion.findMany({
       where,
-      include: { tipo_custom: { select: { id: true, nombre: true, color_mapa: true } } },
+      include: {
+        tipo_custom: { select: { id: true, nombre: true, color_mapa: true } },
+        ...(query.incluir_huesped && {
+          reservas: {
+            where: { estado: EstadoReserva.CHECKIN_REALIZADO },
+            take: 1,
+            include: {
+              huesped: {
+                select: { nombre: true, apellido: true, numero_documento: true },
+              },
+            },
+          },
+        }),
+      },
       orderBy: [{ piso: 'asc' }, { numero: 'asc' }],
       skip:    (page - 1) * limit,
       take:    limit,
     }),
   ]);
 
+  const hoyDate = new Date();
+  hoyDate.setHours(0, 0, 0, 0);
+
   // Enriquecer con tarifa sugerida por IA (con fallback silencioso)
   const data = await Promise.all(
     habitaciones.map(async (h) => {
       const tarifa_sugerida_hoy = (await obtenerTarifaSugerida(h.id, hoy)) ?? Number(h.tarifa_base);
-      return { ...h, tarifa_base: Number(h.tarifa_base), tarifa_sugerida_hoy, amenidades: normalizeAmenidades(h.amenidades) };
+
+      // Build huesped_actual from the first active check-in reservation
+      let huesped_actual: {
+        nombre: string; apellido: string; documento: string;
+        reserva_id: string; fecha_entrada: string; fecha_salida: string;
+        dias_restantes: number;
+      } | null = null;
+
+      if (query.incluir_huesped && 'reservas' in h && Array.isArray(h.reservas) && h.reservas.length > 0) {
+        const r = h.reservas[0] as unknown as {
+          id: string; fecha_entrada: Date; fecha_salida: Date;
+          huesped: { nombre: string; apellido: string; numero_documento: string };
+        };
+        const salidaDate = new Date(r.fecha_salida);
+        salidaDate.setHours(0, 0, 0, 0);
+        const diasRestantes = Math.ceil((salidaDate.getTime() - hoyDate.getTime()) / 86_400_000);
+        huesped_actual = {
+          nombre:          r.huesped.nombre,
+          apellido:        r.huesped.apellido,
+          documento:       r.huesped.numero_documento,
+          reserva_id:      r.id,
+          fecha_entrada:   r.fecha_entrada.toISOString().split('T')[0],
+          fecha_salida:    r.fecha_salida.toISOString().split('T')[0],
+          dias_restantes:  diasRestantes,
+        };
+      }
+
+      const base = { ...h, tarifa_base: Number(h.tarifa_base), tarifa_sugerida_hoy, amenidades: normalizeAmenidades(h.amenidades) };
+      if (query.incluir_huesped) {
+        return { ...base, huesped_actual };
+      }
+      return base;
     }),
   );
 

@@ -1,0 +1,190 @@
+services:
+
+  # ─── Infraestructura ───────────────────────────────────────────────────────
+
+  db:
+    image: postgres:15-alpine
+    container_name: hotel_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: hotel_db
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d hotel_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: hotel_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: hotel_n8n
+    restart: unless-stopped
+    environment:
+      # Auth
+      N8N_BASIC_AUTH_ACTIVE: "true"
+      N8N_BASIC_AUTH_USER: ${N8N_BASIC_AUTH_USER}
+      N8N_BASIC_AUTH_PASSWORD: ${N8N_BASIC_AUTH_PASSWORD}
+      # Network
+      N8N_HOST: 0.0.0.0
+      N8N_PORT: 5678
+      N8N_PROTOCOL: http
+      WEBHOOK_URL: http://localhost:5678/
+      # PostgreSQL persistence (n8n_db created by docker/postgres/init.sql)
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: db
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: n8n_db
+      DB_POSTGRESDB_USER: ${DB_USER}
+      DB_POSTGRESDB_PASSWORD: ${DB_PASSWORD}
+      # Security
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:-change_me_n8n_encryption_key_32chars}
+      # Execution log settings
+      EXECUTIONS_DATA_SAVE_ON_ERROR: all
+      EXECUTIONS_DATA_SAVE_ON_SUCCESS: none
+      EXECUTIONS_DATA_SAVE_MANUAL_EXECUTIONS: "true"
+      # Timezone
+      GENERIC_TIMEZONE: America/Lima
+      TZ: America/Lima
+      # ── Flow environment variables (read by $env.X in flow expressions) ──
+      BACKEND_URL: http://backend:3000
+      IA_SERVICE_URL: http://ia-service:8001
+      SERVICE_TOKEN: ${BACKEND_SERVICE_TOKEN:-change_me_backend_token_dev}
+      BACKEND_SERVICE_TOKEN: ${BACKEND_SERVICE_TOKEN:-change_me_backend_token_dev}
+      IA_SECRET_KEY: ${IA_SECRET_KEY:-change_me_ia_secret_dev}
+      ADMIN_EMAIL: admin@hotelia.pe
+      GERENTE_EMAIL: gerente@hotelia.pe
+      MANTENIMIENTO_EMAIL: mantenimiento@hotelia.pe
+      HOTEL_EMAIL: admin@hotelia.pe
+      HOTEL_NAME: Hotel IA
+      SURVEY_URL: http://localhost:5173/encuesta
+      SENDGRID_API_KEY: ${SENDGRID_API_KEY:-}
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
+    ports:
+      - "5678:5678"
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./n8n-flows:/home/node/flows:ro
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # ─── Aplicación (requiere Dockerfiles — activos cuando estén listos) ───────
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: hotel_backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/hotel_db
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET: ${JWT_SECRET}
+      WHATSAPP_API_TOKEN: ${WHATSAPP_API_TOKEN:-}
+      WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN:-}
+      WHATSAPP_PHONE_NUMBER_ID: ${WHATSAPP_PHONE_NUMBER_ID:-}
+      WHATSAPP_VERIFY_TOKEN: ${WHATSAPP_VERIFY_TOKEN:-hotelia_webhook_2025}
+      OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
+      NIUBIZ_MERCHANT_ID: ${NIUBIZ_MERCHANT_ID:-}
+      NIUBIZ_API_KEY: ${NIUBIZ_API_KEY:-}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      SUNAT_RUC: ${SUNAT_RUC:-}
+      SUNAT_USUARIO_SOL: ${SUNAT_USUARIO_SOL:-}
+      SUNAT_CLAVE_SOL: ${SUNAT_CLAVE_SOL:-}
+      SUNAT_CERT_PATH: ${SUNAT_CERT_PATH:-}
+      SUNAT_CERT_PASSWORD: ${SUNAT_CERT_PASSWORD:-}
+      SUNAT_MODO: ${SUNAT_MODO:-beta}
+      IA_SERVICE_URL: http://ia-service:8001
+      IA_SECRET_KEY: ${IA_SECRET_KEY:-change_me_ia_secret_dev}
+      BACKEND_SERVICE_TOKEN: ${BACKEND_SERVICE_TOKEN:-change_me_backend_token_dev}
+      N8N_WEBHOOK_SECRET: ${N8N_WEBHOOK_SECRET}
+      WEBHOOK_SECRET_BOOKING: ${WEBHOOK_SECRET_BOOKING:-change_me_booking_secret_dev}
+      WEBHOOK_SECRET_EXPEDIA: ${WEBHOOK_SECRET_EXPEDIA:-change_me_expedia_secret_dev}
+      WEBHOOK_SECRET_AIRBNB: ${WEBHOOK_SECRET_AIRBNB:-change_me_airbnb_secret_dev}
+      TIPO_CAMBIO_EUR_PEN: ${TIPO_CAMBIO_EUR_PEN:-4.10}
+      TIPO_CAMBIO_USD_PEN: ${TIPO_CAMBIO_USD_PEN:-3.75}
+      PORT: 3000
+      NODE_ENV: ${NODE_ENV:-development}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  ia-service:
+    build:
+      context: ./ia-service
+      dockerfile: Dockerfile
+    container_name: hotel_ia_service
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/hotel_db
+      IA_SECRET_KEY: ${IA_SECRET_KEY:-change_me_ia_secret_dev}
+      BACKEND_INTERNAL_URL: http://backend:3000
+      BACKEND_SERVICE_TOKEN: ${BACKEND_SERVICE_TOKEN:-change_me_backend_token_dev}
+      IA_ALLOWED_ORIGINS: ${IA_ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:3000}
+      PORT: 8001
+    ports:
+      - "8001:8001"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+      args:
+        VITE_API_URL: http://localhost:3000
+        VITE_IA_URL: http://localhost:8001
+        VITE_SOCKET_URL: http://localhost:3000
+    container_name: hotel_frontend
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:80/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      - backend
+
+# ─── Volúmenes ─────────────────────────────────────────────────────────────
+
+volumes:
+  postgres_data:
+  redis_data:
+  n8n_data:
+
+# ─── Red ───────────────────────────────────────────────────────────────────
+
+networks:
+  default:
+    name: hotel_network

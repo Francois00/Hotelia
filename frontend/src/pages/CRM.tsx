@@ -114,7 +114,7 @@ export default function CRM() {
 
   const { data: allHuespedesResp, isLoading: allLoading } = useQuery<{ data: Huesped[]; meta: { total: number } }>({
     queryKey: ['crm-all-huespedes'],
-    queryFn: () => api.get('/api/v1/huespedes?limit=200').then(r => r.data as { data: Huesped[]; meta: { total: number } }),
+    queryFn: () => api.get('/api/v1/huespedes?limit=300').then(r => r.data as { data: Huesped[]; meta: { total: number } }),
     staleTime: 30000,
   })
   const allHuespedes = allHuespedesResp?.data ?? []

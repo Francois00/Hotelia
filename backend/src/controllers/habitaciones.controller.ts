@@ -6,13 +6,14 @@ import * as service from '../services/habitaciones.service';
 // ─── Schemas ──────────────────────────────────────────────────────────────────
 
 const listarQuerySchema = z.object({
-  estado:       z.nativeEnum(EstadoHabitacion).optional(),
-  tipo:         z.nativeEnum(TipoHabitacion).optional(),
-  piso:         z.coerce.number().int().min(0).optional(),
-  capacidad:    z.coerce.number().int().min(1).optional(),
-  visible_otas: z.enum(['true', 'false']).transform((v) => v === 'true').optional(),
-  page:         z.coerce.number().int().min(1).default(1),
-  limit:        z.coerce.number().int().min(1).max(100).default(20),
+  estado:          z.nativeEnum(EstadoHabitacion).optional(),
+  tipo:            z.nativeEnum(TipoHabitacion).optional(),
+  piso:            z.coerce.number().int().min(0).optional(),
+  capacidad:       z.coerce.number().int().min(1).optional(),
+  visible_otas:    z.enum(['true', 'false']).transform((v) => v === 'true').optional(),
+  incluir_huesped: z.enum(['true', 'false']).transform((v) => v === 'true').optional(),
+  page:            z.coerce.number().int().min(1).default(1),
+  limit:           z.coerce.number().int().min(1).max(100).default(20),
 });
 
 const disponiblesQuerySchema = z

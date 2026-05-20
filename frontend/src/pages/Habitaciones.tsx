@@ -1,10 +1,20 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import api from '../api/client'
 import { useSocket } from '../hooks/useSocket'
 import { isGerente } from '../utils/auth'
 import HabitacionForm from '../components/habitaciones/HabitacionForm'
+
+interface HuespedActual {
+  nombre: string
+  apellido: string
+  documento: string
+  reserva_id: string
+  fecha_entrada: string
+  fecha_salida: string
+  dias_restantes: number
+}
 
 interface Habitacion {
   id: string
@@ -25,6 +35,7 @@ interface Habitacion {
   visible_otas?: boolean
   tipo_custom_id?: string | null
   tarifa_sugerida_hoy?: number
+  huesped_actual?: HuespedActual | null
 }
 
 interface HabitacionesResp { data: Habitacion[]; meta: { total: number } }
@@ -93,6 +104,82 @@ function SlideOver({ room, onClose, onEstadoChange }: {
               </div>
             </div>
           )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function SalidaBadge({ diasRestantes }: { diasRestantes: number }) {
+  if (diasRestantes <= 0) return (
+    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-bold bg-red-100 text-red-700">SALE HOY</span>
+  )
+  if (diasRestantes === 1) return (
+    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-bold bg-orange-100 text-orange-700">SALE MAÑANA</span>
+  )
+  return null
+}
+
+function ModalRenovar({ room, onClose, onSuccess }: {
+  room: Habitacion
+  onClose: () => void
+  onSuccess: () => void
+}) {
+  const minDate = new Date(Date.now() + 86_400_000).toISOString().split('T')[0]
+  const [fechaSalida, setFechaSalida] = useState(minDate)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const handleConfirm = async () => {
+    if (!room.huesped_actual) return
+    setLoading(true)
+    setError('')
+    try {
+      await api.patch(`/api/v1/reservas/${room.huesped_actual.reserva_id}/modificar`, {
+        fecha_salida: fechaSalida,
+        motivo: 'El huésped solicitó extensión de estadía',
+      })
+      onSuccess()
+      onClose()
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } }).response?.data?.message
+        ?? 'No se pudo renovar la estadía'
+      setError(msg)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/40" onClick={!loading ? onClose : undefined} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-96 p-6 space-y-4">
+        <h2 className="text-lg font-semibold text-gray-900">Renovar estadía — Hab. {room.numero}</h2>
+        {room.huesped_actual && (
+          <p className="text-sm text-gray-500">
+            Huésped: <span className="font-medium text-gray-800">{room.huesped_actual.apellido}, {room.huesped_actual.nombre}</span>
+          </p>
+        )}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Nueva fecha de salida</label>
+          <input
+            type="date"
+            min={minDate}
+            value={fechaSalida}
+            onChange={e => setFechaSalida(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        {error && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
+        <div className="flex gap-3 pt-2">
+          <button type="button" onClick={onClose} disabled={loading}
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+            Cancelar
+          </button>
+          <button type="button" onClick={() => void handleConfirm()} disabled={loading}
+            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
+            {loading ? 'Guardando...' : 'Confirmar renovación'}
+          </button>
         </div>
       </div>
     </div>
@@ -174,6 +261,7 @@ export default function Habitaciones() {
   const [bajaLoading, setBajaLoading] = useState(false)
   const [deleteRoom, setDeleteRoom] = useState<Habitacion | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
+  const [renovarRoom, setRenovarRoom] = useState<Habitacion | null>(null)
   const [toast, setToast] = useState('')
   const queryClient = useQueryClient()
   const socketRef = useSocket('housekeeping')
@@ -183,10 +271,12 @@ export default function Habitaciones() {
   const pisoFilter   = searchParams.get('piso') ?? 'all'
   const tipoFilter   = searchParams.get('tipo') ?? 'all'
 
+  const navigate = useNavigate()
+
   const { data: resp, refetch } = useQuery<HabitacionesResp | Habitacion[]>({
     queryKey: ['habitaciones'],
-    queryFn: () => api.get<HabitacionesResp>('/api/v1/habitaciones?limit=100').then(r => r.data),
-    refetchInterval: 60000,
+    queryFn: () => api.get<HabitacionesResp>('/api/v1/habitaciones?limit=100&incluir_huesped=true').then(r => r.data),
+    refetchInterval: 30000,
   })
 
   useEffect(() => {
@@ -343,6 +433,17 @@ export default function Habitaciones() {
         />
       )}
 
+      {renovarRoom && (
+        <ModalRenovar
+          room={renovarRoom}
+          onClose={() => setRenovarRoom(null)}
+          onSuccess={() => {
+            void queryClient.invalidateQueries({ queryKey: ['habitaciones'] })
+            showToast(`Estadía de Hab. ${renovarRoom.numero} renovada`)
+          }}
+        />
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
@@ -441,28 +542,80 @@ export default function Habitaciones() {
             ))}
           </div>
 
-          {/* Other states */}
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-            <div className="px-5 py-4 border-b border-gray-100"><h2 className="text-sm font-semibold text-gray-900">Otros estados</h2></div>
-            <div className="p-5 grid grid-cols-2 gap-4">
-              {(['OCUPADA', 'FUERA_DE_SERVICIO'] as const).map(estado => (
-                <div key={estado}>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${estadoBadgeClass[estado]}`}>{estado}</span>
-                    <span className="text-xs text-gray-400">{filteredRooms.filter(r => r.estado === estado).length}</span>
-                  </div>
-                  <div className="grid grid-cols-4 gap-1.5">
-                    {filteredRooms.filter(r => r.estado === estado).map(r => (
-                      <button key={r.id} onClick={() => setSelectedRoom(r)}
-                        className={`p-2 rounded-lg text-xs font-semibold border transition-all hover:scale-105 ${estadoBadgeClass[estado]}`}>
-                        {r.numero}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ))}
+          {/* Habitaciones OCUPADAS — tarjetas con huésped */}
+          {filteredRooms.filter(r => r.estado === 'OCUPADA').length > 0 && (
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border bg-blue-100 text-blue-800 border-blue-200">OCUPADA</span>
+                <span className="text-xs text-gray-400">{filteredRooms.filter(r => r.estado === 'OCUPADA').length} habitaciones</span>
+              </div>
+              <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {filteredRooms.filter(r => r.estado === 'OCUPADA').map(r => {
+                  const h = r.huesped_actual
+                  return (
+                    <div key={r.id} className="border border-blue-200 rounded-xl p-4 bg-blue-50/40 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-blue-800 text-sm">HAB. {r.numero}</span>
+                        <div className="flex items-center gap-1">
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium border bg-blue-100 text-blue-800 border-blue-200">OCUPADA</span>
+                          {h && <SalidaBadge diasRestantes={h.dias_restantes} />}
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-500">Tipo: {r.tipo}</p>
+                      {h ? (
+                        <>
+                          <div className="border-t border-blue-200 pt-2 space-y-1">
+                            <p className="text-xs font-semibold text-gray-800">
+                              {h.apellido.toUpperCase()}, {h.nombre}
+                            </p>
+                            <p className={`text-xs ${h.dias_restantes <= 0 ? 'text-red-600 font-semibold' : 'text-gray-500'}`}>
+                              Salida: {h.fecha_salida}
+                              {h.dias_restantes > 0 && ` (${h.dias_restantes} día${h.dias_restantes !== 1 ? 's' : ''})`}
+                            </p>
+                          </div>
+                          <div className="border-t border-blue-200 pt-2 flex gap-2">
+                            <button
+                              onClick={() => setRenovarRoom(r)}
+                              className="flex-1 px-2 py-1.5 text-xs font-medium bg-white border border-blue-300 text-blue-700 rounded-lg hover:bg-blue-50 transition-colors"
+                            >
+                              Renovar
+                            </button>
+                            <button
+                              onClick={() => navigate(`/checkout/${h.reserva_id}`)}
+                              className="flex-1 px-2 py-1.5 text-xs font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                            >
+                              Checkout
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <button onClick={() => setSelectedRoom(r)}
+                          className="text-xs text-blue-600 hover:underline">Ver detalle</button>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* FUERA DE SERVICIO */}
+          {filteredRooms.filter(r => r.estado === 'FUERA_DE_SERVICIO').length > 0 && (
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border bg-red-100 text-red-800 border-red-200">FUERA DE SERVICIO</span>
+                <span className="text-xs text-gray-400">{filteredRooms.filter(r => r.estado === 'FUERA_DE_SERVICIO').length}</span>
+              </div>
+              <div className="p-5 flex flex-wrap gap-1.5">
+                {filteredRooms.filter(r => r.estado === 'FUERA_DE_SERVICIO').map(r => (
+                  <button key={r.id} onClick={() => setSelectedRoom(r)}
+                    className="p-2 rounded-lg text-xs font-semibold border transition-all hover:scale-105 bg-red-100 text-red-800 border-red-200">
+                    {r.numero}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* By floor */}
           {pisos.map(piso => {
