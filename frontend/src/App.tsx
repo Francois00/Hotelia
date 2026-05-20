@@ -20,6 +20,7 @@ import HistorialTurnosPage from './pages/turno/HistorialTurnosPage'
 import CheckoutPage from './pages/checkout/CheckoutPage'
 import ChannelManagerPage from './pages/ChannelManagerPage'
 import NotificacionesPage from './pages/NotificacionesPage'
+import ConciergeTestPage from './pages/ConciergeTestPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -80,6 +81,7 @@ export default function App() {
           <Route path="/concierge" element={<ProtectedPage><ConciergeIA /></ProtectedPage>} />
           <Route path="/channel-manager" element={<GerentePage><ChannelManagerPage /></GerentePage>} />
           <Route path="/notificaciones" element={<GerentePage><NotificacionesPage /></GerentePage>} />
+          <Route path="/concierge-test" element={<GerentePage><ConciergeTestPage /></GerentePage>} />
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>
