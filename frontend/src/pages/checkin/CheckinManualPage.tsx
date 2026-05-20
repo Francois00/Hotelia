@@ -288,7 +288,7 @@ function Paso1({
                     </div>
                     <p className="text-xs text-gray-500 mb-2">
                       👥 {h.capacidad_adultos ?? h.capacidad} adultos
-                      {(h.amenidades ?? []).slice(0, 3).map(a => ` · ${a}`).join('')}
+                      {(Array.isArray(h.amenidades) ? h.amenidades : []).slice(0, 3).map((a: string) => ` · ${a}`).join('')}
                     </p>
                     <div className="flex items-center justify-between">
                       <div>

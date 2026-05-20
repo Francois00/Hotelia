@@ -112,6 +112,13 @@ export default function CRM() {
     refetchInterval: 60000,
   })
 
+  const { data: allHuespedesResp, isLoading: allLoading } = useQuery<{ data: Huesped[]; meta: { total: number } }>({
+    queryKey: ['crm-all-huespedes'],
+    queryFn: () => api.get('/api/v1/huespedes?limit=200').then(r => r.data as { data: Huesped[]; meta: { total: number } }),
+    staleTime: 30000,
+  })
+  const allHuespedes = allHuespedesResp?.data ?? []
+
   const doSearch = useCallback((q: string) => {
     if (searchTimer.current) clearTimeout(searchTimer.current)
     if (!q.trim()) { setSearchResults([]); setShowDropdown(false); setSearching(false); setSearched(false); return }
@@ -319,6 +326,55 @@ export default function CRM() {
           onClose={() => { setSelectedHuesped(null); setHuespedSearch('') }}
         />
       )}
+      </div>
+
+      {/* Section 4 — All guests table */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-gray-900">Todos los huéspedes</h2>
+          <span className="text-xs text-gray-400">
+            {allLoading ? 'Cargando...' : `${allHuespedesResp?.meta?.total ?? allHuespedes.length} registros`}
+          </span>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 border-b border-gray-200 sticky top-0">
+              <tr>
+                {['Huésped', 'Email', 'Teléfono', 'Nacionalidad', 'Segmento'].map(h => (
+                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {allLoading && (
+                <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400">Cargando huéspedes...</td></tr>
+              )}
+              {!allLoading && allHuespedes.length === 0 && (
+                <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400">Sin huéspedes registrados</td></tr>
+              )}
+              {allHuespedes.map(h => (
+                <tr
+                  key={h.id}
+                  className="hover:bg-blue-50/40 transition-colors cursor-pointer"
+                  onClick={() => { setSelectedHuesped(h); setHuespedSearch(h.nombre) }}
+                >
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <Avatar name={h.nombre} size={28} />
+                      <span className="font-medium text-gray-900">{h.nombre}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-gray-500">{h.email || '—'}</td>
+                  <td className="px-4 py-3 text-gray-500">{h.telefono || '—'}</td>
+                  <td className="px-4 py-3 text-gray-500">{h.nacionalidad || '—'}</td>
+                  <td className="px-4 py-3">
+                    {h.segmento_crm ? <SegmentBadge segmento={h.segmento_crm} /> : <span className="text-gray-400">—</span>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )

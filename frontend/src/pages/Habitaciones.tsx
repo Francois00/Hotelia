@@ -99,6 +99,35 @@ function SlideOver({ room, onClose, onEstadoChange }: {
   )
 }
 
+function ModalEliminar({ room, onClose, onConfirm, loading }: {
+  room: Habitacion
+  onClose: () => void
+  onConfirm: () => void
+  loading: boolean
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/40" onClick={!loading ? onClose : undefined} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-96 p-6 space-y-4">
+        <h2 className="text-lg font-semibold text-red-700">Eliminar permanentemente — Hab. {room.numero}</h2>
+        <p className="text-sm text-gray-600">
+          Esta acción <strong>no se puede deshacer</strong>. La habitación y todos sus datos serán eliminados definitivamente de la base de datos.
+        </p>
+        <div className="flex gap-3 pt-2">
+          <button type="button" onClick={onClose} disabled={loading}
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+            Cancelar
+          </button>
+          <button type="button" onClick={onConfirm} disabled={loading}
+            className="flex-1 px-4 py-2 bg-red-700 text-white rounded-lg text-sm font-medium hover:bg-red-800 disabled:opacity-50">
+            {loading ? 'Eliminando...' : 'Eliminar permanentemente'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function ModalBaja({ room, onClose, onConfirm, loading }: {
   room: Habitacion
   onClose: () => void
@@ -143,6 +172,8 @@ export default function Habitaciones() {
   const [editRoom, setEditRoom] = useState<Habitacion | null | false>(false)
   const [bajaRoom, setBajaRoom] = useState<Habitacion | null>(null)
   const [bajaLoading, setBajaLoading] = useState(false)
+  const [deleteRoom, setDeleteRoom] = useState<Habitacion | null>(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
   const [toast, setToast] = useState('')
   const queryClient = useQueryClient()
   const socketRef = useSocket('housekeeping')
@@ -234,6 +265,24 @@ export default function Habitaciones() {
     setTimeout(() => setToast(''), 3000)
   }
 
+  const handleEliminar = async () => {
+    if (!deleteRoom) return
+    setDeleteLoading(true)
+    try {
+      await api.delete(`/api/v1/habitaciones/${deleteRoom.id}/permanente`)
+      setRooms(prev => prev.filter(r => r.id !== deleteRoom.id))
+      void queryClient.invalidateQueries({ queryKey: ['habitaciones'] })
+      showToast(`Habitación ${deleteRoom.numero} eliminada`)
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } }).response?.data?.message
+        ?? 'No se pudo eliminar la habitación'
+      showToast(msg)
+    } finally {
+      setDeleteLoading(false)
+      setDeleteRoom(null)
+    }
+  }
+
   const handleDarBaja = async () => {
     if (!bajaRoom) return
     setBajaLoading(true)
@@ -282,6 +331,15 @@ export default function Habitaciones() {
           onClose={() => setBajaRoom(null)}
           onConfirm={() => void handleDarBaja()}
           loading={bajaLoading}
+        />
+      )}
+
+      {deleteRoom && (
+        <ModalEliminar
+          room={deleteRoom}
+          onClose={() => setDeleteRoom(null)}
+          onConfirm={() => void handleEliminar()}
+          loading={deleteLoading}
         />
       )}
 
@@ -510,6 +568,13 @@ export default function Habitaciones() {
                                 Dar de baja
                               </button>
                             )}
+                            <button
+                              onClick={e => { e.stopPropagation(); setDeleteRoom(r) }}
+                              className="px-3 py-1 text-xs font-medium text-red-800 hover:bg-red-100 rounded-lg transition-colors"
+                              title="Eliminar permanentemente"
+                            >
+                              Eliminar
+                            </button>
                           </div>
                         )}
                       </td>

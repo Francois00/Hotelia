@@ -32,6 +32,15 @@ interface Props {
 
 const TIPOS_PREDEFINIDOS = ['SIMPLE', 'DOBLE', 'TRIPLE', 'SUITE', 'FAMILIAR']
 
+const parseAmenidades = (raw: unknown): string[] => {
+  if (!raw) return []
+  if (Array.isArray(raw)) return raw as string[]
+  if (typeof raw === 'object')
+    return Object.entries(raw as Record<string, unknown>).filter(([, v]) => v === true).map(([k]) => k)
+  if (typeof raw === 'string') return raw.replace(/^\{|\}$/g, '').split(',').filter(Boolean)
+  return []
+}
+
 const AMENITIES_PREDEFINIDOS = [
   'WiFi', 'Aire Acond.', 'TV Cable', 'Frigobar', 'Caja Fuerte', 'Bañera',
   'Ducha', 'Balcón', 'Vista al mar', 'Vista ciudad', 'Escritorio', 'Plancha',
@@ -78,7 +87,7 @@ export default function HabitacionForm({ habitacion, onClose, onSuccess }: Props
     tarifa_base:     habitacion?.tarifa_base ? String(habitacion.tarifa_base) : '',
     tarifa_maxima:   habitacion?.tarifa_maxima ? String(habitacion.tarifa_maxima) : '',
     visible_otas:    habitacion?.visible_otas ?? true,
-    amenidades:      habitacion?.amenidades ?? [],
+    amenidades:      parseAmenidades(habitacion?.amenidades),
     amenidad_custom: '',
   })
 
