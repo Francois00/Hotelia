@@ -48,6 +48,8 @@ export default function Sidebar() {
           <>
             <NavItem to="/revenue" icon="⊠" label="Revenue" />
             <NavItem to="/crm" icon="⊕" label="CRM" />
+            <NavItem to="/channel-manager" icon="📡" label="Channel Manager" />
+            <NavItem to="/notificaciones" icon="🔔" label="Notificaciones" />
           </>
         )}
 

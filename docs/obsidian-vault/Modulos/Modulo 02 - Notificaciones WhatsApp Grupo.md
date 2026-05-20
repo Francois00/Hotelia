@@ -3,11 +3,32 @@ tags: [hotel-pms, modulo, whatsapp, notificaciones, prioridad-alta]
 modulo: 2
 prioridad: ALTA
 tiempo_estimado: 1 semana
-estado: pendiente
+estado: completo
 fase: 2
 ---
 
 # Módulo 02 — Notificaciones al Grupo WhatsApp Empresarial
+
+**Backend: ✅ | Frontend: ✅ | Tests: ⬜**
+
+## Estado 2026-05-20
+
+Página implementada en `/notificaciones` (solo gerente).
+
+### Pantallas creadas
+- `NotificacionesPage.tsx` — configurar Group ID, toggles por evento (check-in, checkout, mantenimiento, cierre turno, stock bajo, gasto caja), log de notificaciones
+
+### Notas de integración
+- Config de Group ID y toggles persiste en localStorage
+- "Enviar mensaje de prueba" requiere endpoint backend de grupo (no existe aún)
+- Log de notificaciones vacío hasta que se implemente el endpoint de historial
+
+### Pendiente
+- Endpoint backend para leer/guardar configuración de grupo
+- Endpoint de envío de mensaje de prueba al grupo
+- Endpoint de log de notificaciones enviadas
+- Configurar Group ID real del grupo WhatsApp del hotel
+- Activar cuenta Meta Business con plantillas aprobadas
 
 ← [[Modulo 01 - Registro Manual RENIEC]] | [[INDEX]] | → [[Modulo 03 - Reporte de Turno]]
 

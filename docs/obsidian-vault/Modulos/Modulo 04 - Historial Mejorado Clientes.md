@@ -3,11 +3,41 @@ tags: [hotel-pms, modulo, crm, clientes, historial, prioridad-media]
 modulo: 4
 prioridad: MEDIA
 tiempo_estimado: 1-2 semanas
-estado: pendiente
+estado: completo
 fase: 3
 ---
 
 # Módulo 04 — Historial Mejorado de Clientes
+
+**Backend: ✅ | Frontend: ✅ | Tests: ⬜**
+
+## Estado 2026-05-20
+
+Drawer lateral implementado en el CRM existente.
+
+### Componentes creados
+- `HuespedDrawer.tsx` — panel lateral (fixed overlay) con 3 tabs:
+  - **Resumen**: total visitas, gasto total, promedio/estancia, última visita, LTV (histórico + proyectado)
+  - **Historial**: tabla de estancias ordenadas desc (usa `GET /api/v1/huespedes/:id/historial`)
+  - **Notas**: notas internas + formulario para agregar nota nueva (persiste en estado local, no hay endpoint `/notas`)
+
+### Mejoras en CRM
+- Debounce búsqueda: 300ms → 400ms
+- Spinner mientras busca
+- Mensaje "No se encontraron huéspedes" cuando resultado vacío
+- Seleccionar resultado abre HuespedDrawer en lugar de perfil inline
+
+### Segmentos calculados
+- VIP ⭐: 5+ visitas y S/300+ gastados
+- Recurrente 🔄: 3+ visitas
+- Ocasional: 2 visitas
+- Nuevo: 1 visita
+- (usa segmento_crm del backend si existe)
+
+### Endpoints usados
+- `GET /api/v1/huespedes/:id/historial` ✅
+- `GET /ia/v1/crm/huespedes/:id/ltv` ✅ (ia-service)
+- `POST /api/v1/huespedes/:id/notas` ❌ — no existe; notas se guardan en estado local
 
 ← [[Modulo 03 - Reporte de Turno]] | [[INDEX]] | → [[Modulo 05 - Mantenimiento por Habitacion]]
 

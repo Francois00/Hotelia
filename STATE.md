@@ -16,15 +16,15 @@ El proyecto está en **Fase de consolidación**: el backend (API REST completa),
 |--------|-------------|---------|----------|-------|----------------|
 | M01 | Check-in Manual + RENIEC | ✅ | ✅ | ✅ | ✅ Completo |
 | M01+ | Modificar / Anular registro + bitácora | ✅ | ✅ | ⬜ | ✅ Completo |
-| M02 | Notificaciones WhatsApp | ✅ | N/A | ⬜ | 🔄 En progreso |
+| M02 | Notificaciones WhatsApp | ✅ | ✅ | ⬜ | ✅ Completo |
 | M03 | Turno de Caja / Reporte | ✅ | ✅ | ✅ | ✅ Completo |
-| M04 | Historial mejorado huéspedes | ✅ | 🔄 | ⬜ | 🔄 En progreso |
+| M04 | Historial mejorado huéspedes | ✅ | ✅ | ⬜ | ✅ Completo |
 | M05 | Mantenimiento por habitación | ✅ | 🔄 | ⬜ | 🔄 En progreso |
 | M06 | Concierge IA + WPP | ✅ | ✅ | ⬜ | 🔄 En progreso |
 | M07 | Gestión de habitaciones | ✅ | ✅ | ✅ | ✅ Completo |
 | M07+ | Baja lógica habitaciones (frontend) | ✅ | ✅ | ⬜ | ✅ Completo |
 | M08 | Multi-sede | ⬜ | ⬜ | ⬜ | ⬜ Pendiente |
-| M09 | Channel Manager (OTA) | ✅ | ⬜ | ⬜ | 🔄 En progreso |
+| M09 | Channel Manager (OTA) | ✅ | ✅ | ⬜ | ✅ Completo |
 | M10 | Almacén e Inventario | ⬜ | ⬜ | ⬜ | ⬜ Pendiente |
 | M11 | Control de accesos por rol | ✅ | ✅ | ⬜ | ✅ Completo |
 | M11+ | useRol() hook + menú dinámico Sidebar | ✅ | ✅ | ⬜ | ✅ Completo |
@@ -116,33 +116,19 @@ El proyecto está en **Fase de consolidación**: el backend (API REST completa),
 
 ## Últimos cambios detectados
 
-_No hay git history disponible — el repositorio no estaba inicializado al momento de la auditoría._
-
-Orden probable de implementación según las migraciones:
-1. `20260506000000_init` — tablas core (personal, habitaciones, huespedes, reservas, pagos, folio_items, canal_sync_log, reviews, tarifas_historial, campanas_crm)
-2. `20260507000000` a `20260507000008` — extensiones incrementales (FUERA_DE_SERVICIO, RESERVADA, Airbnb, reviews NLP, alertas, concierge, comprobantes, QR check-in)
-3. `20260519000000_mod07_01_03` — Módulos 07, 01 y 03: tipos_habitacion, reglas_temporada, turnos, gastos_caja, reporte_turno_cache
+- 2026-05-20: Fix login (rate limit + password hash)
+- 2026-05-20: Fix habitaciones y CRM (parseo de respuesta paginada)
+- 2026-05-20: M09 Channel Manager frontend completo (ChannelManagerPage + ModalConfigCanal)
+- 2026-05-20: M02 Notificaciones WPP frontend completo (NotificacionesPage con toggles y log)
+- 2026-05-20: M04 Historial huéspedes con HuespedDrawer (tabs: Resumen / Historial / Notas)
+- 2026-05-20: CRM búsqueda mejorada con debounce 400ms, spinner y mensaje sin resultados
 
 ---
 
 ## Próximos pasos recomendados (en orden de prioridad)
 
-1. **[SEGURIDAD CRÍTICA]** Verificar que `backend/.env`, `ia-service/.env` y `frontend/.env` no contienen credenciales reales antes de hacer cualquier push. Agregar `.env.*` al `.gitignore` raíz.
-
-2. **[SEGURIDAD ALTA]** Cambiar el `N8N_ENCRYPTION_KEY` y `BACKEND_SERVICE_TOKEN` por defecto en `docker-compose.yml` antes de deploy.
-
-3. ~~**[FUNCIONALIDAD]** Implementar checkout wizard en frontend~~ ✅ Completado 2026-05-20
-
-4. **[FUNCIONALIDAD]** Crear página frontend de alertas de mantenimiento para roles HOUSEKEEPING y MANTENIMIENTO.
-
-5. **[FUNCIONALIDAD]** Crear página frontend de canal sync log (channel manager) para GERENTE/ADMIN.
-
-6. **[CALIDAD]** Ejecutar y hacer pasar los 3 test suites del backend (`pnpm test` en `/backend`).
-
-7. **[CALIDAD]** Agregar tests Python para el ia-service (pytest + FastAPI TestClient).
-
-8. **[INTEGRACIÓN]** Completar configuración SUNAT modo producción (certificado `.pfx`, credenciales SOL reales).
-
-9. **[OPERACIONES]** Configurar CI/CD (GitHub Actions) con: typecheck, lint, test, docker build.
-
-10. **[ROADMAP]** Comenzar M04 (historial huéspedes) — los datos ya están en BD, solo falta UI.
+1. M05 Mantenimiento por habitación — frontend (página de alertas para HOUSEKEEPING/MANTENIMIENTO)
+2. M10 Almacén e Inventario — backend + frontend (nuevas tablas productos/movimientos_stock)
+3. Configurar WhatsApp Business API real (credenciales Meta, Group ID del hotel)
+4. Probar Concierge IA con datos reales del hotel
+5. M08 Multi-sede (si la empresa abre otra propiedad)

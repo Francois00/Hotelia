@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { format, parseISO } from 'date-fns'
+import HuespedDrawer from '../components/HuespedDrawer'
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis,
@@ -290,6 +291,8 @@ export default function CRM() {
   const [searchResults, setSearchResults] = useState<Huesped[]>([])
   const [selectedHuesped, setSelectedHuesped] = useState<Huesped | null>(null)
   const [showDropdown, setShowDropdown] = useState(false)
+  const [searching, setSearching] = useState(false)
+  const [searched, setSearched] = useState(false)
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const { data: stats, isLoading: statsLoading } = useQuery<CRMStats>({
@@ -301,12 +304,18 @@ export default function CRM() {
 
   const doSearch = useCallback((q: string) => {
     if (searchTimer.current) clearTimeout(searchTimer.current)
-    if (!q.trim()) { setSearchResults([]); setShowDropdown(false); return }
+    if (!q.trim()) { setSearchResults([]); setShowDropdown(false); setSearching(false); setSearched(false); return }
+    setSearching(true)
     searchTimer.current = setTimeout(() => {
       api.get<Huesped[]>(`/api/v1/huespedes?nombre=${encodeURIComponent(q)}&limit=10`)
-        .then(r => { setSearchResults((r.data as unknown as { data: Huesped[] }).data ?? []); setShowDropdown(true) })
-        .catch(() => {})
-    }, 300)
+        .then(r => {
+          setSearchResults((r.data as unknown as { data: Huesped[] }).data ?? [])
+          setShowDropdown(true)
+          setSearched(true)
+        })
+        .catch(() => { setSearchResults([]); setSearched(true) })
+        .finally(() => setSearching(false))
+    }, 400)
   }, [])
 
   useEffect(() => { doSearch(huespedSearch) }, [huespedSearch, doSearch])
@@ -456,8 +465,11 @@ export default function CRM() {
               onChange={e => { setHuespedSearch(e.target.value); setSelectedHuesped(null) }}
               onFocus={() => searchResults.length > 0 && setShowDropdown(true)}
               placeholder="Nombre, email o documento..."
-              className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-9 pr-10 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
+            {searching && (
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+            )}
           </div>
 
           {showDropdown && searchResults.length > 0 && (
@@ -483,14 +495,20 @@ export default function CRM() {
               ))}
             </div>
           )}
+
+          {!searching && searched && huespedSearch.trim() && searchResults.length === 0 && (
+            <p className="mt-2 text-sm text-gray-400 px-1">
+              No se encontraron huéspedes con ese criterio
+            </p>
+          )}
         </div>
 
-        {selectedHuesped && (
-          <GuestProfile
-            huesped={selectedHuesped}
-            onClose={() => { setSelectedHuesped(null); setHuespedSearch('') }}
-          />
-        )}
+      {selectedHuesped && (
+        <HuespedDrawer
+          huesped={selectedHuesped}
+          onClose={() => { setSelectedHuesped(null); setHuespedSearch('') }}
+        />
+      )}
       </div>
     </div>
   )

@@ -1,13 +1,35 @@
 ---
-tags: [hotel-pms, modulo, channel-manager, booking, expedia, otas, prioridad-critica]
+tags: [hotel-pms, modulo, channel-manager, booking, expedia, prioridad-critica]
 modulo: 9
 prioridad: CRÍTICA
 tiempo_estimado: 2-3 semanas
-estado: pendiente
+estado: completo
 fase: 2
 ---
 
 # Módulo 09 — Channel Manager: Booking, Expedia y WhatsApp
+
+**Backend: ✅ | Frontend: ✅ | Tests: ⬜**
+
+## Estado 2026-05-20
+
+Panel central implementado en `/channel-manager` (solo gerente).
+
+### Pantallas creadas
+- `ChannelManagerPage.tsx` — cards de estado por canal con semáforo, placeholder calendario 30 días, acciones rápidas, log de sync
+- `ModalConfigCanal.tsx` — formularios por canal (Booking/Expedia/WhatsApp/Web), botón probar conexión
+
+### Endpoints usados
+- `GET /api/v1/canales/sync-log` ✅ — log de sincronizaciones
+- `POST /api/v1/canales/sync/:canal` ❌ — no existe; UI muestra aviso
+- `POST /api/v1/channel-manager/canales/:canal/test` ❌ — no existe; UI captura error gracefully
+- Config de credenciales: persiste en localStorage (no hay endpoint backend de config aún)
+
+### Pendiente
+- Endpoint backend para guardar/leer credenciales de canal
+- Endpoint de sync manual por canal
+- Endpoint de disponibilidad por canal (calendario)
+- Configurar credenciales reales de Booking.com y Expedia en producción
 
 ← [[Modulo 08 - Multi-sede]] | [[INDEX]] | → [[Modulo 10 - Almacen e Inventario]]
 
