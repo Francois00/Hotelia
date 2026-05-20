@@ -45,15 +45,22 @@ interface Huesped {
   preferencias?: Record<string, string>
 }
 
-interface Historial {
+interface HistorialRaw {
   id: string
-  codigo: string
-  habitacion_numero: string
+  codigo_reserva: string
+  habitacion: { numero: string; tipo: string }
   fecha_entrada: string
   fecha_salida: string
   num_noches: number
   tarifa_acordada: number
   estado: string
+}
+
+interface HistorialResp {
+  huesped: unknown
+  total_estancias: number
+  gasto_total: number
+  reservas: HistorialRaw[]
 }
 
 interface LTVData {
@@ -122,14 +129,14 @@ function SegmentBadge({ segmento }: { segmento: string }) {
 function GuestProfile({ huesped, onClose }: { huesped: Huesped; onClose: () => void }) {
   const navigate = useNavigate()
   const [ltv, setLtv] = useState<LTVData | null>(null)
-  const [historial, setHistorial] = useState<Historial[]>([])
+  const [historial, setHistorial] = useState<HistorialRaw[]>([])
   const [segmentando, setSegmentando] = useState(false)
 
   useEffect(() => {
     ia.get<LTVData>(`/ia/v1/crm/huespedes/${huesped.id}/ltv`)
       .then(r => setLtv(r.data)).catch(() => {})
-    api.get<Historial[]>(`/api/v1/huespedes/${huesped.id}/historial`)
-      .then(r => setHistorial(r.data)).catch(() => {})
+    api.get<HistorialResp>(`/api/v1/huespedes/${huesped.id}/historial`)
+      .then(r => setHistorial(r.data.reservas ?? [])).catch(() => {})
   }, [huesped.id])
 
   const handleRecalcular = async () => {
@@ -226,8 +233,8 @@ function GuestProfile({ huesped, onClose }: { huesped: Huesped; onClose: () => v
                   <tbody className="divide-y divide-gray-100">
                     {historial.map(h => (
                       <tr key={h.id} className="hover:bg-gray-50">
-                        <td className="px-3 py-2 font-mono text-xs text-gray-600">{h.codigo}</td>
-                        <td className="px-3 py-2 text-gray-700">{h.habitacion_numero}</td>
+                        <td className="px-3 py-2 font-mono text-xs text-gray-600">{h.codigo_reserva}</td>
+                        <td className="px-3 py-2 text-gray-700">{h.habitacion.numero}</td>
                         <td className="px-3 py-2 text-gray-600">{format(parseISO(h.fecha_entrada), 'dd/MM/yy')}</td>
                         <td className="px-3 py-2 text-gray-600">{format(parseISO(h.fecha_salida), 'dd/MM/yy')}</td>
                         <td className="px-3 py-2 text-center text-gray-600">{h.num_noches}</td>
