@@ -1,11 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
 import { format, parseISO } from 'date-fns'
 import HuespedDrawer from '../components/HuespedDrawer'
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
-  BarChart, Bar, XAxis, YAxis,
 } from 'recharts'
 import api from '../api/client'
 import ia from '../api/ia'
@@ -46,28 +44,6 @@ interface Huesped {
   preferencias?: Record<string, string>
 }
 
-interface HistorialRaw {
-  id: string
-  codigo_reserva: string
-  habitacion: { numero: string; tipo: string }
-  fecha_entrada: string
-  fecha_salida: string
-  num_noches: number
-  tarifa_acordada: number
-  estado: string
-}
-
-interface HistorialResp {
-  huesped: unknown
-  total_estancias: number
-  gasto_total: number
-  reservas: HistorialRaw[]
-}
-
-interface LTVData {
-  historico: number
-  proyectado: number
-}
 
 const SEGMENT_COLORS: Record<string, string> = {
   VIP: '#F59E0B',
@@ -77,13 +53,6 @@ const SEGMENT_COLORS: Record<string, string> = {
   NUEVO: '#22C55E',
 }
 
-const estadoBadgeClass: Record<string, string> = {
-  CONFIRMADA: 'bg-blue-100 text-blue-700',
-  CHECKIN_REALIZADO: 'bg-green-100 text-green-700',
-  CHECKOUT_REALIZADO: 'bg-gray-100 text-gray-600',
-  CANCELADA: 'bg-red-100 text-red-700',
-  NO_SHOW: 'bg-orange-100 text-orange-700',
-}
 
 const formatCurrency = (n: number) =>
   new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' }).format(n)
@@ -124,165 +93,6 @@ function SegmentBadge({ segmento }: { segmento: string }) {
     >
       {segmento}
     </span>
-  )
-}
-
-function GuestProfile({ huesped, onClose }: { huesped: Huesped; onClose: () => void }) {
-  const navigate = useNavigate()
-  const [ltv, setLtv] = useState<LTVData | null>(null)
-  const [historial, setHistorial] = useState<HistorialRaw[]>([])
-  const [segmentando, setSegmentando] = useState(false)
-
-  useEffect(() => {
-    ia.get<LTVData>(`/ia/v1/crm/huespedes/${huesped.id}/ltv`)
-      .then(r => setLtv(r.data)).catch(() => {})
-    api.get<HistorialResp>(`/api/v1/huespedes/${huesped.id}/historial`)
-      .then(r => setHistorial(r.data.reservas ?? [])).catch(() => {})
-  }, [huesped.id])
-
-  const handleRecalcular = async () => {
-    setSegmentando(true)
-    try {
-      await ia.post('/ia/v1/crm/segmentar-todos')
-    } catch { /* silent */ } finally { setSegmentando(false) }
-  }
-
-  const ltvChartData = ltv
-    ? [{ name: 'Histórico', value: ltv.historico }, { name: 'Proyectado', value: ltv.proyectado }]
-    : []
-
-  const languageFlags: Record<string, string> = { es: '🇪🇸', en: '🇺🇸', pt: '🇧🇷', fr: '🇫🇷', de: '🇩🇪', zh: '🇨🇳', ja: '🇯🇵' }
-  const flag = languageFlags[huesped.idioma_preferido ?? ''] ?? '🌐'
-
-  return (
-    <div className="mt-5 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-      {/* Header */}
-      <div className="px-6 py-5 border-b border-gray-100 flex items-center gap-4">
-        <Avatar name={huesped.nombre} size={56} />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="text-lg font-bold text-gray-900 truncate">{huesped.nombre}</h3>
-            <span className="text-lg" title={huesped.idioma_preferido}>{flag}</span>
-            {huesped.segmento_crm && <SegmentBadge segmento={huesped.segmento_crm} />}
-          </div>
-          <p className="text-sm text-gray-500 mt-0.5">{huesped.email}</p>
-        </div>
-        <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none shrink-0">&times;</button>
-      </div>
-
-      <div className="p-6">
-        {/* 3-column info grid */}
-        <div className="grid grid-cols-3 gap-6 mb-6">
-          <div className="space-y-3">
-            <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Contacto</h4>
-            <InfoRow label="Email" value={huesped.email} />
-            <InfoRow label="Teléfono" value={huesped.telefono} />
-            <InfoRow label="Nacionalidad" value={huesped.nacionalidad} />
-            <InfoRow label="Nacimiento" value={huesped.fecha_nacimiento ? format(parseISO(huesped.fecha_nacimiento), 'dd/MM/yyyy') : undefined} />
-          </div>
-          <div className="space-y-3">
-            <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Identificación</h4>
-            <InfoRow label="Tipo doc." value={huesped.documento_tipo} />
-            <InfoRow label="Número" value={huesped.documento_numero} />
-            <InfoRow label="Idioma" value={huesped.idioma_preferido?.toUpperCase()} />
-            {huesped.notas_internas && (
-              <div>
-                <p className="text-xs text-gray-400 mb-0.5">Notas internas</p>
-                <p className="text-sm text-gray-700 bg-yellow-50 rounded p-2">{huesped.notas_internas}</p>
-              </div>
-            )}
-          </div>
-          <div>
-            <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Lifetime Value</h4>
-            {ltv ? (
-              <div className="bg-blue-50 rounded-xl p-3">
-                <div className="flex justify-between text-xs text-gray-600 mb-1">
-                  <span>Histórico: <strong className="text-blue-700">{formatCurrency(ltv.historico)}</strong></span>
-                  <span>Proyectado: <strong className="text-blue-400">{formatCurrency(ltv.proyectado)}</strong></span>
-                </div>
-                <ResponsiveContainer width="100%" height={90}>
-                  <BarChart data={ltvChartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-                    <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#6b7280' }} axisLine={false} tickLine={false} />
-                    <YAxis tickFormatter={v => `S/${(Number(v) / 1000).toFixed(0)}k`} tick={{ fontSize: 9, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-                    <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                      <Cell fill="#3B82F6" />
-                      <Cell fill="#93C5FD" />
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            ) : (
-              <p className="text-sm text-gray-400">LTV no disponible</p>
-            )}
-          </div>
-        </div>
-
-        {/* Historial table */}
-        {historial.length > 0 && (
-          <div className="mb-6">
-            <h4 className="text-sm font-semibold text-gray-700 mb-2">Historial de estancias</h4>
-            <div className="rounded-xl border border-gray-200 overflow-hidden">
-              <div className="overflow-x-auto max-h-56 overflow-y-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50 sticky top-0">
-                    <tr>
-                      {['Código', 'Hab.', 'Entrada', 'Salida', 'Noches', 'Total', 'Estado'].map(h => (
-                        <th key={h} className="px-3 py-2 text-left text-xs font-semibold text-gray-500">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {historial.map(h => (
-                      <tr key={h.id} className="hover:bg-gray-50">
-                        <td className="px-3 py-2 font-mono text-xs text-gray-600">{h.codigo_reserva}</td>
-                        <td className="px-3 py-2 text-gray-700">{h.habitacion.numero}</td>
-                        <td className="px-3 py-2 text-gray-600">{format(parseISO(h.fecha_entrada), 'dd/MM/yy')}</td>
-                        <td className="px-3 py-2 text-gray-600">{format(parseISO(h.fecha_salida), 'dd/MM/yy')}</td>
-                        <td className="px-3 py-2 text-center text-gray-600">{h.num_noches}</td>
-                        <td className="px-3 py-2 font-medium text-gray-900">{formatCurrency(h.tarifa_acordada)}</td>
-                        <td className="px-3 py-2">
-                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${estadoBadgeClass[h.estado] ?? 'bg-gray-100 text-gray-600'}`}>
-                            {h.estado}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Actions */}
-        <div className="flex gap-3">
-          <button
-            onClick={() => void handleRecalcular()}
-            disabled={segmentando}
-            className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50 flex items-center gap-2"
-          >
-            {segmentando && <span className="w-3 h-3 border border-gray-400 border-t-transparent rounded-full animate-spin" />}
-            Recalcular LTV
-          </button>
-          <button
-            onClick={() => navigate(`/reservas?huesped_id=${huesped.id}`)}
-            className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
-          >
-            Ver reservas →
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function InfoRow({ label, value }: { label: string; value?: string }) {
-  if (!value) return null
-  return (
-    <div>
-      <p className="text-xs text-gray-400">{label}</p>
-      <p className="text-sm text-gray-700 font-medium">{value}</p>
-    </div>
   )
 }
 
