@@ -1,0 +1,609 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum RolPersonal {
+  ADMIN
+  RECEPCIONISTA
+  HOUSEKEEPING
+  MANTENIMIENTO
+  GERENTE
+}
+
+enum TipoHabitacion {
+  SIMPLE
+  DOBLE
+  SUITE
+  FAMILIAR
+}
+
+enum EstadoHabitacion {
+  DISPONIBLE
+  OCUPADA
+  RESERVADA
+  MANTENIMIENTO
+  LIMPIEZA
+  FUERA_DE_SERVICIO
+}
+
+enum TipoDocumento {
+  DNI
+  PASAPORTE
+  CE
+  RUC
+  DOC_EXTRANJERO
+}
+
+enum SegmentoHuesped {
+  NUEVO
+  NORMAL
+  RECURRENTE
+  OCASIONAL
+  VIP
+  CORPORATIVO
+  INACTIVO
+}
+
+enum IdiomaPreferido {
+  ES
+  EN
+  PT
+  FR
+  DE
+}
+
+enum EstadoReserva {
+  CONFIRMADA
+  CHECKIN_REALIZADO
+  CHECKOUT_REALIZADO
+  CANCELADA
+  NO_SHOW
+}
+
+enum CanalReserva {
+  DIRECTO
+  BOOKING_COM
+  EXPEDIA
+  WHATSAPP
+  TELEFONO
+  AIRBNB
+}
+
+enum TipoFolioItem {
+  HABITACION
+  SERVICIO
+  MINIBAR
+  RESTAURANTE
+  LAVANDERIA
+  OTRO
+  TELEFONO
+  SPA
+  PARKING
+  SERVICIO_EXTRA
+}
+
+enum MetodoPago {
+  EFECTIVO
+  TARJETA
+  TRANSFERENCIA
+  NIUBIZ
+  STRIPE
+  TARJETA_CREDITO
+  TARJETA_DEBITO
+  YAPE
+  PLIN
+}
+
+enum EstadoPago {
+  PENDIENTE
+  COMPLETADO
+  FALLIDO
+  REEMBOLSADO
+}
+
+enum TipoComprobante {
+  BOLETA
+  FACTURA
+}
+
+enum CanalSync {
+  BOOKING_COM
+  EXPEDIA
+  AIRBNB
+}
+
+enum TipoEventoSync {
+  RESERVA_NUEVA
+  MODIFICACION
+  CANCELACION
+  DISPONIBILIDAD
+}
+
+enum EstadoSync {
+  PROCESADO
+  ERROR
+  PENDIENTE
+}
+
+enum CanalReview {
+  DIRECTO
+  BOOKING_COM
+  EXPEDIA
+  GOOGLE
+  TRIPADVISOR
+}
+
+enum SentimientoReview {
+  POSITIVO
+  NEUTRAL
+  NEGATIVO
+}
+
+enum FuenteTarifa {
+  MANUAL
+  AI
+  CHANNEL_MANAGER
+}
+
+enum TipoCampana {
+  EMAIL
+  WHATSAPP
+  AMBOS
+}
+
+enum SegmentoCampana {
+  NORMAL
+  VIP
+  CORPORATIVO
+  TODOS
+}
+
+enum EstadoCampana {
+  BORRADOR
+  PROGRAMADA
+  ENVIADA
+  PAUSADA
+}
+
+enum TipoTemporada {
+  TEMPORADA_ALTA
+  TEMPORADA_BAJA
+  FIN_DE_SEMANA
+  EVENTO_ESPECIAL
+  ESTADIA_LARGA
+}
+
+enum TipoTurno {
+  DIA
+  NOCHE
+}
+
+enum EstadoTurno {
+  ABIERTO
+  CERRADO
+}
+
+// ─── Modelos ──────────────────────────────────────────────────────────────────
+
+/// Staff del hotel (recepcionistas, housekeeping, gerentes, etc.)
+model Personal {
+  id            String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre        String      @db.VarChar(100)
+  apellido      String      @db.VarChar(100)
+  email         String      @unique @db.VarChar(255)
+  password_hash String      @db.VarChar(255)
+  rol           RolPersonal
+  activo        Boolean     @default(true)
+  created_at    DateTime    @default(now()) @db.Timestamptz(3)
+  updated_at    DateTime    @updatedAt @db.Timestamptz(3)
+
+  reservas     Reserva[]
+  campanas     CampanaCrm[]
+  folio_items  FolioItem[]
+  pagos        Pago[]
+  turnos       Turno[]
+  gastos_caja_registrados GastoCaja[] @relation("gastos_registrado_por")
+
+  @@map("personal")
+}
+
+/// Tipos de habitación personalizados (además de los predefinidos en enum TipoHabitacion)
+model TipoHabitacionCustom {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre      String   @db.VarChar(50)
+  descripcion String?  @db.Text
+  color_mapa  String   @default("#3B82F6") @db.VarChar(7)
+  activo      Boolean  @default(true)
+  created_at  DateTime @default(now()) @db.Timestamptz(3)
+
+  habitaciones Habitacion[]
+
+  @@map("tipos_habitacion")
+}
+
+/// Habitaciones del hotel
+model Habitacion {
+  id                String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  numero            String           @unique @db.VarChar(10)
+  tipo              TipoHabitacion
+  piso              Int
+  capacidad         Int              @default(2)
+  capacidad_adultos Int?
+  capacidad_ninos   Int              @default(0)
+  tarifa_base       Decimal          @db.Decimal(10, 2)
+  tarifa_minima     Decimal?         @db.Decimal(10, 2)
+  tarifa_maxima     Decimal?         @db.Decimal(10, 2)
+  moneda_tarifa     String           @default("PEN") @db.VarChar(3)
+  estado            EstadoHabitacion @default(DISPONIBLE)
+  descripcion       String?          @db.Text
+  amenidades        Json?
+  fotos             Json             @default("[]")
+  visible_otas      Boolean          @default(true)
+  tipo_custom_id    String?          @db.Uuid
+  created_at        DateTime         @default(now()) @db.Timestamptz(3)
+  updated_at        DateTime         @updatedAt @db.Timestamptz(3)
+
+  tipo_custom           TipoHabitacionCustom?  @relation(fields: [tipo_custom_id], references: [id])
+  reservas              Reserva[]
+  tarifas_historial     TarifaHistorial[]
+  alertas_mantenimiento AlertaMantenimiento[]
+
+  @@index([estado])
+  @@map("habitaciones")
+}
+
+/// Huéspedes (clientes del hotel)
+model Huesped {
+  id                    String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre                String          @db.VarChar(100)
+  apellido              String          @db.VarChar(100)
+  email                 String?         @unique @db.VarChar(255)
+  telefono              String?         @db.VarChar(20)
+  tipo_documento        TipoDocumento
+  numero_documento      String          @unique @db.VarChar(20)
+  nacionalidad          String?         @db.VarChar(100)
+  fecha_nacimiento      DateTime?       @db.Date
+  fecha_vencimiento_doc DateTime?       @db.Date
+  ltv                   Decimal         @default(0) @db.Decimal(12, 2)
+  segmento              SegmentoHuesped @default(NUEVO)
+  notas                 String?         @db.Text
+  idioma_preferido      IdiomaPreferido @default(ES)
+  preferencias          Json?
+  activo                Boolean         @default(true)
+  created_at            DateTime        @default(now()) @db.Timestamptz(3)
+  updated_at            DateTime        @updatedAt @db.Timestamptz(3)
+
+  reservas            Reserva[]
+  reviews             Review[]
+  concierge_mensajes  ConciergeMessage[]
+
+  @@index([numero_documento])
+  @@map("huespedes")
+}
+
+/// Reservas (núcleo del PMS — protegida con EXCLUDE USING gist anti-overbooking)
+model Reserva {
+  id                      String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  codigo                  String           @unique @db.VarChar(20)
+  huesped_id              String           @db.Uuid
+  habitacion_id           String           @db.Uuid
+  fecha_entrada           DateTime         @db.Date
+  fecha_salida            DateTime         @db.Date
+  estado                  EstadoReserva    @default(CONFIRMADA)
+  canal                   CanalReserva     @default(DIRECTO)
+  tarifa_acordada         Decimal          @db.Decimal(10, 2)
+  adultos                 Int              @default(1)
+  ninos                   Int              @default(0)
+  notas                   String?          @db.Text
+  idempotency_key         String?          @unique @db.VarChar(100)
+  personal_id             String?          @db.Uuid
+  qr_token                String?          @db.Text
+  qr_generado_en          DateTime?        @db.Timestamptz(3)
+  tipo_comprobante        TipoComprobante?
+  datos_facturacion       Json?
+  canal_envio_comprobante String?          @default("whatsapp") @db.VarChar(20)
+  created_at              DateTime         @default(now()) @db.Timestamptz(3)
+  updated_at              DateTime         @updatedAt @db.Timestamptz(3)
+
+  huesped    Huesped    @relation(fields: [huesped_id], references: [id])
+  habitacion Habitacion @relation(fields: [habitacion_id], references: [id])
+  personal   Personal?  @relation(fields: [personal_id], references: [id])
+
+  folio_items        FolioItem[]
+  pagos              Pago[]
+  canal_sync_log     CanalSyncLog[]
+  review             Review?
+  concierge_mensajes ConciergeMessage[]
+  comprobante        Comprobante?
+
+  @@index([huesped_id])
+  @@index([habitacion_id])
+  @@index([fecha_entrada, fecha_salida])
+  @@index([estado])
+  @@map("reservas")
+}
+
+/// Ítems del folio de cada reserva (cargos por noche, servicios, extras)
+model FolioItem {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reserva_id      String        @db.Uuid
+  descripcion     String        @db.VarChar(255)
+  tipo            TipoFolioItem @default(HABITACION)
+  cantidad        Int           @default(1)
+  precio_unitario Decimal       @db.Decimal(10, 2)
+  fecha           DateTime      @db.Date
+  anulado         Boolean       @default(false)
+  personal_id     String?       @db.Uuid
+  notas           String?       @db.Text
+  created_at      DateTime      @default(now()) @db.Timestamptz(3)
+
+  reserva  Reserva   @relation(fields: [reserva_id], references: [id])
+  personal Personal? @relation(fields: [personal_id], references: [id])
+
+  @@index([reserva_id])
+  @@map("folio_items")
+}
+
+/// Pagos y comprobantes (Niubiz, Stripe, efectivo, SUNAT CDR)
+model Pago {
+  id                 String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reserva_id         String           @db.Uuid
+  monto              Decimal          @db.Decimal(12, 2)
+  moneda             String           @default("PEN") @db.VarChar(3)
+  metodo             MetodoPago
+  estado             EstadoPago       @default(PENDIENTE)
+  referencia_externa String?          @db.VarChar(255)
+  numero_comprobante String?          @db.VarChar(50)
+  tipo_comprobante   TipoComprobante?
+  sunat_cdr          String?          @db.Text
+  notas              String?          @db.Text
+  personal_id        String?          @db.Uuid
+  created_at         DateTime         @default(now()) @db.Timestamptz(3)
+  updated_at         DateTime         @updatedAt @db.Timestamptz(3)
+
+  reserva  Reserva   @relation(fields: [reserva_id], references: [id])
+  personal Personal? @relation(fields: [personal_id], references: [id])
+
+  @@index([reserva_id])
+  @@map("pagos")
+}
+
+/// Reglas de temporada para ajuste de tarifas
+model ReglaTemporada {
+  id                    String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre                String        @db.VarChar(100)
+  tipo                  TipoTemporada
+  fecha_inicio          DateTime?     @db.Date
+  fecha_fin             DateTime?     @db.Date
+  ajuste_porcentaje     Decimal       @db.Decimal(5, 2)
+  estadia_minima_noches Int?
+  aplica_a_tipos        Json          @default("[]")
+  activo                Boolean       @default(true)
+  created_at            DateTime      @default(now()) @db.Timestamptz(3)
+
+  @@map("reglas_temporada")
+}
+
+/// Log de sincronización con canales externos (Booking.com, Expedia)
+model CanalSyncLog {
+  id              String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  canal           CanalSync
+  tipo_evento     TipoEventoSync
+  payload_entrada Json
+  payload_salida  Json?
+  reserva_id      String?        @db.Uuid
+  estado          EstadoSync     @default(PENDIENTE)
+  idempotency_key String         @unique @db.VarChar(100)
+  error_mensaje   String?        @db.Text
+  created_at      DateTime       @default(now()) @db.Timestamptz(3)
+
+  reserva Reserva? @relation(fields: [reserva_id], references: [id])
+
+  @@index([canal, estado])
+  @@map("canal_sync_log")
+}
+
+/// Reseñas de huéspedes (propias y de canales externos, analizadas con IA)
+model Review {
+  id           String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reserva_id   String             @unique @db.Uuid
+  huesped_id   String             @db.Uuid
+  canal        CanalReview
+  puntuacion   Int
+  texto        String?            @db.Text
+  sentimiento  SentimientoReview?
+  respondido   Boolean            @default(false)
+  respuesta    String?            @db.Text
+  fecha_review DateTime           @db.Date
+  created_at   DateTime           @default(now()) @db.Timestamptz(3)
+
+  reserva Reserva @relation(fields: [reserva_id], references: [id])
+  huesped Huesped @relation(fields: [huesped_id], references: [id])
+
+  @@index([huesped_id])
+  @@map("reviews")
+}
+
+/// Historial de tarifas aplicadas (alimenta el modelo Prophet del ai-service)
+model TarifaHistorial {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  habitacion_id   String        @db.Uuid
+  fecha           DateTime      @db.Date
+  tarifa_base     Decimal       @db.Decimal(10, 2)
+  tarifa_aplicada Decimal       @db.Decimal(10, 2)
+  ocupacion_pct   Decimal?      @db.Decimal(5, 2)
+  canal           CanalReserva?
+  fuente          FuenteTarifa  @default(MANUAL)
+  created_at      DateTime      @default(now()) @db.Timestamptz(3)
+
+  habitacion Habitacion @relation(fields: [habitacion_id], references: [id])
+
+  @@index([habitacion_id, fecha])
+  @@map("tarifas_historial")
+}
+
+/// Alertas de mantenimiento generadas por NLP o escalamiento manual
+model AlertaMantenimiento {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  habitacion_id String    @db.Uuid
+  tipo          String    @db.VarChar(50)
+  descripcion   String    @db.Text
+  frecuencia    Int       @default(1)
+  nivel_alerta  String    @db.VarChar(10)
+  activa        Boolean   @default(true)
+  resuelta_en   DateTime? @db.Timestamptz(3)
+  created_at    DateTime  @default(now()) @db.Timestamptz(3)
+  updated_at    DateTime  @updatedAt @db.Timestamptz(3)
+
+  habitacion Habitacion @relation(fields: [habitacion_id], references: [id])
+
+  @@index([habitacion_id])
+  @@index([activa])
+  @@map("alertas_mantenimiento")
+}
+
+/// Mensajes del chatbot concierge IA (Aria)
+model ConciergeMessage {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  huesped_id       String   @db.Uuid
+  reserva_id       String?  @db.Uuid
+  mensaje_huesped  String   @db.Text
+  respuesta_aria   String?  @db.Text
+  intent_detectado String?  @db.VarChar(50)
+  escalado         Boolean  @default(false)
+  escalado_motivo  String?  @db.VarChar(200)
+  created_at       DateTime @default(now()) @db.Timestamptz(3)
+
+  huesped Huesped  @relation(fields: [huesped_id], references: [id])
+  reserva Reserva? @relation(fields: [reserva_id], references: [id])
+
+  @@index([huesped_id])
+  @@index([escalado])
+  @@map("concierge_mensajes")
+}
+
+/// Campañas CRM (email y WhatsApp por segmento de huésped)
+model CampanaCrm {
+  id                  String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre              String          @db.VarChar(255)
+  tipo                TipoCampana
+  segmento_objetivo   SegmentoCampana @default(TODOS)
+  estado              EstadoCampana   @default(BORRADOR)
+  fecha_programada    DateTime?       @db.Timestamptz(3)
+  fecha_enviada       DateTime?       @db.Timestamptz(3)
+  total_destinatarios Int             @default(0)
+  total_enviados      Int             @default(0)
+  total_abiertos      Int             @default(0)
+  mensaje_whatsapp    String?         @db.Text
+  asunto_email        String?         @db.VarChar(255)
+  cuerpo_email        String?         @db.Text
+  personal_id         String?         @db.Uuid
+  created_at          DateTime        @default(now()) @db.Timestamptz(3)
+  updated_at          DateTime        @updatedAt @db.Timestamptz(3)
+
+  personal Personal? @relation(fields: [personal_id], references: [id])
+
+  @@index([estado, segmento_objetivo])
+  @@map("campanas_crm")
+}
+
+/// Comprobantes electrónicos SUNAT (boleta / factura)
+model Comprobante {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reserva_id    String   @unique @db.Uuid
+  tipo          String   @db.VarChar(10)
+  serie         String   @db.VarChar(10)
+  correlativo   String   @db.VarChar(10)
+  fecha_emision DateTime @db.Date
+  total         Decimal  @db.Decimal(10, 2)
+  xml_generado  String?  @db.Text
+  cdr_respuesta String?  @db.Text
+  estado        String   @db.VarChar(20)
+  pdf_url       String?  @db.Text
+  created_at    DateTime @default(now()) @db.Timestamptz(3)
+
+  reserva Reserva @relation(fields: [reserva_id], references: [id])
+
+  @@index([estado])
+  @@index([fecha_emision])
+  @@map("comprobantes")
+}
+
+/// Turnos de recepción (día / noche) con apertura y cierre
+model Turno {
+  id               String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tipo             TipoTurno
+  recepcionista_id String      @db.Uuid
+  fecha            DateTime    @db.Date
+  hora_apertura    DateTime    @default(now()) @db.Timestamptz(3)
+  hora_cierre      DateTime?   @db.Timestamptz(3)
+  saldo_inicial    Decimal     @default(0) @db.Decimal(10, 2)
+  saldo_final      Decimal?    @db.Decimal(10, 2)
+  estado           EstadoTurno @default(ABIERTO)
+  firma_hash       String?     @db.VarChar(64)
+  observaciones    String?     @db.Text
+  created_at       DateTime    @default(now()) @db.Timestamptz(3)
+
+  recepcionista Personal          @relation(fields: [recepcionista_id], references: [id])
+  gastos_caja   GastoCaja[]
+  reporte_cache ReporteTurnoCache?
+
+  @@index([estado])
+  @@index([fecha])
+  @@map("turnos")
+}
+
+/// Gastos de caja registrados durante un turno
+model GastoCaja {
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  turno_id              String   @db.Uuid
+  concepto              String   @db.VarChar(200)
+  monto                 Decimal  @db.Decimal(10, 2)
+  comprobante_proveedor String?  @db.VarChar(50)
+  registrado_por_id     String   @db.Uuid
+  created_at            DateTime @default(now()) @db.Timestamptz(3)
+
+  turno          Turno    @relation(fields: [turno_id], references: [id], onDelete: Cascade)
+  registrado_por Personal @relation("gastos_registrado_por", fields: [registrado_por_id], references: [id])
+
+  @@index([turno_id])
+  @@map("gastos_caja")
+}
+
+/// Cache del JSON y PDF del reporte de turno cerrado
+model ReporteTurnoCache {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  turno_id     String   @unique @db.Uuid
+  json_reporte Json
+  pdf_url      String?  @db.Text
+  generado_at  DateTime @default(now()) @db.Timestamptz(3)
+
+  turno Turno @relation(fields: [turno_id], references: [id], onDelete: Cascade)
+
+  @@map("reporte_turno_cache")
+}
+
+/// Bitácora anti-fraude: log de modificaciones y anulaciones
+model AuditLog {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  entidad            String   @db.VarChar(50)
+  entidad_id         String   @db.Uuid
+  accion             String   @db.VarChar(50)
+  campos_modificados Json?
+  actor_email        String?  @db.VarChar(255)
+  actor_id           String?  @db.Uuid
+  motivo             String?  @db.Text
+  created_at         DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([entidad, entidad_id])
+  @@index([created_at(sort: Desc)])
+  @@map("audit_log")
+}

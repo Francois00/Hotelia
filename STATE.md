@@ -1,6 +1,6 @@
 # Estado del Proyecto Hotelia
 
-**Última actualización:** 2026-05-20
+**Última actualización:** 2026-05-20 (sprint 2)
 
 ---
 
@@ -15,20 +15,23 @@ El proyecto está en **Fase de consolidación**: el backend (API REST completa),
 | Módulo | Descripción | Backend | Frontend | Tests | Estado general |
 |--------|-------------|---------|----------|-------|----------------|
 | M01 | Check-in Manual + RENIEC | ✅ | ✅ | ✅ | ✅ Completo |
+| M01+ | Modificar / Anular registro + bitácora | ✅ | ✅ | ⬜ | ✅ Completo |
 | M02 | Notificaciones WhatsApp | ✅ | N/A | ⬜ | 🔄 En progreso |
 | M03 | Turno de Caja / Reporte | ✅ | ✅ | ✅ | ✅ Completo |
 | M04 | Historial mejorado huéspedes | ✅ | 🔄 | ⬜ | 🔄 En progreso |
 | M05 | Mantenimiento por habitación | ✅ | 🔄 | ⬜ | 🔄 En progreso |
 | M06 | Concierge IA + WPP | ✅ | ✅ | ⬜ | 🔄 En progreso |
 | M07 | Gestión de habitaciones | ✅ | ✅ | ✅ | ✅ Completo |
+| M07+ | Baja lógica habitaciones (frontend) | ✅ | ✅ | ⬜ | ✅ Completo |
 | M08 | Multi-sede | ⬜ | ⬜ | ⬜ | ⬜ Pendiente |
 | M09 | Channel Manager (OTA) | ✅ | ⬜ | ⬜ | 🔄 En progreso |
 | M10 | Almacén e Inventario | ⬜ | ⬜ | ⬜ | ⬜ Pendiente |
 | M11 | Control de accesos por rol | ✅ | ✅ | ⬜ | ✅ Completo |
+| M11+ | useRol() hook + menú dinámico Sidebar | ✅ | ✅ | ⬜ | ✅ Completo |
 | M12 | Confort del huésped | ⬜ | ⬜ | ⬜ | ⬜ Pendiente |
 | — | Dashboard / Revenue | ✅ | ✅ | ⬜ | ✅ Completo |
 | — | Checkout Wizard | ✅ | ✅ | ⬜ | ✅ Completo |
-| — | Reservas CRUD | ✅ | ✅ | ⬜ | ✅ Completo |
+| — | Reservas CRUD + tabs + modales | ✅ | ✅ | ⬜ | ✅ Completo |
 | — | CRM / Segmentación | ✅ | ✅ | ⬜ | ✅ Completo |
 | — | QR Check-in | ✅ | ✅ | ⬜ | ✅ Completo |
 | — | Comprobantes SUNAT | ✅ | ⬜ | ⬜ | 🔄 En progreso |
@@ -39,13 +42,16 @@ El proyecto está en **Fase de consolidación**: el backend (API REST completa),
 
 ## Qué está completo
 
-- **Backend API**: 20+ rutas, 60+ endpoints bajo `/api/v1/`, con JWT, RBAC, rate limiting, HMAC en webhooks
-- **Base de datos**: 18 tablas, 11 migraciones aplicadas, constraint GIST anti-overbooking, extensiones pgcrypto/btree_gist/pg_trgm
+- **Backend API**: 20+ rutas, 65+ endpoints bajo `/api/v1/`, con JWT, RBAC, rate limiting, HMAC en webhooks
+- **Base de datos**: 19 tablas (+ `audit_log`), 12 migraciones aplicadas, constraint GIST anti-overbooking, extensiones pgcrypto/btree_gist/pg_trgm
 - **Check-in Manual (M01)**: wizard completo con Redis lock + `FOR UPDATE NOWAIT`, fuego-y-olvida a SUNAT/WhatsApp/n8n
+- **Modificar/Anular Reservas**: `PATCH /reservas/:id/modificar` con audit log, `DELETE /reservas/:id` (soft delete CANCELADA); campo tarifa bloqueado para RECEPCIONISTA; `GET /reservas/:id/auditoria` solo GERENTE
 - **Turno de Caja (M03)**: apertura/cierre con bcrypt PIN, SHA256 firma_hash, resumen en tiempo real, PDF con PDFKit
-- **Gestión de Habitaciones (M07)**: CRUD completo, fotos, tipos custom, reglas de temporada, tarifa sugerida via ia-service
+- **Gestión de Habitaciones (M07)**: CRUD completo, fotos, tipos custom, reglas de temporada, tarifa sugerida via ia-service, botón "Dar de baja" en lista con modal de confirmación
 - **Checkout Wizard**: wizard 3 pasos (folio + cargos, pagos multi-método, comprobante BOLETA/FACTURA), modal éxito con impresión; botón [Checkout] en tabla Reservas para estado CHECKIN_REALIZADO
-- **Frontend SPA**: Login, Dashboard (KPIs + forecast), Habitaciones, Reservas, Check-in Manual, Turno Activo, Historial Turnos, Revenue, CRM, Concierge IA, Checkout Wizard
+- **Frontend SPA**: Login, Dashboard (KPIs + forecast), Habitaciones (con baja), Reservas (tabs Activos/Todos/Histórico + Modificar/Anular), Check-in Manual, Turno Activo, Historial Turnos, Revenue, CRM, Concierge IA, Checkout Wizard
+- **useRol() hook**: hook React que lee el rol del JWT y expone flags `isGerente`, `isRecepcionista`, `isHousekeeping`, `isMantenimiento`, `canModificarPrecio`
+- **Sidebar por rol (M11)**: menú dinámico con `useRol()` — HOUSEKEEPING/MANTENIMIENTO ven solo Habitaciones; Reservas y Turno solo para recepción+; Revenue/CRM solo para gerente
 - **AI Service**: FastAPI con 7 routers — forecast (Prophet), pricing dinámico, CRM/segmentación, housekeeping, alertas, reviews NLP, concierge (Claude Anthropic)
 - **n8n Flows**: 5 flujos JSON listos para importar (checkin, checkout, encuesta, alerta mantenimiento, segmentación semanal)
 - **Docker Compose**: stack completo con 6 servicios (db, redis, n8n, backend, ia-service, frontend) en red `hotel_network`
