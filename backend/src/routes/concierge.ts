@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { authenticate } from '../middleware/auth';
-import { preguntarLlama3, obtenerDisponibilidad } from '../services/concierge.service';
+import { procesarMensaje, getEstadoPaso } from '../services/concierge.service';
 
 const router = Router();
 
@@ -12,29 +12,26 @@ const chatSchema = z.object({
   telefono: z.string().optional(),
 });
 
-// POST /api/v1/concierge/chat — prueba directa sin formato WPP
+// POST /api/v1/concierge/chat — prueba directa del flujo sin WPP real
 router.post('/chat', async (req: Request, res: Response) => {
   try {
-    const { mensaje } = chatSchema.parse(req.body);
+    const { mensaje, telefono = `test_${Date.now()}` } = chatSchema.parse(req.body);
     const t0 = Date.now();
 
-    let contextoExtra = '';
-    if (/reserv|habitaci|disponib|cuarto|room/i.test(mensaje)) {
-      const hoy    = new Date().toISOString().split('T')[0];
-      const manana = new Date(Date.now() + 86_400_000).toISOString().split('T')[0];
-      const disponibles = await obtenerDisponibilidad(hoy, manana);
-      if (disponibles.length > 0) {
-        contextoExtra = '\nHabitaciones disponibles HOY:\n' +
-          disponibles.slice(0, 5).map(h =>
-            `- Hab. ${h.numero} (${h.tipo}): S/ ${h.tarifa_base}/noche, cap. ${h.capacidad_adultos ?? '?'} personas`,
-          ).join('\n');
-      }
-    }
+    // Capture the outbound message instead of sending it via WPP
+    let respuesta = '';
+    const capturar = async (_tel: string, texto: string): Promise<void> => {
+      respuesta = texto;
+    };
 
-    const respuesta = await preguntarLlama3(mensaje, contextoExtra);
-    const tiempo_ms = Date.now() - t0;
+    await procesarMensaje(telefono, mensaje, capturar);
 
-    res.json({ respuesta, modelo: 'llama3', tiempo_ms });
+    res.json({
+      respuesta,
+      modelo:      'llama3',
+      tiempo_ms:   Date.now() - t0,
+      paso_actual: getEstadoPaso(telefono),
+    });
   } catch (err) {
     if (err instanceof z.ZodError) {
       res.status(400).json({ error: err.errors });
