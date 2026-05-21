@@ -59,6 +59,11 @@ export default function Sidebar() {
           <NavItem to="/almacen" icon="📦" label="Almacén" />
         )}
 
+        {/* Housekeeping: plan del día */}
+        {(isHousekeeping || isRecepcionista) && (
+          <NavItem to="/housekeeping" icon="🧹" label="Plan del día" />
+        )}
+
         {/* Concierge IA: recepción y gerente */}
         {isRecepcionista && (
           <NavItem to="/concierge" icon="💬" label="Concierge IA" />

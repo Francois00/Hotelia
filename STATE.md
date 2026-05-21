@@ -1,6 +1,6 @@
 # Estado del Proyecto Hotelia
 
-**Última actualización:** 2026-05-21 (M10 + Encuesta + Solicitudes)
+**Última actualización:** 2026-05-21 (Housekeeping + Cron jobs)
 
 ---
 
@@ -61,6 +61,8 @@ El proyecto está en **Fase de consolidación**: el backend (API REST completa),
 - **M10 Almacén e Inventario**: 7 tablas DB, 13 endpoints `/api/v1/almacen/*`, `AlmacenPage.tsx` (dashboard cards, tabs categorías, progress bars stock, historial drawer, modales entrada/salida)
 - **Solicitudes de huéspedes**: 3 endpoints `/api/v1/solicitudes`, `SolicitudesWidget.tsx` con polling 30s, alerta sonora, integrado en Dashboard
 - **Encuesta post-estancia**: endpoints `POST /n8n/programar-encuesta` y `POST /n8n/guardar-encuesta`, flujo n8n `encuesta-post-estancia.json` con Wait 24h
+- **Housekeeping plan del día**: `HousekeepingPage.tsx` con cards por prioridad, timer en vivo, 3 endpoints `/api/v1/housekeeping/*`
+- **Cron jobs**: `jobs/scheduler.ts` — NO-SHOW diario, sync habitaciones cada 15min, CRM semanal, alertas checkouts 08:00
 
 ---
 
@@ -120,6 +122,11 @@ El proyecto está en **Fase de consolidación**: el backend (API REST completa),
 
 ## Últimos cambios detectados
 
+- 2026-05-21: Housekeeping plan del día + Cron jobs automáticos
+  - `HousekeepingPage.tsx`: cards por prioridad urgente/alta/normal, timer en vivo, botones Iniciar/Marcar lista, filtros por piso y estado
+  - `routes/housekeeping.ts`: GET /plan-dia (prioridad por check-in hoy), PATCH /:numero/estado, GET /:numero/detalle
+  - `jobs/scheduler.ts`: 4 cron jobs — NO-SHOW(02:00), Sync-habs(*/15min), CRM(dom 03:00), Alertas(08:00)
+  - Sidebar: 🧹 Plan del día para housekeeping y recepcionista
 - 2026-05-21: M10 Almacén + Encuesta post-estancia + Solicitudes huéspedes completados
   - 5 tablas DB: almacen_categorias (8 rows), almacen_articulos (20 seed), almacen_movimientos, almacen_inventariados, almacen_inventariado_items + encuestas_satisfaccion + solicitudes_huesped
   - Backend: /api/v1/almacen/* (13 endpoints), /api/v1/solicitudes (3 endpoints), n8n encuesta endpoints
@@ -141,9 +148,9 @@ El proyecto está en **Fase de consolidación**: el backend (API REST completa),
 
 ## Próximos pasos recomendados (en orden de prioridad)
 
-1. WhatsApp Business número real (para clientes reales en producción)
-2. M10 Almacén e Inventario — backend + frontend (nuevas tablas productos/movimientos_stock)
-3. Encuesta post-estancia automática (n8n + 24h delay tras checkout)
-4. Deploy a servidor con dominio fijo
+1. Reportes mensuales PDF/Excel (revenue + ocupación + mantenimiento)
+2. Campañas CRM por WhatsApp (segmentación + envío masivo)
+3. Deploy a servidor con dominio fijo
+4. WhatsApp Business número real (para clientes reales en producción)
 5. SUNAT en producción (actualmente en modo sandbox)
 6. M08 Multi-sede (si la empresa abre otra propiedad)
