@@ -1,0 +1,109 @@
+{
+  "name": "Encuesta Post Estancia",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "hours", "cronExpression": "0 10 * * *" }]
+        }
+      },
+      "id": "cc000003-0000-0000-0000-000000000001",
+      "name": "Cron Diario 10am",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://backend:3000/api/v1/reservas",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Authorization", "value": "Bearer change_me_backend_token_dev" }]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "estado", "value": "CHECKOUT_REALIZADO" },
+            { "name": "limit",  "value": "50" }
+          ]
+        }
+      },
+      "id": "cc000003-0000-0000-0000-000000000002",
+      "name": "Get Checkouts Ayer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [400, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0,10);\nconst reservas = $input.all()[0].json.data || [];\nconst toSurvey = reservas.filter(r => {\n  const salida = r.fecha_salida?.slice(0,10);\n  return salida === yesterday;\n});\nreturn toSurvey.map(r => ({ json: r }));"
+      },
+      "id": "cc000003-0000-0000-0000-000000000003",
+      "name": "Filtrar Checkouts Ayer",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [600, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.sendgrid.com/v3/mail/send",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer {{ $env.SENDGRID_API_KEY }}" },
+            { "name": "Content-Type",  "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ personalizations: [{ to: [{ email: $json.huesped?.email, name: $json.huesped?.nombre + ' ' + $json.huesped?.apellido }] }], from: { email: 'admin@hotelia.pe', name: $env.HOTEL_NAME }, subject: 'Cuéntanos tu experiencia en ' + $env.HOTEL_NAME, content: [{ type: 'text/html', value: '<p>Estimado/a <strong>' + ($json.huesped?.nombre || 'Huésped') + '</strong>,</p><p>Gracias por hospedarte en ' + $env.HOTEL_NAME + '. ¿Cómo calificarías tu experiencia?</p><p><a href=\"' + 'http://localhost:5173/encuesta' + '?reserva=' + $json.id + '\">⭐⭐⭐⭐⭐ Dejar mi opinión</a></p>' }] }) }}"
+      },
+      "id": "cc000003-0000-0000-0000-000000000004",
+      "name": "Enviar Email Encuesta",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [800, 300],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://backend:3000/api/v1/internal/notificaciones",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "X-Service-Token", "value": "change_me_backend_token_dev" }]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ tipo: 'ENCUESTA_ENVIADA', reserva_id: $json.id, huesped_id: $json.huesped_id }) }}"
+      },
+      "id": "cc000003-0000-0000-0000-000000000005",
+      "name": "Log Encuesta Enviada",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1000, 300],
+      "continueOnFail": true
+    }
+  ],
+  "connections": {
+    "Cron Diario 10am": {
+      "main": [[{ "node": "Get Checkouts Ayer", "type": "main", "index": 0 }]]
+    },
+    "Get Checkouts Ayer": {
+      "main": [[{ "node": "Filtrar Checkouts Ayer", "type": "main", "index": 0 }]]
+    },
+    "Filtrar Checkouts Ayer": {
+      "main": [[{ "node": "Enviar Email Encuesta", "type": "main", "index": 0 }]]
+    },
+    "Enviar Email Encuesta": {
+      "main": [[{ "node": "Log Encuesta Enviada", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "id": "encuesta-post-estancia-flow-003",
+  "versionId": "3a2b3c4d-0003-0003-0003-000000000003",
+  "meta": { "instanceId": "hotel-pms" }
+}

@@ -1,0 +1,169 @@
+{
+  "name": "Alerta Mantenimiento",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "alerta-mantenimiento",
+        "responseMode": "responseNode"
+      },
+      "id": "dd000004-0000-0000-0000-000000000001",
+      "name": "Webhook Alerta",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [200, 300],
+      "webhookId": "alerta-mantenimiento-webhook"
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            { "name": "habitacion_id", "value": "={{ $json.body.habitacion_id }}" },
+            { "name": "tipo",          "value": "={{ $json.body.tipo }}" },
+            { "name": "descripcion",   "value": "={{ $json.body.descripcion }}" },
+            { "name": "nivel_alerta",  "value": "={{ $json.body.nivel_alerta }}" },
+            { "name": "frecuencia",    "value": "={{ $json.body.frecuencia }}" },
+            { "name": "timestamp",     "value": "={{ new Date().toISOString() }}" }
+          ]
+        }
+      },
+      "id": "dd000004-0000-0000-0000-000000000002",
+      "name": "Extraer Datos",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [400, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://ia-service:8001/ia/v1/maintenance/incidente",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "X-IA-Key", "value": "={{ $env.IA_SECRET_KEY }}" }]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ habitacion_id: $json.habitacion_id, tipo: $json.tipo, descripcion: $json.descripcion, frecuencia: $json.frecuencia, timestamp: $json.timestamp }) }}"
+      },
+      "id": "dd000004-0000-0000-0000-000000000008",
+      "name": "Log IA Service",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [600, 300],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [{ "value1": "={{ $json.nivel_alerta }}", "operation": "equal", "value2": "alta" }]
+        }
+      },
+      "id": "dd000004-0000-0000-0000-000000000003",
+      "name": "Nivel Alta?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [800, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.sendgrid.com/v3/mail/send",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.SENDGRID_API_KEY }}" },
+            { "name": "Content-Type",  "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ personalizations: [{ to: [{ email: 'mantenimiento@hotelia.pe' }] }], from: { email: 'admin@hotelia.pe' }, subject: '🔴 ALERTA ALTA — Habitación ' + $json.habitacion_id + ': ' + $json.descripcion, content: [{ type: 'text/plain', value: 'Problema de alta prioridad.\\n\\nHabitación: ' + $json.habitacion_id + '\\nTipo: ' + $json.tipo + '\\nFrecuencia: ' + $json.frecuencia + ' veces\\nFecha: ' + $json.timestamp }] }) }}"
+      },
+      "id": "dd000004-0000-0000-0000-000000000004",
+      "name": "Email Alta Prioridad",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [800, 200],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: ':rotating_light: *ALERTA ALTA — Mantenimiento*\\nHabitación: ' + $json.habitacion_id + '\\nProblema: ' + $json.descripcion + ' (' + $json.frecuencia + ' veces)\\nFecha: ' + $json.timestamp }) }}"
+      },
+      "id": "dd000004-0000-0000-0000-000000000005",
+      "name": "Slack Alta Prioridad",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1000, 200],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.sendgrid.com/v3/mail/send",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.SENDGRID_API_KEY }}" },
+            { "name": "Content-Type",  "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ personalizations: [{ to: [{ email: 'mantenimiento@hotelia.pe' }] }], from: { email: 'admin@hotelia.pe' }, subject: '🟡 ALERTA MEDIA — Habitación ' + $json.habitacion_id + ': ' + $json.descripcion, content: [{ type: 'text/plain', value: 'Problema de prioridad media.\\n\\nHabitación: ' + $json.habitacion_id + '\\nTipo: ' + $json.tipo + '\\nFrecuencia: ' + $json.frecuencia + ' veces\\nFecha: ' + $json.timestamp }] }) }}"
+      },
+      "id": "dd000004-0000-0000-0000-000000000006",
+      "name": "Email Media Prioridad",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [800, 400],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"ok\": true, \"procesado\": true }"
+      },
+      "id": "dd000004-0000-0000-0000-000000000007",
+      "name": "Responder OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1200, 300]
+    }
+  ],
+  "connections": {
+    "Webhook Alerta": {
+      "main": [[{ "node": "Extraer Datos", "type": "main", "index": 0 }]]
+    },
+    "Extraer Datos": {
+      "main": [[{ "node": "Log IA Service", "type": "main", "index": 0 }]]
+    },
+    "Log IA Service": {
+      "main": [[{ "node": "Nivel Alta?", "type": "main", "index": 0 }]]
+    },
+    "Nivel Alta?": {
+      "main": [
+        [{ "node": "Email Alta Prioridad", "type": "main", "index": 0 }],
+        [{ "node": "Email Media Prioridad", "type": "main", "index": 0 }]
+      ]
+    },
+    "Email Alta Prioridad": {
+      "main": [[{ "node": "Slack Alta Prioridad", "type": "main", "index": 0 }]]
+    },
+    "Slack Alta Prioridad": {
+      "main": [[{ "node": "Responder OK", "type": "main", "index": 0 }]]
+    },
+    "Email Media Prioridad": {
+      "main": [[{ "node": "Responder OK", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "id": "alerta-mantenimiento-flow-004",
+  "versionId": "4a2b3c4d-0004-0004-0004-000000000004",
+  "meta": { "instanceId": "hotel-pms" }
+}

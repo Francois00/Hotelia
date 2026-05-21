@@ -1,0 +1,187 @@
+{
+  "name": "Segmentacion Semanal CRM",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": { "interval": [{ "field": "cronExpression", "expression": "0 3 * * 1" }] }
+      },
+      "id": "ee000005-0000-0000-0000-000000000001",
+      "name": "Cron Lunes 3am",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://ia-service:8001/ia/v1/crm/segmentar-todos",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "X-IA-Key", "value": "change_me_ia_secret_dev" }]
+        }
+      },
+      "id": "ee000005-0000-0000-0000-000000000002",
+      "name": "Segmentar Todos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [400, 300],
+      "continueOnFail": true
+    },
+    {
+      "parameters": { "amount": 5, "unit": "minutes" },
+      "id": "ee000005-0000-0000-0000-000000000003",
+      "name": "Wait 5min",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [600, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://ia-service:8001/ia/v1/crm/stats",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "X-IA-Key", "value": "change_me_ia_secret_dev" }]
+        }
+      },
+      "id": "ee000005-0000-0000-0000-000000000004",
+      "name": "Get CRM Stats",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [800, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [{ "value1": "={{ $json.huespedes_inactivos_180d }}", "operation": "largerEqual", "value2": 1 }]
+        }
+      },
+      "id": "ee000005-0000-0000-0000-000000000005",
+      "name": "Hay Inactivos?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1000, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://backend:3000/api/v1/huespedes",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Authorization", "value": "Bearer change_me_backend_token_dev" }]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "segmento", "value": "INACTIVO" },
+            { "name": "limit",    "value": "100" }
+          ]
+        }
+      },
+      "id": "ee000005-0000-0000-0000-000000000006",
+      "name": "Get Inactivos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1200, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "const huespedes = $input.all()[0].json.data || [];\nconst conEmail = huespedes.filter(h => h.email);\nreturn conEmail.map(h => ({ json: h }));"
+      },
+      "id": "ee000005-0000-0000-0000-000000000007",
+      "name": "Filtrar Con Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1400, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.sendgrid.com/v3/mail/send",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer {{ $env.SENDGRID_API_KEY }}" },
+            { "name": "Content-Type",  "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ personalizations: [{ to: [{ email: $json.email, name: $json.nombre }] }], from: { email: 'admin@hotelia.pe', name: $env.HOTEL_NAME }, subject: 'Te echamos de menos en ' + $env.HOTEL_NAME, content: [{ type: 'text/html', value: '<p>Hola <strong>' + $json.nombre + '</strong>,</p><p>Ha pasado un tiempo desde tu última visita y te echamos de menos. ¿Te gustaría volver a disfrutar de una experiencia única?</p><p>Escríbenos o visita nuestra web para ver disponibilidad.</p>' }] }) }}"
+      },
+      "id": "ee000005-0000-0000-0000-000000000008",
+      "name": "Email Reactivacion",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1600, 200],
+      "continueOnFail": true
+    },
+    {
+      "parameters": { "amount": 2, "unit": "seconds" },
+      "id": "ee000005-0000-0000-0000-000000000009",
+      "name": "Wait Anti-Spam",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [1800, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.sendgrid.com/v3/mail/send",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.SENDGRID_API_KEY }}" },
+            { "name": "Content-Type",  "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ personalizations: [{ to: [{ email: 'gerente@hotelia.pe' }] }], from: { email: 'admin@hotelia.pe' }, subject: 'Resumen Semanal CRM — ' + new Date().toLocaleDateString('es-PE'), content: [{ type: 'text/plain', value: 'Resumen de segmentación semanal.\\n\\nGenerado automáticamente por n8n.' }] }) }}"
+      },
+      "id": "ee000005-0000-0000-0000-000000000010",
+      "name": "Email Resumen Gerente",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1200, 400],
+      "continueOnFail": true
+    }
+  ],
+  "connections": {
+    "Cron Lunes 3am": {
+      "main": [[{ "node": "Segmentar Todos", "type": "main", "index": 0 }]]
+    },
+    "Segmentar Todos": {
+      "main": [[{ "node": "Wait 5min", "type": "main", "index": 0 }]]
+    },
+    "Wait 5min": {
+      "main": [[{ "node": "Get CRM Stats", "type": "main", "index": 0 }]]
+    },
+    "Get CRM Stats": {
+      "main": [[{ "node": "Hay Inactivos?", "type": "main", "index": 0 }]]
+    },
+    "Hay Inactivos?": {
+      "main": [
+        [{ "node": "Get Inactivos",       "type": "main", "index": 0 }],
+        [{ "node": "Email Resumen Gerente","type": "main", "index": 0 }]
+      ]
+    },
+    "Get Inactivos": {
+      "main": [[{ "node": "Filtrar Con Email", "type": "main", "index": 0 }]]
+    },
+    "Filtrar Con Email": {
+      "main": [[{ "node": "Email Reactivacion", "type": "main", "index": 0 }]]
+    },
+    "Email Reactivacion": {
+      "main": [[{ "node": "Wait Anti-Spam", "type": "main", "index": 0 }]]
+    },
+    "Wait Anti-Spam": {
+      "main": [[{ "node": "Email Resumen Gerente", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "id": "segmentacion-semanal-flow-005",
+  "versionId": "5a2b3c4d-0005-0005-0005-000000000005",
+  "meta": { "instanceId": "hotel-pms" }
+}

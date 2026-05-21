@@ -72,3 +72,6 @@ backend/node_modules/.prisma/
 # ── Obsidian (workspace local, no compartido) ────────────────────────────────
 docs/obsidian-vault/.obsidian/workspace.json
 Documentos/.obsidian/workspace.json
+
+# ── Claude Code local data (memoria, sesiones) ───────────────────────────────
+.claude/

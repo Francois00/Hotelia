@@ -1,0 +1,105 @@
+{
+  "name": "Checkin Automatico",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": { "interval": [{ "field": "minutes", "minutesInterval": 15 }] }
+      },
+      "id": "aa000001-0000-0000-0000-000000000001",
+      "name": "Cron 15min",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://backend:3000/api/v1/reservas",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Authorization", "value": "Bearer change_me_backend_token_dev" }]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "estado", "value": "CONFIRMADA" },
+            { "name": "limit",  "value": "100" }
+          ]
+        }
+      },
+      "id": "aa000001-0000-0000-0000-000000000002",
+      "name": "Get Reservas Confirmadas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [400, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = new Date();\nconst today = now.toISOString().slice(0,10);\nconst hour = now.getHours();\nconst items = $input.all();\nconst reservas = items[0].json.data || [];\nconst toCheckin = reservas.filter(r => {\n  return r.fecha_entrada === today && hour >= 14;\n});\nreturn toCheckin.map(r => ({ json: r }));"
+      },
+      "id": "aa000001-0000-0000-0000-000000000003",
+      "name": "Filtrar Checkin Hoy >=14h",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [600, 300]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=http://backend:3000/api/v1/reservas/{{ $json.id }}/estado",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Authorization", "value": "Bearer change_me_backend_token_dev" }]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [{ "name": "estado", "value": "CHECKIN_REALIZADO" }]
+        }
+      },
+      "id": "aa000001-0000-0000-0000-000000000004",
+      "name": "PATCH Estado Checkin",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [800, 300],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://backend:3000/api/v1/internal/notificaciones",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "X-Service-Token", "value": "change_me_backend_token_dev" }]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ tipo: 'CHECKIN_COMPLETADO', reserva_id: $json.id, huesped_nombre: $json.huesped?.nombre, habitacion_numero: $json.habitacion?.numero }) }}"
+      },
+      "id": "aa000001-0000-0000-0000-000000000005",
+      "name": "Notificar Checkin",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1000, 300],
+      "continueOnFail": true
+    }
+  ],
+  "connections": {
+    "Cron 15min": {
+      "main": [[{ "node": "Get Reservas Confirmadas", "type": "main", "index": 0 }]]
+    },
+    "Get Reservas Confirmadas": {
+      "main": [[{ "node": "Filtrar Checkin Hoy >=14h", "type": "main", "index": 0 }]]
+    },
+    "Filtrar Checkin Hoy >=14h": {
+      "main": [[{ "node": "PATCH Estado Checkin", "type": "main", "index": 0 }]]
+    },
+    "PATCH Estado Checkin": {
+      "main": [[{ "node": "Notificar Checkin", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "id": "checkin-automatico-flow-001",
+  "versionId": "1a2b3c4d-0001-0001-0001-000000000001",
+  "meta": { "instanceId": "hotel-pms" }
+}
