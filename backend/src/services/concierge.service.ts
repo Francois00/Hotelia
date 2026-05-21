@@ -8,8 +8,8 @@ import {
 } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 
-const OLLAMA_URL   = () => process.env.OLLAMA_URL           ?? 'http://localhost:11434';
-const WPP_TOKEN    = () => process.env.WHATSAPP_ACCESS_TOKEN  ?? '';
+const OLLAMA_URL   = () => process.env.OLLAMA_URL              ?? 'http://localhost:11434';
+const WPP_TOKEN    = () => process.env.WHATSAPP_ACCESS_TOKEN   ?? '';
 const WPP_PHONE_ID = () => process.env.WHATSAPP_PHONE_NUMBER_ID ?? '';
 
 // ─── Date parser (regex-first, no LLM needed for common patterns) ───────────
@@ -74,15 +74,15 @@ interface HabOpcion {
 }
 
 interface ConversacionState {
-  paso:          Paso;
+  paso:           Paso;
   fecha_entrada?: string;
   fecha_salida?:  string;
-  personas?:     number;
-  opciones?:     HabOpcion[];
-  habitacion?:   HabOpcion;
-  nombre?:       string;
-  dni?:          string;
-  historial:     Array<{ rol: 'user' | 'assistant'; contenido: string }>;
+  personas?:      number;
+  opciones?:      HabOpcion[];
+  habitacion?:    HabOpcion;
+  nombre?:        string;
+  dni?:           string;
+  historial:      Array<{ rol: 'user' | 'assistant'; contenido: string }>;
 }
 
 // ─── In-memory store (Redis in prod) ────────────────────────────────────────
@@ -96,12 +96,12 @@ function getConversacion(telefono: string): ConversacionState {
   return conversaciones[telefono];
 }
 
-function limpiarConversacion(telefono: string): void {
+export function limpiarConversacion(telefono: string): void {
   delete conversaciones[telefono];
 }
 
 export function getEstadoPaso(telefono: string): string {
-  return conversaciones[telefono]?.paso ?? 'finalizado';
+  return conversaciones[telefono]?.paso ?? 'inicio';
 }
 
 // ─── Send via WhatsApp ───────────────────────────────────────────────────────
@@ -193,11 +193,11 @@ async function crearReserva(
 ): Promise<{ codigo: string; noches: number; total: number; adelanto: number }> {
   const raw = state.dni ?? '';
   let tipoDoc: TipoDocumento = TipoDocumento.DOC_EXTRANJERO;
-  if (/^\d{8}$/.test(raw))  tipoDoc = TipoDocumento.DNI;
+  if (/^\d{8}$/.test(raw))       tipoDoc = TipoDocumento.DNI;
   else if (/^\d{11}$/.test(raw)) tipoDoc = TipoDocumento.RUC;
   else if (/^[A-Z0-9]{6,12}$/i.test(raw)) tipoDoc = TipoDocumento.PASAPORTE;
 
-  const partes = (state.nombre ?? '').trim().split(/\s+/);
+  const partes  = (state.nombre ?? '').trim().split(/\s+/);
   const nombre  = partes[0] ?? 'HUÉSPED';
   const apellido = partes.slice(1).join(' ') || 'S/A';
 
@@ -206,7 +206,7 @@ async function crearReserva(
     create: {
       nombre,
       apellido,
-      tipo_documento:  tipoDoc,
+      tipo_documento:   tipoDoc,
       numero_documento: raw,
       telefono,
       segmento: SegmentoHuesped.NUEVO,
@@ -214,12 +214,12 @@ async function crearReserva(
     update: {},
   });
 
-  const noches = Math.ceil(
+  const noches  = Math.ceil(
     (new Date(state.fecha_salida!).getTime() -
      new Date(state.fecha_entrada!).getTime()) / 86_400_000,
   );
-  const tarifa  = state.habitacion!.tarifa_base;
-  const total   = tarifa * noches;
+  const tarifa   = state.habitacion!.tarifa_base;
+  const total    = tarifa * noches;
   const adelanto = total * 0.5;
 
   const reserva = await prisma.reserva.create({
@@ -240,30 +240,27 @@ async function crearReserva(
   return { codigo: reserva.codigo, noches, total, adelanto };
 }
 
-// ─── Main processor ──────────────────────────────────────────────────────────
+// ─── Main processor — returns the response text ──────────────────────────────
 
 export async function procesarMensaje(
   telefono: string,
   texto: string,
-  enviarFn: (tel: string, msg: string) => Promise<void> = enviarWPP,
-): Promise<void> {
+): Promise<string> {
   const state = getConversacion(telefono);
   state.historial.push({ rol: 'user', contenido: texto });
-  console.log(`[WPP IN] ${telefono} [paso:${state.paso}]: ${texto}`);
+  console.log(`[CONCIERGE IN] ${telefono} [paso:${state.paso}]: ${texto}`);
 
   // ── PASO 0: Inicio ──────────────────────────────────────────────────────
   if (state.paso === 'inicio') {
     if (/reserv|habitaci|cuarto|disponib|quiero|necesito|busco/i.test(texto)) {
       state.paso = 'pidiendo_fechas';
-      await enviarFn(
-        telefono,
+      return (
         `¡Hola! 👋 Soy el asistente del *Hotel Hotelia* en Arequipa.\n\n` +
         `Con gusto te ayudo a reservar. 🏨\n\n` +
         `¿Para qué fechas necesitas la habitación?\n` +
         `Por favor dime: *fecha de entrada* y *fecha de salida*\n` +
-        `_(Ejemplo: "del 25 al 27 de mayo")_`,
+        `_(Ejemplo: "del 25 al 27 de mayo")_`
       );
-      return;
     }
 
     const resp = await llama3(
@@ -272,27 +269,23 @@ export async function procesarMensaje(
       'Responde brevemente en español. Si el cliente quiere reservar, ' +
       'pregúntale para qué fechas necesita la habitación.',
     );
-    await enviarFn(telefono, resp || '¡Hola! ¿En qué te puedo ayudar?');
-    return;
+    return resp || '¡Hola! ¿En qué te puedo ayudar? Puedo ayudarte a reservar una habitación.';
   }
 
   // ── PASO 1: Pidiendo fechas ─────────────────────────────────────────────
   if (state.paso === 'pidiendo_fechas') {
-    // Try direct regex first (handles "del 25 al 27 de mayo", "25/05 al 27/05", etc.)
     const fechas = extraerFechas(texto);
     if (fechas) {
       state.fecha_entrada = fechas.entrada;
       state.fecha_salida  = fechas.salida;
       state.paso = 'pidiendo_personas';
-      await enviarFn(
-        telefono,
+      return (
         `📅 Perfecto: *${fechas.entrada}* al *${fechas.salida}*\n\n` +
-        `¿Cuántas personas se hospedarán? 👥`,
+        `¿Cuántas personas se hospedarán? 👥`
       );
-      return;
     }
 
-    // Fallback: ask Llama3 to parse and return any date values
+    // Fallback: ask Llama3
     const hoy = new Date().toISOString().split('T')[0];
     const extraccion = await llama3(
       `Mensaje del usuario: "${texto}"\nHoy: ${hoy}\n` +
@@ -303,11 +296,9 @@ export async function procesarMensaje(
     );
 
     try {
-      // Extract any JSON object from the response
       const match = extraccion.match(/\{[^}]+\}/);
       if (match) {
         const obj = JSON.parse(match[0]) as Record<string, string>;
-        // Accept any key that looks like entry/exit date
         const entrada = obj['entrada'] ?? obj['fecha_entrada'] ?? obj['fecha_inicio'] ??
                         obj['entry'] ?? obj['check_in'] ?? '';
         const salida  = obj['salida']  ?? obj['fecha_salida']  ?? obj['fecha_fin']   ??
@@ -316,22 +307,18 @@ export async function procesarMensaje(
           state.fecha_entrada = entrada;
           state.fecha_salida  = salida;
           state.paso = 'pidiendo_personas';
-          await enviarFn(
-            telefono,
+          return (
             `📅 Perfecto: *${entrada}* al *${salida}*\n\n` +
-            `¿Cuántas personas se hospedarán? 👥`,
+            `¿Cuántas personas se hospedarán? 👥`
           );
-          return;
         }
       }
     } catch { /* fall through */ }
 
-    await enviarFn(
-      telefono,
+    return (
       'No pude entender las fechas 😅\n\n' +
-      'Por favor escríbelo así:\n*"del 25 al 27 de mayo"*\no *"25/05 al 27/05/2026"*',
+      'Por favor escríbelo así:\n*"del 25 al 27 de mayo"*\no *"25/05 al 27/05/2026"*'
     );
-    return;
   }
 
   // ── PASO 2: Pidiendo personas ───────────────────────────────────────────
@@ -349,12 +336,10 @@ export async function procesarMensaje(
 
       if (disponibles.length === 0) {
         state.paso = 'pidiendo_fechas';
-        await enviarFn(
-          telefono,
+        return (
           `Lo siento 😔, no tenemos habitaciones disponibles para *${num} persona(s)* en esas fechas.\n\n` +
-          `¿Te gustaría consultar otras fechas?`,
+          `¿Te gustaría consultar otras fechas?`
         );
-        return;
       }
 
       const noches = Math.ceil(
@@ -371,12 +356,10 @@ export async function procesarMensaje(
       msg += `¿Cuál te interesa? Responde el *número* (1, 2, 3...)`;
 
       state.opciones = disponibles;
-      await enviarFn(telefono, msg);
-      return;
+      return msg;
     }
 
-    await enviarFn(telefono, 'Por favor dime el número de personas (1 al 6) 👥');
-    return;
+    return 'Por favor dime el número de personas (1 al 6) 👥';
   }
 
   // ── PASO 3: Mostrando habitaciones ─────────────────────────────────────
@@ -387,18 +370,14 @@ export async function procesarMensaje(
     if (idx >= 0 && idx < opciones.length) {
       state.habitacion = opciones[idx];
       state.paso = 'pidiendo_nombre';
-
-      await enviarFn(
-        telefono,
+      return (
         `🛏️ *Habitación ${state.habitacion.numero}* seleccionada.\n\n` +
         `📋 Para completar la reserva necesito tus datos:\n\n` +
-        `¿Cuál es tu *nombre completo*? 👤`,
+        `¿Cuál es tu *nombre completo*? 👤`
       );
-      return;
     }
 
-    await enviarFn(telefono, 'Por favor elige un número de la lista.');
-    return;
+    return 'Por favor elige un número de la lista.';
   }
 
   // ── PASO 4: Nombre ──────────────────────────────────────────────────────
@@ -406,15 +385,12 @@ export async function procesarMensaje(
     if (texto.trim().length >= 3) {
       state.nombre = texto.trim().toUpperCase();
       state.paso = 'pidiendo_dni';
-      await enviarFn(
-        telefono,
+      return (
         `Gracias, *${state.nombre}* 😊\n\n` +
-        `¿Cuál es tu número de *DNI o documento de identidad*? 🪪`,
+        `¿Cuál es tu número de *DNI o documento de identidad*? 🪪`
       );
-      return;
     }
-    await enviarFn(telefono, 'Por favor escribe tu nombre completo.');
-    return;
+    return 'Por favor escribe tu nombre completo.';
   }
 
   // ── PASO 5: DNI ─────────────────────────────────────────────────────────
@@ -424,14 +400,17 @@ export async function procesarMensaje(
       state.dni  = dni;
       state.paso = 'confirmando';
 
-      const noches = Math.ceil(
+      const noches   = Math.ceil(
         (new Date(state.fecha_salida!).getTime() -
          new Date(state.fecha_entrada!).getTime()) / 86_400_000,
       );
-      const total   = state.habitacion!.tarifa_base * noches;
+      const total    = state.habitacion!.tarifa_base * noches;
       const adelanto = total * 0.5;
 
-      const resumen =
+      const yape = process.env.HOTEL_YAPE ?? '987 654 321';
+      const plin = process.env.HOTEL_PLIN ?? '987 654 321';
+
+      return (
         `📋 *RESUMEN DE TU RESERVA*\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━\n` +
         `🏨 Hotel Hotelia — Arequipa\n` +
@@ -448,17 +427,12 @@ export async function procesarMensaje(
         `💳 Adelanto (50%): *S/ ${adelanto.toFixed(2)}*\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
         `Para pagar el adelanto:\n` +
-        `📱 *Yape:* 987 654 321\n` +
-        `📱 *Plin:* 987 654 321\n` +
-        `🏦 Transferencia: BCP 123-456789-0-01\n\n` +
-        `Envía la foto del comprobante de pago.\n\n` +
-        `¿Confirmas la reserva? Responde *SI* para confirmar o *NO* para cancelar.`;
-
-      await enviarFn(telefono, resumen);
-      return;
+        `📱 *Yape:* ${yape}\n` +
+        `📱 *Plin:* ${plin}\n\n` +
+        `¿Confirmas la reserva? Responde *SI* para confirmar o *NO* para cancelar.`
+      );
     }
-    await enviarFn(telefono, 'Por favor escribe tu número de documento.');
-    return;
+    return 'Por favor escribe tu número de documento.';
   }
 
   // ── PASO 6: Confirmación ────────────────────────────────────────────────
@@ -466,8 +440,8 @@ export async function procesarMensaje(
     if (/^si$|^sí$|^yes$|^confirmo$|^ok$/i.test(texto.trim())) {
       try {
         const { codigo, noches, total, adelanto } = await crearReserva(state, telefono);
-
-        const voucher =
+        limpiarConversacion(telefono);
+        return (
           `✅ *¡RESERVA CONFIRMADA!*\n` +
           `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
           `🏨 *Hotel Hotelia* — Arequipa\n` +
@@ -487,34 +461,21 @@ export async function procesarMensaje(
           `📍 Dirección: Calle del Hotel, Arequipa\n` +
           `📞 Recepción: +51 987 654 321\n\n` +
           `Guarda este mensaje como comprobante.\n` +
-          `¡Te esperamos! 🎉`;
-
-        await enviarFn(telefono, voucher);
-        limpiarConversacion(telefono);
-        return;
+          `¡Te esperamos! 🎉`
+        );
       } catch (err) {
         console.error('[RESERVA ERROR]', err);
-        await enviarFn(
-          telefono,
-          'Hubo un problema al registrar la reserva. Por favor llama a recepción: +51 987 654 321',
-        );
-        return;
+        return 'Hubo un problema al registrar la reserva. Por favor llama a recepción: +51 987 654 321';
       }
     }
 
     if (/^no$|^cancel/i.test(texto.trim())) {
       limpiarConversacion(telefono);
-      await enviarFn(
-        telefono,
-        'Reserva cancelada. ¡Cuando quieras volver a consultar estamos aquí! 😊',
-      );
-      return;
+      return 'Reserva cancelada. ¡Cuando quieras volver a consultar estamos aquí! 😊';
     }
 
-    await enviarFn(
-      telefono,
-      'Por favor responde *SI* para confirmar o *NO* para cancelar.',
-    );
-    return;
+    return 'Por favor responde *SI* para confirmar o *NO* para cancelar.';
   }
+
+  return '¡Hola! ¿En qué te puedo ayudar? Puedo ayudarte a reservar una habitación.';
 }

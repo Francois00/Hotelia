@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { procesarMensaje } from '../services/concierge.service';
+import { procesarMensaje, enviarWPP } from '../services/concierge.service';
 
 const router = Router();
 
@@ -30,7 +30,8 @@ router.post('/', (req: Request, res: Response) => {
       const texto    = String(mensaje.text?.body ?? '').trim();
       if (!texto) return;
 
-      await procesarMensaje(telefono, texto);
+      const respuesta = await procesarMensaje(telefono, texto);
+      await enviarWPP(telefono, respuesta);
     } catch (err) {
       console.error('[WPP WEBHOOK ERROR]', err);
     }

@@ -1,36 +1,37 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { authenticate } from '../middleware/auth';
-import { procesarMensaje, getEstadoPaso } from '../services/concierge.service';
+import { procesarMensaje, getEstadoPaso, limpiarConversacion } from '../services/concierge.service';
 
 const router = Router();
 
 router.use(authenticate);
 
 const chatSchema = z.object({
-  mensaje:  z.string().min(1).max(1000),
-  telefono: z.string().optional(),
+  mensaje:    z.string().min(1).max(1000),
+  session_id: z.string().optional(),
+  telefono:   z.string().optional(),
 });
 
-// POST /api/v1/concierge/chat — prueba directa del flujo sin WPP real
+// POST /api/v1/concierge/chat
 router.post('/chat', async (req: Request, res: Response) => {
   try {
-    const { mensaje, telefono = `test_${Date.now()}` } = chatSchema.parse(req.body);
+    const { mensaje, session_id, telefono } = chatSchema.parse(req.body);
     const t0 = Date.now();
 
-    // Capture the outbound message instead of sending it via WPP
-    let respuesta = '';
-    const capturar = async (_tel: string, texto: string): Promise<void> => {
-      respuesta = texto;
-    };
+    // session_id > telefono > user-scoped stable key (never Date.now() — breaks state)
+    const sessionKey = session_id ?? telefono ?? `web_${(req as unknown as { user?: { id?: string } }).user?.id ?? 'anon'}`;
 
-    await procesarMensaje(telefono, mensaje, capturar);
+    console.log(`[CHAT] session:${sessionKey} paso:${getEstadoPaso(sessionKey)} msg:${mensaje}`);
+
+    const respuesta = await procesarMensaje(sessionKey, mensaje);
 
     res.json({
-      respuesta,
+      respuesta:   respuesta || 'Sin respuesta',
       modelo:      'llama3',
       tiempo_ms:   Date.now() - t0,
-      paso_actual: getEstadoPaso(telefono),
+      paso_actual: getEstadoPaso(sessionKey),
+      session_id:  sessionKey,
     });
   } catch (err) {
     if (err instanceof z.ZodError) {
@@ -40,6 +41,14 @@ router.post('/chat', async (req: Request, res: Response) => {
     console.error('[concierge/chat]', err);
     res.status(500).json({ error: 'Error procesando mensaje' });
   }
+});
+
+// DELETE /api/v1/concierge/chat/:session_id — reset conversation
+router.delete('/chat/:session_id', (req: Request, res: Response) => {
+  const { session_id } = req.params;
+  limpiarConversacion(session_id);
+  console.log(`[CHAT] sesión reseteada: ${session_id}`);
+  res.json({ ok: true });
 });
 
 export default router;
