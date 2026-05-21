@@ -23,6 +23,7 @@ import reglasTemporadaRouter from './routes/reglas-temporada';
 import clientesRouter       from './routes/clientes';
 import checkinManualRouter  from './routes/checkin-manual';
 import conciergeRouter      from './routes/concierge';
+import n8nRouter            from './routes/n8n';
 import turnosRouter         from './routes/turnos';
 import { health } from './controllers/health.controller';
 import { errorHandler } from './middleware/error-handler';
@@ -77,6 +78,7 @@ app.use('/api/v1/pagos',             pagosRouter);
 app.use('/api/v1/comprobantes',      comprobantesRouter);
 app.use('/api/v1/webhooks/whatsapp', whatsappRouter);
 app.use('/api/v1/concierge',         conciergeRouter);
+app.use('/api/v1',                   n8nRouter);
 app.use('/api/v1/checkin',           checkinQRRouter);
 app.use('/api/v1/turnos',            turnosRouter);
 
