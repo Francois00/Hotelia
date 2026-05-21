@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from 'react'
-import api from '../api/client'
 
 interface Message {
   role: 'user' | 'bot'
@@ -19,13 +18,15 @@ const QUICK_MESSAGES = [
   'SI',
 ]
 
+const N8N_WEBHOOK = '/webhook/wpp-concierge'
+
 function newSessionId(): string {
   return 'web_' + Math.random().toString(36).slice(2, 10)
 }
 
 const BOT_WELCOME: Message = {
   role: 'bot',
-  text: '¡Hola! Soy el Concierge IA del Hotel Hotelia. Puedes enviarme cualquier consulta como si fueras un huésped de WhatsApp. Estoy conectado a Llama3 con datos reales de habitaciones disponibles.',
+  text: '¡Hola! Soy el Concierge IA del Hotel Hotelia (vía n8n → Llama3). Puedes escribirme como si fueras un huésped de WhatsApp.',
   ts: Date.now(),
 }
 
@@ -41,11 +42,8 @@ export default function ConciergeTestPage() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  const handleNuevaSesion = async () => {
-    const newId = newSessionId()
-    // Reset session on backend too (best-effort)
-    try { await api.delete(`/api/v1/concierge/chat/${sessionId}`) } catch { /* ignore */ }
-    setSessionId(newId)
+  const handleNuevaSesion = () => {
+    setSessionId(newSessionId())
     setMessages([BOT_WELCOME])
     setInput('')
     setTimeout(() => inputRef.current?.focus(), 100)
@@ -60,30 +58,38 @@ export default function ConciergeTestPage() {
     setLoading(true)
 
     try {
-      const resp = await api.post<{
-        respuesta: string
-        modelo: string
-        tiempo_ms: number
-        paso_actual: string
-        session_id: string
-      }>(
-        '/api/v1/concierge/chat',
-        { mensaje: trimmed, session_id: sessionId },
-      )
+      const raw = await fetch(N8N_WEBHOOK, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mensaje: trimmed, session_id: sessionId }),
+      })
+
+      const data = await raw.json() as {
+        respuesta?: string
+        paso_actual?: string
+        tiempo_ms?: number
+        via?: string
+        error?: string
+      }
+
       setMessages(prev => [
         ...prev,
         {
           role:      'bot',
-          text:      resp.data.respuesta,
-          tiempo_ms: resp.data.tiempo_ms,
-          paso:      resp.data.paso_actual,
+          text:      data.respuesta ?? data.error ?? 'Sin respuesta',
+          tiempo_ms: data.tiempo_ms,
+          paso:      data.paso_actual,
           ts:        Date.now(),
         },
       ])
     } catch {
       setMessages(prev => [
         ...prev,
-        { role: 'bot', text: 'Error al conectar con el servidor. Verifica que Ollama esté corriendo.', ts: Date.now() },
+        {
+          role: 'bot',
+          text: 'Error al conectar con n8n. Verifica que n8n y Ollama estén corriendo.',
+          ts: Date.now(),
+        },
       ])
     } finally {
       setLoading(false)
@@ -105,18 +111,19 @@ export default function ConciergeTestPage() {
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-purple-600 flex items-center justify-center text-white text-lg">🤖</div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Prueba Concierge IA</h1>
+            <h1 className="text-xl font-bold text-gray-900">Concierge IA</h1>
             <p className="text-xs text-gray-500">
-              Modelo: llama3 · localhost:11434 · session: <code className="font-mono">{sessionId}</code>
+              vía n8n → Llama3 → BD · session:{' '}
+              <code className="font-mono">{sessionId}</code>
             </p>
           </div>
           <div className="ml-auto flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-              Llama3 activo
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+              <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse" />
+              n8n activo
             </span>
             <button
-              onClick={() => void handleNuevaSesion()}
+              onClick={handleNuevaSesion}
               className="px-3 py-1.5 text-xs font-medium border border-gray-300 text-gray-600 rounded-full hover:bg-gray-50 transition-colors"
             >
               Nueva sesión

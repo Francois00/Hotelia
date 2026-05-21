@@ -294,4 +294,32 @@ router.post('/n8n/generar-voucher', authN8n, async (req: Request, res: Response)
   res.json({ ok: true, voucher });
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// 7. Concierge state machine — llamado por n8n con x-n8n-token (sin JWT)
+// ─────────────────────────────────────────────────────────────────────────────
+import { procesarMensaje, getEstadoPaso } from '../services/concierge.service';
+
+router.post('/n8n/concierge', authN8n, async (req: Request, res: Response) => {
+  const { mensaje, session_id } = req.body as { mensaje: string; session_id: string };
+  if (!mensaje || !session_id) {
+    res.status(400).json({ ok: false, error: 'mensaje y session_id requeridos' });
+    return;
+  }
+  const t0 = Date.now();
+  try {
+    const respuesta = await procesarMensaje(session_id, mensaje);
+    res.json({
+      ok:          true,
+      respuesta,
+      paso_actual: getEstadoPaso(session_id),
+      session_id,
+      modelo:      'llama3',
+      tiempo_ms:   Date.now() - t0,
+    });
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : 'Error';
+    res.json({ ok: false, error: msg, respuesta: 'Error interno. Llama a recepción.', paso_actual: 'error', tiempo_ms: Date.now() - t0 });
+  }
+});
+
 export default router;

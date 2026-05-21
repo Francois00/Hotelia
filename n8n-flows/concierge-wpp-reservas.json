@@ -7,81 +7,39 @@
         "path": "wpp-concierge",
         "responseMode": "responseNode"
       },
-      "id": "cc000001-0000-0000-0000-000000000001",
-      "name": "1. Recibir WPP",
+      "id": "cc000002-0000-0000-0000-000000000001",
+      "name": "1. Recibir mensaje",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
-      "position": [100, 300],
+      "position": [240, 300],
       "webhookId": "wpp-concierge-webhook"
     },
     {
       "parameters": {
-        "respondWith": "json",
-        "responseBody": "={ \"ok\": true }"
+        "jsCode": "// Soporta DOS formatos:\n// 1. Test page:  { mensaje, session_id }\n// 2. Meta WPP:   { entry:[{changes:[{value:{messages:[...]}}]}] }\nconst body = $input.first().json.body || $input.first().json;\n\nif (body.mensaje && (body.session_id || body.telefono)) {\n  return [{ json: {\n    valido: 'true',\n    telefono: String(body.session_id || body.telefono),\n    mensaje: String(body.mensaje).trim(),\n    modo: 'test'\n  }}];\n}\n\nconst entry = body?.entry?.[0];\nconst value = entry?.changes?.[0]?.value;\nconst msg = value?.messages?.[0];\n\nif (!msg || msg.type !== 'text' || !msg.text?.body) {\n  return [{ json: { valido: 'false', modo: 'wpp', telefono: '', mensaje: '' } }];\n}\n\nreturn [{ json: {\n  valido: 'true',\n  telefono: String(msg.from),\n  mensaje: String(msg.text.body).trim(),\n  modo: 'wpp'\n}}];"
       },
-      "id": "cc000001-0000-0000-0000-000000000002",
-      "name": "2. Responder 200",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
-      "position": [300, 160]
-    },
-    {
-      "parameters": {
-        "jsCode": "const body = $input.first().json.body || $input.first().json;\nconst entry = body?.entry?.[0];\nconst change = entry?.changes?.[0]?.value;\nconst msg = change?.messages?.[0];\nif (!msg || msg.type !== 'text') return [];\nreturn [{\n  json: {\n    telefono: String(msg.from),\n    mensaje: String(msg.text.body).trim(),\n    nombre_contacto: change?.contacts?.[0]?.profile?.name || 'Huesped'\n  }\n}];"
-      },
-      "id": "cc000001-0000-0000-0000-000000000003",
-      "name": "3. Extraer datos",
+      "id": "cc000002-0000-0000-0000-000000000002",
+      "name": "2. Extraer mensaje",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [300, 420]
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "http://backend:3000/api/v1/n8n/interpretar-mensaje",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            { "name": "x-n8n-token", "value": "n8n_hotelia_2025" },
-            { "name": "Content-Type", "value": "application/json" }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ telefono: $json.telefono, mensaje: $json.mensaje }) }}"
-      },
-      "id": "cc000001-0000-0000-0000-000000000004",
-      "name": "4. Interpretar con IA",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [520, 420]
-    },
-    {
-      "parameters": {
-        "jsCode": "const intencion = $input.first().json.intencion || 'otro';\nconst buscarDisp = ['reservar','dar_fechas','dar_personas','consultar_disponibilidad','elegir_habitacion','consultar_precio'];\nconst categoria = buscarDisp.includes(intencion) ? 'disponibilidad'\n  : intencion === 'confirmar' ? 'confirmar'\n  : intencion === 'cancelar'  ? 'cancelar'\n  : 'info';\nreturn [{ json: { ...$input.first().json, categoria } }];"
-      },
-      "id": "cc000001-0000-0000-0000-000000000005",
-      "name": "5. Categorizar intencion",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [740, 420]
+      "position": [460, 300]
     },
     {
       "parameters": {
         "conditions": {
-          "string": [{ "value1": "={{ $json.categoria }}", "operation": "equal", "value2": "disponibilidad" }]
+          "string": [{ "value1": "={{ $json.valido }}", "operation": "equal", "value2": "true" }]
         }
       },
-      "id": "cc000001-0000-0000-0000-000000000006",
-      "name": "6. Es disponibilidad?",
+      "id": "cc000002-0000-0000-0000-000000000003",
+      "name": "3. Mensaje valido?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [960, 420]
+      "position": [680, 300]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "http://backend:3000/api/v1/n8n/disponibilidad",
+        "url": "http://backend:3000/api/v1/n8n/concierge",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -91,108 +49,36 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ fecha_entrada: $json.datos_extraidos?.fecha_entrada || new Date().toISOString().split('T')[0], fecha_salida: $json.datos_extraidos?.fecha_salida || new Date(Date.now()+86400000).toISOString().split('T')[0], personas: $json.datos_extraidos?.personas || 1 }) }}"
+        "jsonBody": "={{ JSON.stringify({ mensaje: $json.mensaje, session_id: $json.telefono }) }}",
+        "continueOnFail": true
       },
-      "id": "cc000001-0000-0000-0000-000000000007",
-      "name": "7. Consultar disponibilidad",
+      "id": "cc000002-0000-0000-0000-000000000004",
+      "name": "4. Concierge IA",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1180, 280]
+      "position": [900, 200]
     },
     {
       "parameters": {
-        "jsCode": "const data = $input.first().json;\nif (!data.disponibles || data.disponibles.length === 0) {\n  return [{ json: { respuesta: 'Lo siento, no hay habitaciones disponibles para esas fechas. Prueba con otras fechas.' } }];\n}\nlet msg = `Tenemos *${data.disponibles.length} habitaciones* disponibles:\\n\\n`;\ndata.disponibles.forEach((h, i) => {\n  msg += `*${i+1}. Hab. ${h.numero}* - ${h.tipo}\\n`;\n  msg += `   S/ ${h.tarifa_base}/noche x ${h.noches} noches = *S/ ${h.total}*\\n`;\n  msg += `   Adelanto 50%: S/ ${h.adelanto.toFixed(2)}\\n\\n`;\n});\nmsg += 'Cual prefieres? Responde el *numero* (1, 2, 3...) y luego te pido tus datos para completar la reserva.';\nreturn [{ json: { respuesta: msg } }];"
+        "jsCode": "const concierge = $input.first().json;\nconst extractData = $('2. Extraer mensaje').first().json;\n\nconst respuesta = concierge.respuesta || 'Sin respuesta del concierge';\nconst paso = concierge.paso_actual || 'inicio';\nconst modo = extractData.modo || 'test';\nconst telefono = extractData.telefono || '';\nconst tiempoMs = concierge.tiempo_ms || 0;\n\nreturn [{ json: {\n  respuesta,\n  paso_actual: paso,\n  modo,\n  telefono,\n  tiempo_ms: tiempoMs,\n  modelo: 'llama3'\n}}];"
       },
-      "id": "cc000001-0000-0000-0000-000000000008",
-      "name": "8. Formatear opciones",
+      "id": "cc000002-0000-0000-0000-000000000005",
+      "name": "5. Preparar respuesta",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1400, 280]
+      "position": [1120, 200]
     },
     {
       "parameters": {
         "conditions": {
-          "string": [{ "value1": "={{ $json.categoria }}", "operation": "equal", "value2": "confirmar" }]
+          "string": [{ "value1": "={{ $json.modo }}", "operation": "equal", "value2": "wpp" }]
         }
       },
-      "id": "cc000001-0000-0000-0000-000000000009",
-      "name": "9. Es confirmacion?",
+      "id": "cc000002-0000-0000-0000-000000000006",
+      "name": "6. Modo WPP?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [1180, 560]
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "http://backend:3000/api/v1/n8n/upsert-huesped",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            { "name": "x-n8n-token", "value": "n8n_hotelia_2025" },
-            { "name": "Content-Type", "value": "application/json" }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ nombre: $json.datos_extraidos?.nombre || 'Huesped WPP', dni: $json.datos_extraidos?.dni || '00000000', telefono: $('3. Extraer datos').item.json.telefono }) }}"
-      },
-      "id": "cc000001-0000-0000-0000-000000000010",
-      "name": "10. Crear huesped",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [1400, 480]
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "http://backend:3000/api/v1/n8n/crear-reserva",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            { "name": "x-n8n-token", "value": "n8n_hotelia_2025" },
-            { "name": "Content-Type", "value": "application/json" }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ huesped_id: $json.huesped_id, habitacion_id: $('5. Categorizar intencion').item.json.datos_extraidos?.habitacion_id, fecha_entrada: $('5. Categorizar intencion').item.json.datos_extraidos?.fecha_entrada, fecha_salida: $('5. Categorizar intencion').item.json.datos_extraidos?.fecha_salida, personas: $('5. Categorizar intencion').item.json.datos_extraidos?.personas || 1, precio_noche: $('5. Categorizar intencion').item.json.datos_extraidos?.precio_noche || 100, telefono: $('3. Extraer datos').item.json.telefono }) }}"
-      },
-      "id": "cc000001-0000-0000-0000-000000000011",
-      "name": "11. Crear reserva",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [1600, 480]
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "http://backend:3000/api/v1/n8n/generar-voucher",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            { "name": "x-n8n-token", "value": "n8n_hotelia_2025" },
-            { "name": "Content-Type", "value": "application/json" }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ reserva_id: $json.reserva_id }) }}"
-      },
-      "id": "cc000001-0000-0000-0000-000000000012",
-      "name": "12. Generar voucher",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [1800, 480]
-    },
-    {
-      "parameters": {
-        "jsCode": "const intencion = $input.first().json.intencion || 'otro';\nconst sugerida  = $input.first().json.respuesta_sugerida || '';\nconst msgs = {\n  'dar_nombre':   'Cual es tu *nombre completo*?',\n  'dar_dni':      'Cual es tu numero de *DNI o documento*?',\n  'dar_fechas':   'Para que *fechas* necesitas la habitacion?\\n(Ej: del 25 al 27 de mayo)',\n  'dar_personas': 'Cuantas *personas* se hospedaran?',\n  'cancelar':     'Reserva cancelada. Cuando quieras consultar, aqui estaremos!',\n  'otro':         sugerida || 'Hola! Soy el Concierge del *Hotel Hotelia*. En que te puedo ayudar?\\n\\nPuedes pedirme:\\n- Consultar habitaciones disponibles\\n- Hacer una reserva\\n- Ver precios'\n};\nreturn [{ json: { respuesta: msgs[intencion] || msgs['otro'] } }];"
-      },
-      "id": "cc000001-0000-0000-0000-000000000013",
-      "name": "13. Respuesta generica",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [1400, 660]
+      "position": [1340, 200]
     },
     {
       "parameters": {
@@ -202,66 +88,81 @@
         "headerParameters": {
           "parameters": [
             { "name": "Authorization", "value": "=Bearer EAAOb26ZATwuIBRrdXoqDFKBiNvzDHXsWx82vava5u6uamzbdcYJ8ZCrKFRmDxBtiexeRLJynF1w4XgdjnlHC84OorFeXIcxMLpzhW1rCspliEOIkIxQ8Df9sLmBIpI8K7T0DxQhRAOHd2DHgqH1fAb0B4DhtAIzbeaWHoe55693QYtKDXmd6WpAWdzPxekhUn2KXCfo0aclLKUf0VM76ncJBn5X8wVPheJOfMhZATHz9DYZB4dSZCcjqmroyL0KWZAWlIhPXZCZCp2z0VH72Wdxz" },
-            { "name": "Content-Type",  "value": "application/json" }
+            { "name": "Content-Type", "value": "application/json" }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ messaging_product: 'whatsapp', to: $('3. Extraer datos').item.json.telefono, type: 'text', text: { body: ($json.respuesta || $json.voucher || 'Procesando...') } }) }}"
+        "jsonBody": "={{ JSON.stringify({ messaging_product: 'whatsapp', to: $json.telefono, type: 'text', text: { body: $json.respuesta } }) }}",
+        "continueOnFail": true
       },
-      "id": "cc000001-0000-0000-0000-000000000014",
-      "name": "14. Enviar WPP",
+      "id": "cc000002-0000-0000-0000-000000000007",
+      "name": "7. Enviar WPP",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [2000, 420],
-      "continueOnFail": true
+      "position": [1560, 100]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"ok\": true, \"via\": \"wpp\" }"
+      },
+      "id": "cc000002-0000-0000-0000-000000000008",
+      "name": "8. Responder OK WPP",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1780, 100]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { respuesta: $json.respuesta, paso_actual: $json.paso_actual, modelo: $json.modelo, tiempo_ms: $json.tiempo_ms, via: 'n8n' } }}"
+      },
+      "id": "cc000002-0000-0000-0000-000000000009",
+      "name": "9. Responder Test",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1560, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"ok\": false, \"error\": \"Mensaje no valido\", \"via\": \"n8n\" }"
+      },
+      "id": "cc000002-0000-0000-0000-000000000010",
+      "name": "10. Responder Invalido",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [900, 420]
     }
   ],
   "connections": {
-    "1. Recibir WPP": {
-      "main": [[
-        { "node": "2. Responder 200",    "type": "main", "index": 0 },
-        { "node": "3. Extraer datos",    "type": "main", "index": 0 }
-      ]]
+    "1. Recibir mensaje": {
+      "main": [[{ "node": "2. Extraer mensaje", "type": "main", "index": 0 }]]
     },
-    "3. Extraer datos": {
-      "main": [[{ "node": "4. Interpretar con IA", "type": "main", "index": 0 }]]
+    "2. Extraer mensaje": {
+      "main": [[{ "node": "3. Mensaje valido?", "type": "main", "index": 0 }]]
     },
-    "4. Interpretar con IA": {
-      "main": [[{ "node": "5. Categorizar intencion", "type": "main", "index": 0 }]]
-    },
-    "5. Categorizar intencion": {
-      "main": [[{ "node": "6. Es disponibilidad?", "type": "main", "index": 0 }]]
-    },
-    "6. Es disponibilidad?": {
+    "3. Mensaje valido?": {
       "main": [
-        [{ "node": "7. Consultar disponibilidad", "type": "main", "index": 0 }],
-        [{ "node": "9. Es confirmacion?",         "type": "main", "index": 0 }]
+        [{ "node": "4. Concierge IA", "type": "main", "index": 0 }],
+        [{ "node": "10. Responder Invalido", "type": "main", "index": 0 }]
       ]
     },
-    "7. Consultar disponibilidad": {
-      "main": [[{ "node": "8. Formatear opciones", "type": "main", "index": 0 }]]
+    "4. Concierge IA": {
+      "main": [[{ "node": "5. Preparar respuesta", "type": "main", "index": 0 }]]
     },
-    "8. Formatear opciones": {
-      "main": [[{ "node": "14. Enviar WPP", "type": "main", "index": 0 }]]
+    "5. Preparar respuesta": {
+      "main": [[{ "node": "6. Modo WPP?", "type": "main", "index": 0 }]]
     },
-    "9. Es confirmacion?": {
+    "6. Modo WPP?": {
       "main": [
-        [{ "node": "10. Crear huesped",      "type": "main", "index": 0 }],
-        [{ "node": "13. Respuesta generica", "type": "main", "index": 0 }]
+        [{ "node": "7. Enviar WPP", "type": "main", "index": 0 }],
+        [{ "node": "9. Responder Test", "type": "main", "index": 0 }]
       ]
     },
-    "10. Crear huesped": {
-      "main": [[{ "node": "11. Crear reserva", "type": "main", "index": 0 }]]
-    },
-    "11. Crear reserva": {
-      "main": [[{ "node": "12. Generar voucher", "type": "main", "index": 0 }]]
-    },
-    "12. Generar voucher": {
-      "main": [[{ "node": "14. Enviar WPP", "type": "main", "index": 0 }]]
-    },
-    "13. Respuesta generica": {
-      "main": [[{ "node": "14. Enviar WPP", "type": "main", "index": 0 }]]
+    "7. Enviar WPP": {
+      "main": [[{ "node": "8. Responder OK WPP", "type": "main", "index": 0 }]]
     }
   },
   "active": false,
@@ -271,6 +172,6 @@
     "saveExecutionProgress": true
   },
   "id": "concierge-wpp-reservas-001",
-  "versionId": "cc000001-1234-5678-abcd-000000000001",
+  "versionId": "cc000002-1234-5678-abcd-000000000002",
   "meta": { "instanceId": "hotel-pms" }
 }
