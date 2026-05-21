@@ -8,6 +8,7 @@ import {
 import api from '../api/client'
 import ia from '../api/ia'
 import { useSocket } from '../hooks/useSocket'
+import SolicitudesWidget from '../components/SolicitudesWidget'
 
 interface KPIs {
   ingresos_totales: number
@@ -427,6 +428,9 @@ export default function Dashboard() {
           <p className="text-gray-500 text-sm mt-0.5">{format(new Date(), "EEEE d 'de' MMMM, yyyy")}</p>
         </div>
       </div>
+
+      {/* Solicitudes de huéspedes pendientes */}
+      <SolicitudesWidget />
 
       {/* KPI Cards */}
       <div className="grid grid-cols-4 gap-4">

@@ -295,6 +295,85 @@ router.post('/n8n/generar-voucher', authN8n, async (req: Request, res: Response)
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// 6b. Programar encuesta post-estancia (llamado por checkout, dispara n8n 24h)
+// ─────────────────────────────────────────────────────────────────────────────
+router.post('/n8n/programar-encuesta', authN8n, async (req: Request, res: Response) => {
+  const { reserva_id } = req.body as { reserva_id: string };
+  if (!reserva_id) { res.status(400).json({ error: 'reserva_id requerido' }); return; }
+
+  const r = await prisma.reserva.findUnique({
+    where:   { id: reserva_id },
+    include: {
+      huesped:    { select: { nombre: true, apellido: true, email: true, telefono: true } },
+      habitacion: { select: { numero: true } },
+    },
+  });
+  if (!r) { res.status(404).json({ error: 'Reserva no encontrada' }); return; }
+
+  const n8nUrl = process.env.BACKEND_URL
+    ? `${process.env.BACKEND_URL.replace('backend', 'n8n').replace('3000', '5678')}/webhook/encuesta-post-estancia`
+    : 'http://localhost:5678/webhook/encuesta-post-estancia';
+
+  // Fire-and-forget: n8n espera 24h antes de enviar el mensaje
+  fetch(n8nUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      reserva_id,
+      huesped_nombre: `${r.huesped?.nombre} ${r.huesped?.apellido}`,
+      huesped_email:  r.huesped?.email,
+      huesped_tel:    r.huesped?.telefono,
+      habitacion:     r.habitacion?.numero,
+      checkout_at:    new Date().toISOString(),
+    }),
+  }).catch(() => { /* non-fatal */ });
+
+  res.json({ ok: true, message: 'Encuesta programada para 24h' });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 6c. Guardar respuesta de encuesta (llamado por n8n tras recibir respuesta)
+// ─────────────────────────────────────────────────────────────────────────────
+router.post('/n8n/guardar-encuesta', authN8n, async (req: Request, res: Response) => {
+  const { reserva_id, limpieza, comodidad, atencion, precio_calidad, recomendaria, comentario } = req.body as {
+    reserva_id: string;
+    limpieza?: number; comodidad?: number; atencion?: number; precio_calidad?: number;
+    recomendaria?: boolean; comentario?: string;
+  };
+
+  if (!reserva_id) {
+    res.status(400).json({ error: 'reserva_id es requerido' });
+    return;
+  }
+
+  try {
+    const l = limpieza    != null ? Number(limpieza)    : null;
+    const c = comodidad   != null ? Number(comodidad)   : null;
+    const a = atencion    != null ? Number(atencion)    : null;
+    const p = precio_calidad != null ? Number(precio_calidad) : null;
+    const vals = [l, c, a, p].filter((v): v is number => v !== null);
+    const promedio = vals.length ? vals.reduce((s, v) => s + v, 0) / vals.length : null;
+
+    await prisma.$executeRaw`
+      INSERT INTO encuestas_satisfaccion (reserva_id, limpieza, comodidad, atencion, precio_calidad, recomendaria, promedio, comentario)
+      VALUES (
+        ${reserva_id}::uuid,
+        ${l}, ${c}, ${a}, ${p},
+        ${recomendaria ?? null},
+        ${promedio},
+        ${comentario ?? null}
+      )
+    `;
+
+    // Si promedio bajo, gerente puede ser notificado vía n8n/WPP en un flujo separado
+
+    res.json({ ok: true, promedio });
+  } catch (e: unknown) {
+    res.status(500).json({ error: e instanceof Error ? e.message : 'Error' });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // 7. Concierge state machine — llamado por n8n con x-n8n-token (sin JWT)
 // ─────────────────────────────────────────────────────────────────────────────
 import { procesarMensaje, getEstadoPaso } from '../services/concierge.service';

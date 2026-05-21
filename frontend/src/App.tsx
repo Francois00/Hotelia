@@ -21,6 +21,7 @@ import CheckoutPage from './pages/checkout/CheckoutPage'
 import ChannelManagerPage from './pages/ChannelManagerPage'
 import NotificacionesPage from './pages/NotificacionesPage'
 import ConciergeTestPage from './pages/ConciergeTestPage'
+import AlmacenPage from './pages/AlmacenPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -82,6 +83,7 @@ export default function App() {
           <Route path="/channel-manager" element={<GerentePage><ChannelManagerPage /></GerentePage>} />
           <Route path="/notificaciones" element={<GerentePage><NotificacionesPage /></GerentePage>} />
           <Route path="/concierge-test" element={<GerentePage><ConciergeTestPage /></GerentePage>} />
+          <Route path="/almacen" element={<ProtectedPage><AlmacenPage /></ProtectedPage>} />
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>

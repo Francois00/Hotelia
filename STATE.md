@@ -1,6 +1,6 @@
 # Estado del Proyecto Hotelia
 
-**Última actualización:** 2026-05-21 (sprint inmediato)
+**Última actualización:** 2026-05-21 (M10 + Encuesta + Solicitudes)
 
 ---
 
@@ -25,7 +25,7 @@ El proyecto está en **Fase de consolidación**: el backend (API REST completa),
 | M07+ | Baja lógica habitaciones (frontend) | ✅ | ✅ | ⬜ | ✅ Completo |
 | M08 | Multi-sede | ⬜ | ⬜ | ⬜ | ⬜ Pendiente |
 | M09 | Channel Manager (OTA) | ✅ | ✅ | ⬜ | ✅ Completo |
-| M10 | Almacén e Inventario | ⬜ | ⬜ | ⬜ | ⬜ Pendiente |
+| M10 | Almacén e Inventario | ✅ | ✅ | ⬜ | ✅ Completo |
 | M11 | Control de accesos por rol | ✅ | ✅ | ⬜ | ✅ Completo |
 | M11+ | useRol() hook + menú dinámico Sidebar | ✅ | ✅ | ⬜ | ✅ Completo |
 | M12 | Confort del huésped | ⬜ | ⬜ | ⬜ | ⬜ Pendiente |
@@ -37,6 +37,8 @@ El proyecto está en **Fase de consolidación**: el backend (API REST completa),
 | — | Comprobantes SUNAT | ✅ | ⬜ | ⬜ | 🔄 En progreso |
 | — | Pagos Niubiz/Stripe | ✅ | ⬜ | ⬜ | 🔄 En progreso |
 | — | n8n Automatización | ✅ | N/A | ⬜ | 🔄 En progreso |
+| — | Encuesta post-estancia | ✅ | N/A | ⬜ | ✅ Completo |
+| — | Solicitudes de huéspedes | ✅ | ✅ | ⬜ | ✅ Completo |
 
 ---
 
@@ -56,6 +58,9 @@ El proyecto está en **Fase de consolidación**: el backend (API REST completa),
 - **n8n Flows**: 5 flujos JSON listos para importar (checkin, checkout, encuesta, alerta mantenimiento, segmentación semanal)
 - **Docker Compose**: stack completo con 6 servicios (db, redis, n8n, backend, ia-service, frontend) en red `hotel_network`
 - **Tests unitarios backend**: 3 archivos (checkin.mod01, turnos.mod03, habitaciones.mod07) con Vitest + mocks de Prisma/Redis
+- **M10 Almacén e Inventario**: 7 tablas DB, 13 endpoints `/api/v1/almacen/*`, `AlmacenPage.tsx` (dashboard cards, tabs categorías, progress bars stock, historial drawer, modales entrada/salida)
+- **Solicitudes de huéspedes**: 3 endpoints `/api/v1/solicitudes`, `SolicitudesWidget.tsx` con polling 30s, alerta sonora, integrado en Dashboard
+- **Encuesta post-estancia**: endpoints `POST /n8n/programar-encuesta` y `POST /n8n/guardar-encuesta`, flujo n8n `encuesta-post-estancia.json` con Wait 24h
 
 ---
 
@@ -74,7 +79,6 @@ El proyecto está en **Fase de consolidación**: el backend (API REST completa),
 - **M04 Historial mejorado**: timeline de estancias anterior de un huésped (datos en BD, falta UI dedicada)
 - **M05 Mantenimiento**: alertas existen en backend + ia-service predictor de fallos; falta página frontend de gestión de alertas
 - **M08 Multi-sede**: no iniciado; requeriría campo `sede_id` en todas las tablas y RBAC por sede
-- **M10 Almacén e Inventario**: no iniciado; requeriría nuevas tablas (`productos`, `movimientos_stock`)
 - **M12 Confort del huésped**: no iniciado; requeriría portal huésped separado
 - **Tests del ia-service**: ningún test Python implementado
 - **Tests E2E**: no hay Playwright/Cypress configurado
@@ -116,6 +120,11 @@ El proyecto está en **Fase de consolidación**: el backend (API REST completa),
 
 ## Últimos cambios detectados
 
+- 2026-05-21: M10 Almacén + Encuesta post-estancia + Solicitudes huéspedes completados
+  - 5 tablas DB: almacen_categorias (8 rows), almacen_articulos (20 seed), almacen_movimientos, almacen_inventariados, almacen_inventariado_items + encuestas_satisfaccion + solicitudes_huesped
+  - Backend: /api/v1/almacen/* (13 endpoints), /api/v1/solicitudes (3 endpoints), n8n encuesta endpoints
+  - Frontend: AlmacenPage.tsx (tabs, progress bars, modales), SolicitudesWidget.tsx (polling 30s, alerta sonora), Sidebar actualizado
+  - n8n: encuesta-post-estancia.json (Wait 24h + WPP)
 - 2026-05-21: Sprint inmediato completado
   - Checkout wizard 3 pasos (folio → cobro → comprobante): `CheckoutPage.tsx` + `ModalCheckoutExitoso.tsx`
   - M05 Mantenimiento: `HabitacionDrawer.tsx` (tabs Info/Mantenimiento/Historial), 3 endpoints, tabla en DB

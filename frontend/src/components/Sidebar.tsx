@@ -54,6 +54,11 @@ export default function Sidebar() {
           </>
         )}
 
+        {/* Almacén: gerente y recepcionista */}
+        {isRecepcionista && (
+          <NavItem to="/almacen" icon="📦" label="Almacén" />
+        )}
+
         {/* Concierge IA: recepción y gerente */}
         {isRecepcionista && (
           <NavItem to="/concierge" icon="💬" label="Concierge IA" />

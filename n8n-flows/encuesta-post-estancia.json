@@ -1,0 +1,116 @@
+{
+  "name": "Encuesta Post-Estancia",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "encuesta-post-estancia",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "amount": 24,
+        "unit": "hours"
+      },
+      "id": "wait-24h",
+      "name": "Esperar 24 horas",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.BACKEND_URL}}/api/v1/n8n/interpretar-mensaje",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-n8n-token",
+              "value": "={{$env.SERVICE_TOKEN}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": {
+          "telefono": "={{$json.huesped_tel}}",
+          "mensaje": "encuesta_trigger",
+          "historial": []
+        },
+        "options": {}
+      },
+      "id": "check-guest",
+      "name": "Verificar huésped",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [750, 300]
+    },
+    {
+      "parameters": {
+        "url": "=https://graph.facebook.com/v18.0/{{$env.WHATSAPP_PHONE_NUMBER_ID}}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.WHATSAPP_ACCESS_TOKEN}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": {
+          "messaging_product": "whatsapp",
+          "to": "={{$node['Webhook Trigger'].json.huesped_tel}}",
+          "type": "text",
+          "text": {
+            "body": "=Hola {{$node['Webhook Trigger'].json.huesped_nombre}} 👋\\n\\nEsperamos que tu estadía en el Hotel Hotelia haya sido de tu agrado.\\n\\nTe invitamos a responder una breve encuesta de satisfacción:\\n\\n⭐ ¿Cómo calificarías tu estadía del 1 al 5?\\n1 - Muy mala\\n2 - Mala\\n3 - Regular\\n4 - Buena\\n5 - Excelente\\n\\nResponde con el número que mejor describe tu experiencia. ¡Tu opinión nos ayuda a mejorar!"
+          }
+        },
+        "options": {}
+      },
+      "id": "send-encuesta",
+      "name": "Enviar encuesta WPP",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1000, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"ok\": true, \"message\": \"Encuesta enviada\"}",
+        "options": {}
+      },
+      "id": "respond-ok",
+      "name": "Responder OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1250, 300]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [[{ "node": "Esperar 24 horas", "type": "main", "index": 0 }]]
+    },
+    "Esperar 24 horas": {
+      "main": [[{ "node": "Enviar encuesta WPP", "type": "main", "index": 0 }]]
+    },
+    "Enviar encuesta WPP": {
+      "main": [[{ "node": "Responder OK", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": ["encuesta", "post-estancia", "whatsapp"]
+}
