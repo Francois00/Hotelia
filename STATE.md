@@ -1,6 +1,6 @@
 # Estado del Proyecto Hotelia
 
-**Última actualización:** 2026-05-20 (sprint 2)
+**Última actualización:** 2026-05-21 (sprint inmediato)
 
 ---
 
@@ -19,8 +19,8 @@ El proyecto está en **Fase de consolidación**: el backend (API REST completa),
 | M02 | Notificaciones WhatsApp | ✅ | ✅ | ⬜ | ✅ Completo |
 | M03 | Turno de Caja / Reporte | ✅ | ✅ | ✅ | ✅ Completo |
 | M04 | Historial mejorado huéspedes | ✅ | ✅ | ⬜ | ✅ Completo |
-| M05 | Mantenimiento por habitación | ✅ | 🔄 | ⬜ | 🔄 En progreso |
-| M06 | Concierge IA + WPP | ✅ | ✅ | ⬜ | 🔄 En progreso |
+| M05 | Mantenimiento por habitación | ✅ | ✅ | ⬜ | ✅ Completo |
+| M06 | Concierge IA + WPP | ✅ | ✅ | ⬜ | ✅ Completo |
 | M07 | Gestión de habitaciones | ✅ | ✅ | ✅ | ✅ Completo |
 | M07+ | Baja lógica habitaciones (frontend) | ✅ | ✅ | ⬜ | ✅ Completo |
 | M08 | Multi-sede | ⬜ | ⬜ | ⬜ | ⬜ Pendiente |
@@ -116,6 +116,11 @@ El proyecto está en **Fase de consolidación**: el backend (API REST completa),
 
 ## Últimos cambios detectados
 
+- 2026-05-21: Sprint inmediato completado
+  - Checkout wizard 3 pasos (folio → cobro → comprobante): `CheckoutPage.tsx` + `ModalCheckoutExitoso.tsx`
+  - M05 Mantenimiento: `HabitacionDrawer.tsx` (tabs Info/Mantenimiento/Historial), 3 endpoints, tabla en DB
+  - Fix n8n executions "running": `EXECUTIONS_TIMEOUT=60` + restart
+- 2026-05-21: Concierge IA vía n8n + Llama3 — flujo completo 7 pasos, reserva WPP-20260521-DNLGLZ confirmada en DB
 - 2026-05-20: Fix login (rate limit + password hash)
 - 2026-05-20: Fix habitaciones y CRM (parseo de respuesta paginada)
 - 2026-05-20: M09 Channel Manager frontend completo (ChannelManagerPage + ModalConfigCanal)
@@ -127,8 +132,9 @@ El proyecto está en **Fase de consolidación**: el backend (API REST completa),
 
 ## Próximos pasos recomendados (en orden de prioridad)
 
-1. M05 Mantenimiento por habitación — frontend (página de alertas para HOUSEKEEPING/MANTENIMIENTO)
+1. WhatsApp Business número real (para clientes reales en producción)
 2. M10 Almacén e Inventario — backend + frontend (nuevas tablas productos/movimientos_stock)
-3. Configurar WhatsApp Business API real (credenciales Meta, Group ID del hotel)
-4. Probar Concierge IA con datos reales del hotel
-5. M08 Multi-sede (si la empresa abre otra propiedad)
+3. Encuesta post-estancia automática (n8n + 24h delay tras checkout)
+4. Deploy a servidor con dominio fijo
+5. SUNAT en producción (actualmente en modo sandbox)
+6. M08 Multi-sede (si la empresa abre otra propiedad)

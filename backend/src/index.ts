@@ -25,6 +25,7 @@ import checkinManualRouter  from './routes/checkin-manual';
 import conciergeRouter      from './routes/concierge';
 import n8nRouter            from './routes/n8n';
 import turnosRouter         from './routes/turnos';
+import mantenimientoRouter  from './routes/mantenimiento';
 import { health } from './controllers/health.controller';
 import { errorHandler } from './middleware/error-handler';
 import { initSocket, emit } from './services/socket.service';
@@ -81,6 +82,7 @@ app.use('/api/v1/concierge',         conciergeRouter);
 app.use('/api/v1',                   n8nRouter);
 app.use('/api/v1/checkin',           checkinQRRouter);
 app.use('/api/v1/turnos',            turnosRouter);
+app.use('/api/v1',                   mantenimientoRouter);
 
 // Also expose habitacion-scoped alerts under habitaciones prefix
 app.use('/api/v1/habitaciones',      alertasRouter);

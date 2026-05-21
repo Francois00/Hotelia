@@ -3,8 +3,9 @@ tags: [hotel-pms, modulo, mantenimiento, habitaciones, prioridad-media]
 modulo: 5
 prioridad: MEDIA
 tiempo_estimado: 1-2 semanas
-estado: pendiente
+estado: completo
 fase: 3
+fecha_implementacion: 2026-05-21
 ---
 
 # Módulo 05 — Historial de Mantenimiento por Habitación
@@ -72,6 +73,25 @@ Registra el historial completo de intervenciones por habitación: quién lo hizo
 | GET | `/api/v1/mantenimiento` | Lista global. Filtros: hab., estado, prioridad, técnico |
 | GET | `/api/v1/mantenimiento/stats` | KPIs: costo por hab., días fuera servicio, tipos frecuentes |
 | POST | `/api/v1/ia/mantenimiento/predicciones` | Python: genera predicciones preventivas para todas las habs. |
+
+---
+
+## Implementado (2026-05-21)
+
+### Decisión
+Drawer lateral en la vista Lista de Habitaciones (clic en fila o botón 🔧 Mantenimiento).
+Tabs: Info | Mantenimiento | Historial.
+
+### Alcance implementado
+- Tabla `mantenimiento_registros` aplicada en DB (sin Prisma schema — raw queries)
+- Endpoints: GET/POST `/habitaciones/:id/mantenimiento`, PATCH `/mantenimiento/:id`
+- Frontend: `HabitacionDrawer.tsx` con stats, formulario de reporte y lista de órdenes
+- Prioridad urgente → cambia automáticamente estado de hab a MANTENIMIENTO
+- Cambio de estado inline con notas de cierre
+
+### Alternativas descartadas
+- **Página dedicada /mantenimiento**: requería navegación extra; el drawer en contexto es más eficiente para recepción
+- **Agregar modelo a schema.prisma + migrate**: requería rebuild completo del contenedor; raw queries son suficientes para esta tabla auxiliar
 
 ---
 

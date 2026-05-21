@@ -5,6 +5,7 @@ import api from '../api/client'
 import { useSocket } from '../hooks/useSocket'
 import { isGerente } from '../utils/auth'
 import HabitacionForm from '../components/habitaciones/HabitacionForm'
+import HabitacionDrawer from './habitaciones/HabitacionDrawer'
 
 interface HuespedActual {
   nombre: string
@@ -262,6 +263,7 @@ export default function Habitaciones() {
   const [deleteRoom, setDeleteRoom] = useState<Habitacion | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [renovarRoom, setRenovarRoom] = useState<Habitacion | null>(null)
+  const [drawerRoom, setDrawerRoom] = useState<Habitacion | null>(null)
   const [toast, setToast] = useState('')
   const queryClient = useQueryClient()
   const socketRef = useSocket('housekeeping')
@@ -443,6 +445,12 @@ export default function Habitaciones() {
           }}
         />
       )}
+
+      <HabitacionDrawer
+        room={drawerRoom}
+        onClose={() => setDrawerRoom(null)}
+        onEstadoChanged={() => void queryClient.invalidateQueries({ queryKey: ['habitaciones'] })}
+      />
 
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
@@ -681,7 +689,7 @@ export default function Habitaciones() {
                   const ia = r.tarifa_sugerida_hoy
                   const iaColor = ia == null ? '' : ia > r.tarifa_base ? 'text-green-600 font-medium' : ia < r.tarifa_base ? 'text-red-500 font-medium' : 'text-gray-600'
                   return (
-                    <tr key={r.id} className="hover:bg-gray-50 transition-colors">
+                    <tr key={r.id} className="hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => setDrawerRoom(r)}>
                       <td className="px-4 py-3 text-sm font-semibold text-gray-900">{r.numero}</td>
                       <td className="px-4 py-3 text-sm text-gray-600">{r.piso}</td>
                       <td className="px-4 py-3 text-sm text-gray-600">{r.tipo}</td>
@@ -698,38 +706,46 @@ export default function Habitaciones() {
                       <td className={`px-4 py-3 text-sm ${iaColor}`}>
                         {ia != null ? formatCurrency(ia) : <span className="text-gray-400">—</span>}
                       </td>
-                      <td className="px-4 py-3">
-                        {gerente && (
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={e => { e.stopPropagation(); setEditRoom(r) }}
-                              className="px-3 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                            >
-                              Editar
-                            </button>
-                            <button
-                              onClick={e => { e.stopPropagation(); setSelectedRoom(r) }}
-                              className="px-3 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                            >
-                              Estado
-                            </button>
-                            {r.estado !== 'FUERA_DE_SERVICIO' && (
+                      <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <button
+                            onClick={() => setDrawerRoom(r)}
+                            className="px-3 py-1 text-xs font-medium text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                          >
+                            🔧 Mantenimiento
+                          </button>
+                          {gerente && (
+                            <>
                               <button
-                                onClick={e => { e.stopPropagation(); setBajaRoom(r) }}
-                                className="px-3 py-1 text-xs font-medium text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                onClick={() => setEditRoom(r)}
+                                className="px-3 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                               >
-                                Dar de baja
+                                Editar
                               </button>
-                            )}
-                            <button
-                              onClick={e => { e.stopPropagation(); setDeleteRoom(r) }}
-                              className="px-3 py-1 text-xs font-medium text-red-800 hover:bg-red-100 rounded-lg transition-colors"
-                              title="Eliminar permanentemente"
-                            >
-                              Eliminar
-                            </button>
-                          </div>
-                        )}
+                              <button
+                                onClick={() => setSelectedRoom(r)}
+                                className="px-3 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                              >
+                                Estado
+                              </button>
+                              {r.estado !== 'FUERA_DE_SERVICIO' && (
+                                <button
+                                  onClick={() => setBajaRoom(r)}
+                                  className="px-3 py-1 text-xs font-medium text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                >
+                                  Dar de baja
+                                </button>
+                              )}
+                              <button
+                                onClick={() => setDeleteRoom(r)}
+                                className="px-3 py-1 text-xs font-medium text-red-800 hover:bg-red-100 rounded-lg transition-colors"
+                                title="Eliminar permanentemente"
+                              >
+                                Eliminar
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   )
