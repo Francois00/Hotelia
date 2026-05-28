@@ -29,6 +29,9 @@ import mantenimientoRouter  from './routes/mantenimiento';
 import almacenRouter        from './routes/almacen';
 import solicitudesRouter    from './routes/solicitudes';
 import housekeepingRouter   from './routes/housekeeping';
+import reportesRouter        from './routes/reportes';
+import campanasRouter        from './routes/campanas';
+import folioRouter           from './routes/folio';
 import { health } from './controllers/health.controller';
 import './jobs/scheduler';
 import { errorHandler } from './middleware/error-handler';
@@ -90,6 +93,9 @@ app.use('/api/v1',                   mantenimientoRouter);
 app.use('/api/v1',                   almacenRouter);
 app.use('/api/v1',                   solicitudesRouter);
 app.use('/api/v1',                   housekeepingRouter);
+app.use('/api/v1',                   reportesRouter);
+app.use('/api/v1',                   campanasRouter);
+app.use('/api/v1/reservas/:id/folio', folioRouter);
 
 // Also expose habitacion-scoped alerts under habitaciones prefix
 app.use('/api/v1/habitaciones',      alertasRouter);
