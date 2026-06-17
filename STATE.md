@@ -154,3 +154,43 @@ El proyecto está en **Fase de consolidación**: el backend (API REST completa),
 4. WhatsApp Business número real (para clientes reales en producción)
 5. SUNAT en producción (actualmente en modo sandbox)
 6. M08 Multi-sede (si la empresa abre otra propiedad)
+
+---
+
+## Actualización 2026-06-16
+
+### Módulos completados en este sprint
+- ✅ M10 Almacén e Inventario — 13 endpoints, 5 tablas, 20 artículos seed, 8 categorías
+- ✅ Housekeeping plan del día — prioridades urgente/alta/normal, timer en vivo
+- ✅ Jobs cron (4 automáticos) — NO-SHOW(02:00), Sync-habs(*/15min), CRM(dom 03:00), Alertas(08:00)
+- ✅ Reportes mensuales PDF y Excel — PDFKit + ExcelJS, comparativo mes anterior
+- ✅ CRM Campañas WhatsApp — 5 segmentos, rate limiting 1s, campanas_envios
+- ✅ Encuesta post-estancia — n8n workflow con Wait 24h + WPP
+- ✅ Solicitudes de huéspedes en tiempo real — polling 30s, alerta sonora
+- ✅ Vault Obsidian completado — 11 archivos nuevos, 7 actualizados
+
+### Vault Obsidian — estado de documentación
+- arquitectura/vision-general.md ✅ NUEVO — diagrama ASCII + 4 flujos
+- arquitectura/docker-compose.md ✅ NUEVO — 6 servicios documentados
+- operacion/iniciar-sistema.md ✅ NUEVO — comandos exactos desde cero
+- operacion/webhook-whatsapp.md ✅ NUEVO — Meta Business + curl tests
+- usuarios/credenciales.md ✅ NUEVO — usuarios, puertos, vars de entorno
+- ia/concierge-llama3.md ✅ NUEVO — máquina de estados + Llama3 API
+- flujos-n8n/workflows.md ✅ NUEVO — 7 workflows documentados
+- Modulos/housekeeping.md ✅ NUEVO
+- Modulos/reportes.md ✅ NUEVO
+- Modulos/campanas-crm.md ✅ NUEVO
+- Modulos/jobs-cron.md ✅ NUEVO
+- api/endpoints-implementados.md ✅ ACTUALIZADO — 109 endpoints (antes 67)
+- base-de-datos/schema-actual.md ✅ ACTUALIZADO — 27 tablas (antes 18)
+- flujos-n8n/estado-actual.md ✅ ACTUALIZADO — workflows 6 y 7 agregados
+- INDEX.md ✅ ACTUALIZADO — todas las fases marcadas completas
+- Modulos/Modulo 10 - Almacen e Inventario.md ✅ ACTUALIZADO — estado real
+
+### Próximos pasos
+1. Integrar 5 diseños nuevos (Opción C) — pendiente llegada de diseños
+2. Deploy a servidor de producción (Opción B)
+3. WhatsApp Business número real
+4. SUNAT en producción (actualmente en modo beta/sandbox)
+
+---

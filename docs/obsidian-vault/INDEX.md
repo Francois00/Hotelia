@@ -13,10 +13,10 @@ tags: [hotel-pms, indice, documentacion]
 
 | Fase | Módulos | Estado |
 |------|---------|--------|
-| Fase 1 — Base operativa | 7, 11, 1, 3 | 🔴 Pendiente |
-| Fase 2 — Canales y sedes | 9, 8, 2 | 🔴 Pendiente |
-| Fase 3 — Operaciones | 10, 5, 4 | 🔴 Pendiente |
-| Fase 4 — IA y experiencia | 6, 12a, 12b | 🔴 Pendiente |
+| Fase 1 — Base operativa | 7, 11, 1, 3 | ✅ Completo |
+| Fase 2 — Canales y sedes | 9, 8, 2 | ✅ Completo |
+| Fase 3 — Operaciones | 10, 5, 4 | ✅ Completo |
+| Fase 4 — IA y experiencia | 6, 12a, 12b | ✅ Completo |
 | Fase 5 — Fidelización | 12c, 12d, 12e | 🔴 Pendiente |
 
 ---
@@ -57,3 +57,29 @@ tags: [hotel-pms, indice, documentacion]
 - `nuevas-funcionalidades-hotel-pms.docx`
 - `modulos-adicionales-hotel-pms-v2.docx`
 
+
+## Actualizado 2026-06-16
+
+### Módulos adicionales implementados (fuera de fases originales)
+
+| Módulo | Estado | Archivo |
+|--------|--------|---------|
+| Checkout wizard | ✅ Completo | [[checkout]] |
+| Mantenimiento por habitación | ✅ Completo | [[mantenimiento]] |
+| M10 Almacén e Inventario | ✅ Completo | [[Modulo 10 - Almacen e Inventario]] |
+| Housekeeping plan del día | ✅ Completo | [[housekeeping]] |
+| Jobs cron (4 automáticos) | ✅ Completo | [[jobs-cron]] |
+| Reportes mensuales PDF/Excel | ✅ Completo | [[reportes]] |
+| CRM Campañas WhatsApp | ✅ Completo | [[campanas-crm]] |
+| Encuesta post-estancia | ✅ Completo | [[workflows]] |
+| Solicitudes huéspedes | ✅ Completo | — |
+
+### Arquitectura y operación
+
+- [[vision-general]] — Diagrama ASCII completo + 4 flujos principales
+- [[docker-compose]] — Todos los servicios documentados
+- [[iniciar-sistema]] — Comandos exactos para arrancar desde cero
+- [[webhook-whatsapp]] — Configuración Meta Business Manager
+- [[credenciales]] — Usuarios y puertos del sistema
+- [[concierge-llama3]] — Máquina de estados IA + integración Llama3
+- [[workflows]] — 6 workflows n8n documentados

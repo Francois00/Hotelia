@@ -448,3 +448,162 @@ Cache del JSON y PDF del reporte de turno cerrado.
 | 9 | `20260507000007_comprobantes` | Tabla comprobantes |
 | 10 | `20260507000008_qr_checkin` | qr_token, qr_generado_en en reservas |
 | 11 | `20260519000000_mod07_01_03` | YAPE/PLIN/RUC/DOC_EXTRANJERO enums, tipos_habitacion, reglas_temporada, turnos, gastos_caja, reporte_turno_cache, extensiones habitaciones |
+
+---
+
+## Actualizado 2026-06-16 — Tablas nuevas del sprint
+
+Las siguientes tablas se agregaron en las migraciones del sprint 2026-05-21.
+Se crean directamente via SQL (no via Prisma migrate, por el workaround de Windows).
+
+### 19. `almacen_categorias`
+8 categorías de artículos del hotel (lencería, toallas, amenities, minibar, limpieza, equipos, cocina, suministros).
+
+| Campo | Tipo |
+|-------|------|
+| id | UUID PK |
+| nombre | VARCHAR(50) |
+| descripcion | TEXT |
+| icono | VARCHAR(10) |
+| frecuencia_inventariado | VARCHAR(20) |
+| activa | BOOLEAN DEFAULT true |
+| created_at | TIMESTAMPTZ |
+
+### 20. `almacen_articulos`
+Artículos del inventario. 20 artículos cargados con el seed inicial.
+
+| Campo | Tipo |
+|-------|------|
+| id | UUID PK |
+| nombre | VARCHAR(100) |
+| categoria_id | UUID FK → almacen_categorias |
+| unidad | VARCHAR(20) (unidades, litros, kg, rollos) |
+| stock_actual | DECIMAL(10,2) DEFAULT 0 |
+| stock_minimo | DECIMAL(10,2) |
+| stock_optimo | DECIMAL(10,2) |
+| costo_promedio | DECIMAL(10,2) DEFAULT 0 |
+| proveedor_habitual | VARCHAR(100) |
+| activo | BOOLEAN DEFAULT true |
+| created_at | TIMESTAMPTZ |
+| updated_at | TIMESTAMPTZ |
+
+Índices: `categoria_id`, filtro parcial `activo=true`
+
+### 21. `almacen_movimientos`
+Historial de entradas y salidas de stock.
+
+| Campo | Tipo |
+|-------|------|
+| id | UUID PK |
+| articulo_id | UUID FK → almacen_articulos |
+| tipo | VARCHAR(10) (entrada, salida, ajuste) |
+| cantidad | DECIMAL(10,2) |
+| stock_resultante | DECIMAL(10,2) |
+| motivo | VARCHAR(100) |
+| habitacion_id | UUID FK → habitaciones, nullable |
+| reserva_id | UUID FK → reservas, nullable |
+| responsable_id | UUID FK → personal |
+| precio_unitario | DECIMAL(10,2) |
+| referencia_doc | VARCHAR(50) |
+| created_at | TIMESTAMPTZ |
+
+Índice: `articulo_id`, `created_at`
+
+### 22. `almacen_inventariados`
+Sesiones de inventariado periódico.
+
+| Campo | Tipo |
+|-------|------|
+| id | UUID PK |
+| responsable_id | UUID FK → personal |
+| estado | VARCHAR(20) (activo, cerrado) |
+| total_diferencias | INT DEFAULT 0 |
+| fecha_inicio | TIMESTAMPTZ DEFAULT now() |
+| fecha_fin | TIMESTAMPTZ, nullable |
+| created_at | TIMESTAMPTZ |
+
+### 23. `almacen_inventariado_items`
+Ítems de cada sesión de inventariado (stock teórico vs real).
+
+| Campo | Tipo |
+|-------|------|
+| id | UUID PK |
+| inventariado_id | UUID FK → almacen_inventariados |
+| articulo_id | UUID FK → almacen_articulos |
+| stock_teorico | DECIMAL(10,2) |
+| stock_contado | DECIMAL(10,2), nullable |
+| diferencia | DECIMAL(10,2) GENERATED |
+| justificacion | TEXT |
+| created_at | TIMESTAMPTZ |
+
+### 24. `solicitudes_huesped`
+Solicitudes de servicio del huésped en tiempo real (polling 30s en frontend).
+
+| Campo | Tipo |
+|-------|------|
+| id | UUID PK |
+| reserva_id | UUID FK → reservas |
+| huesped_id | UUID FK → huespedes |
+| tipo | VARCHAR(50) (toallas, limpieza, amenities, desayuno, otro) |
+| descripcion | TEXT |
+| estado | VARCHAR(20) (pendiente, en_proceso, completado) |
+| atendido_por_id | UUID FK → personal, nullable |
+| created_at | TIMESTAMPTZ |
+| updated_at | TIMESTAMPTZ |
+
+Índice: `reserva_id`, `estado`
+
+### 25. `encuestas_satisfaccion`
+Respuestas a las encuestas post-estancia enviadas por n8n.
+
+| Campo | Tipo |
+|-------|------|
+| id | UUID PK |
+| reserva_id | UUID FK → reservas |
+| huesped_id | UUID FK → huespedes |
+| puntuacion | INT (1-5) |
+| comentario | TEXT, nullable |
+| canal | VARCHAR(20) (whatsapp, email) |
+| created_at | TIMESTAMPTZ |
+
+Índice: `huesped_id`, `puntuacion`
+
+### 26. `mantenimiento_registros`
+Historial de trabajos de mantenimiento por habitación.
+
+| Campo | Tipo |
+|-------|------|
+| id | UUID PK |
+| habitacion_id | UUID FK → habitaciones |
+| tipo | VARCHAR(50) (eléctrico, plomería, mobiliario, etc.) |
+| descripcion | TEXT |
+| estado | VARCHAR(20) (pendiente, en_proceso, completado) |
+| prioridad | VARCHAR(10) (alta, media, baja) |
+| responsable_id | UUID FK → personal, nullable |
+| fecha_inicio | TIMESTAMPTZ |
+| fecha_fin | TIMESTAMPTZ, nullable |
+| costo | DECIMAL(10,2), nullable |
+| notas | TEXT |
+| created_at | TIMESTAMPTZ |
+| updated_at | TIMESTAMPTZ |
+
+Índice: `habitacion_id`, `estado`
+
+### 27. `campanas_envios`
+Registro de envíos individuales por campaña CRM.
+
+| Campo | Tipo |
+|-------|------|
+| id | UUID PK |
+| campana_id | UUID FK → campanas_crm |
+| huesped_id | UUID FK → huespedes |
+| estado | VARCHAR(20) (ENVIADO, FALLIDO) |
+| mensaje_id_wpp | VARCHAR(100), nullable |
+| error | TEXT, nullable |
+| created_at | TIMESTAMPTZ |
+
+Índice: `campana_id`
+
+---
+
+## Total de tablas: 27 (18 originales + 9 nuevas del sprint)

@@ -13,3 +13,6 @@ resumen: Los 3 servicios del sistema y cómo se comunican entre sí
 - Redis: cache de disponibilidad y sesiones
 - n8n self-hosted: automatización de flujos operativos
 - Docker Compose: orquestación
+
+## Actualizado 2026-06-16
+Ver [[vision-general]] para el diagrama ASCII completo y los 4 flujos principales del sistema.

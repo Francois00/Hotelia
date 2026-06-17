@@ -141,3 +141,21 @@ Los flujos JSON están en `n8n-flows/` y se montan en `/home/node/flows:ro`.
 - `SERVICE_TOKEN: change_me_backend_token_dev` es el valor por defecto en `docker-compose.yml` — **cambiar antes de deploy**.
 - Los flujos usan `http://backend:3000` (red Docker interna) — solo funcionan dentro del stack de Docker, no en desarrollo local sin Docker.
 - n8n no tiene retry configurado por defecto en los nodos HTTP — si el backend está caído, el flujo fallará silenciosamente.
+
+---
+
+## Actualizado 2026-06-16 — Workflows nuevos del sprint
+
+### 6. `concierge-wpp-reservas.json` ✅ Activo en producción
+
+**Trigger**: Webhook POST de Meta Cloud API
+**Lógica**: Recibe mensaje WPP → `POST /n8n/interpretar-mensaje` → procesa state machine concierge → responde al huésped
+**Flujo completo**: ver [[concierge-llama3]] y [[workflows]]
+
+### 7. `encuesta-post-estancia.json` ✅ Activo
+
+**Trigger**: Webhook interno — llamado por `POST /n8n/programar-encuesta` tras checkout
+**Lógica**: Wait 24h → envía mensaje WPP con escala de emojis → guarda respuesta en `encuestas_satisfaccion`
+**Nota**: El archivo `encuesta_post_estancia.json` (con guion bajo) es un duplicado legacy — usar `encuesta-post-estancia.json` (con guion)
+
+Ver [[workflows]] para documentación detallada de todos los workflows.

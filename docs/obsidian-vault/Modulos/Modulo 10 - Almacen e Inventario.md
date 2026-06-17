@@ -95,3 +95,32 @@ Control de todos los artículos físicos del hotel. Incluye alertas de stock mí
 - [[Modulo 07 - Gestion de Habitaciones]] — equipos asignados a habitaciones específicas
 - [[Modulo 11 - Control de Accesos por Rol]] — recepcionista puede ver y registrar; gerente hace inventariado
 
+
+---
+
+## Actualizado 2026-06-16 — Estado real (implementado)
+
+**Estado**: ✅ **COMPLETO** — commit `60f37fa`
+
+### Lo que se implementó vs lo especificado
+
+| Especificado | Implementado | Notas |
+|-------------|-------------|-------|
+| Tablas almacen_articulos, almacen_movimientos | ✅ | Exactamente como se especificó |
+| almacen_inventariados + items | ✅ | Con estado activo/cerrado |
+| Dashboard de stock | ✅ | Normal/bajo/crítico + valor total |
+| 8 categorías | ✅ | Cargadas en seed (lencería, toallas, amenities, minibar, limpieza, equipos, cocina, suministros) |
+| 20 artículos en seed | ✅ | Distribuidos en las 8 categorías |
+| CRUD artículos | ✅ | GET/POST/PUT |
+| Entradas y salidas | ✅ | Con historial filtrable |
+| Inventariado periódico | ✅ | Iniciar/cerrar con ajuste automático de stock |
+| Alertas de stock bajo | ✅ | GET /alertas + WPP automático |
+| almacen_equipos_habitacion | ❌ | No implementado (equipos van en almacen_articulos regular) |
+
+### Archivos implementados
+- `backend/src/routes/almacen.ts` — 13 endpoints
+- `frontend/src/pages/AlmacenPage.tsx` — tabs, progress bars, modales
+- 5 tablas SQL: almacen_categorias, almacen_articulos, almacen_movimientos, almacen_inventariados, almacen_inventariado_items
+
+### Ruta frontend
+`/almacen` — accesible para todos los roles de staff

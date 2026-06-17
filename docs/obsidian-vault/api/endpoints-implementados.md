@@ -255,3 +255,108 @@ Autenticación: header `X-IA-Key`.
 | **Backend total** | **67** |
 | AI Service | 14 |
 | **Total proyecto** | **81** |
+
+---
+
+## Actualizado 2026-06-16 — Endpoints del sprint
+
+### Almacén (`/api/v1/almacen/*`)
+
+| Método | Ruta | Roles | Descripción |
+|--------|------|-------|-------------|
+| GET | `/almacen/dashboard` | todos | KPIs: total, normal, bajo, crítico, valor total stock |
+| GET | `/almacen/categorias` | todos | 8 categorías con count de artículos |
+| GET | `/almacen/articulos` | todos | Listado con filtros (categoria, alerta, busqueda) |
+| POST | `/almacen/articulos` | GERENTE, ADMIN | Crear artículo |
+| PUT | `/almacen/articulos/:id` | GERENTE, ADMIN | Editar artículo |
+| POST | `/almacen/movimientos/entrada` | todos los staff | Registrar ingreso de stock |
+| POST | `/almacen/movimientos/salida` | todos los staff | Registrar salida de stock |
+| GET | `/almacen/movimientos` | todos | Historial con filtros (tipo, articulo, desde, hasta) |
+| GET | `/almacen/alertas` | todos | Artículos con stock ≤ mínimo |
+| POST | `/almacen/inventariados` | GERENTE, ADMIN | Iniciar proceso de inventariado |
+| GET | `/almacen/inventariados/activo` | todos | Inventariado activo con items |
+| PATCH | `/almacen/inventariados/:id/items/:itemId` | todos los staff | Actualizar conteo real de un ítem |
+| POST | `/almacen/inventariados/:id/cerrar` | GERENTE, ADMIN | Cerrar inventariado y aplicar diferencias |
+
+### Housekeeping (`/api/v1/housekeeping/*`)
+
+| Método | Ruta | Roles | Descripción |
+|--------|------|-------|-------------|
+| GET | `/housekeeping/plan-dia` | HK, RECEP, GER | Plan del día con prioridades y timer |
+| PATCH | `/housekeeping/habitaciones/:numero/estado` | HK, RECEP, GER | Cambiar estado de habitación |
+| GET | `/housekeeping/habitaciones/:numero/detalle` | HK, RECEP, GER | Detalle + historial de la habitación |
+
+### Reportes (`/api/v1/reportes/*`)
+
+| Método | Ruta | Roles | Descripción |
+|--------|------|-------|-------------|
+| GET | `/reportes/mensual` | GERENTE, ADMIN | JSON del reporte mensual (`?mes=2026-06`) |
+| GET | `/reportes/mensual/pdf` | GERENTE, ADMIN | PDF descargable del reporte |
+| GET | `/reportes/mensual/excel` | GERENTE, ADMIN | Excel (.xlsx) descargable |
+| GET | `/reportes/comparativo` | GERENTE, ADMIN | Comparativo mes actual vs anterior |
+
+### Campañas CRM (`/api/v1/campanas/*`)
+
+| Método | Ruta | Roles | Descripción |
+|--------|------|-------|-------------|
+| GET | `/campanas` | GERENTE, ADMIN | Listar campañas con estado |
+| POST | `/campanas/preview` | GERENTE, ADMIN | Vista previa: cuántos recibirán la campaña |
+| POST | `/campanas` | GERENTE, ADMIN | Crear campaña en estado BORRADOR |
+| POST | `/campanas/:id/enviar` | GERENTE, ADMIN | Lanzar envío en background (202 Accepted) |
+| GET | `/campanas/:id/estado` | GERENTE, ADMIN | Progreso: enviados/total |
+
+### Solicitudes de Huéspedes (`/api/v1/solicitudes/*`)
+
+| Método | Ruta | Roles | Descripción |
+|--------|------|-------|-------------|
+| GET | `/solicitudes` | todos | Listar solicitudes (filtro: pendientes, reserva_id) |
+| POST | `/solicitudes` | público (token reserva) | Crear solicitud desde QR del huésped |
+| PATCH | `/solicitudes/:id` | RECEP, GER, ADMIN | Actualizar estado de la solicitud |
+
+### Concierge IA (`/api/v1/concierge/*`)
+
+| Método | Ruta | Roles | Descripción |
+|--------|------|-------|-------------|
+| POST | `/concierge/chat` | autenticado | Enviar mensaje al concierge (pruebas directas) |
+| DELETE | `/concierge/chat/:session_id` | autenticado | Limpiar sesión de conversación |
+
+### n8n endpoints internos (`/api/v1/n8n/*`)
+
+Autenticación: header `x-n8n-secret: $N8N_WEBHOOK_SECRET`
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| POST | `/n8n/interpretar-mensaje` | Procesar mensaje concierge WPP |
+| POST | `/n8n/disponibilidad` | Verificar habitaciones disponibles |
+| POST | `/n8n/upsert-huesped` | Crear/actualizar huésped |
+| POST | `/n8n/crear-reserva` | Crear reserva final desde n8n |
+| POST | `/n8n/guardar-mensaje` | Guardar en concierge_mensajes |
+| POST | `/n8n/generar-voucher` | Generar PDF voucher de reserva |
+| POST | `/n8n/programar-encuesta` | Trigger encuesta post-estancia en n8n |
+| POST | `/n8n/guardar-encuesta` | Guardar respuesta de encuesta |
+| POST | `/n8n/concierge` | Endpoint alternativo concierge |
+
+### Mantenimiento por habitación (`/api/v1/mantenimiento/*`)
+
+| Método | Ruta | Roles | Descripción |
+|--------|------|-------|-------------|
+| GET | `/mantenimiento` | GER, ADMIN, MANT | Listar registros de mantenimiento |
+| POST | `/mantenimiento` | GER, ADMIN, MANT | Crear registro de trabajo |
+| PATCH | `/mantenimiento/:id` | GER, ADMIN, MANT | Actualizar estado (completado, etc.) |
+
+### Total actualizado
+
+| Grupo | Endpoints |
+|-------|-----------|
+| Backend total previo | 67 |
+| Almacén (nuevos) | 13 |
+| Housekeeping (nuevos) | 3 |
+| Reportes (nuevos) | 4 |
+| Campañas CRM (nuevos) | 5 |
+| Solicitudes (nuevos) | 3 |
+| Concierge directa (nuevos) | 2 |
+| n8n internos (nuevos) | 9 |
+| Mantenimiento (nuevos) | 3 |
+| **Backend total actualizado** | **109** |
+| AI Service | 14 |
+| **Total proyecto actualizado** | **123** |
