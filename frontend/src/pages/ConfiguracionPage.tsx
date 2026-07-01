@@ -1,4 +1,4 @@
-import { useState, useEffect, FormEvent } from 'react'
+import { useState, useEffect, type FormEvent } from 'react'
 import api from '../api/client'
 import { useRol } from '../hooks/useRol'
 
