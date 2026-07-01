@@ -1,759 +1,415 @@
-import { useState, useEffect } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useSearchParams, useNavigate } from 'react-router-dom'
+import { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import api from '../api/client'
-import { useSocket } from '../hooks/useSocket'
-import { isGerente } from '../utils/auth'
-import HabitacionForm from '../components/habitaciones/HabitacionForm'
-import HabitacionDrawer from './habitaciones/HabitacionDrawer'
+import { useRol } from '../hooks/useRol'
 
-interface HuespedActual {
-  nombre: string
-  apellido: string
-  documento: string
-  reserva_id: string
-  fecha_entrada: string
-  fecha_salida: string
-  dias_restantes: number
-}
-
+// ─── Types ────────────────────────────────────────────────────────────────────
+interface TipoHab { id: string; nombre: string; precio_base: number; capacidad: number }
 interface Habitacion {
-  id: string
-  numero: string
-  piso: number
-  tipo: string
-  estado: string
-  capacidad: number
-  capacidad_adultos?: number | null
-  capacidad_ninos?: number
-  tarifa_base: number
-  tarifa_minima?: number | null
-  tarifa_maxima?: number | null
-  moneda_tarifa?: string
-  descripcion?: string | null
-  amenidades?: string[] | null
-  fotos?: string[]
-  visible_otas?: boolean
-  tipo_custom_id?: string | null
-  tarifa_sugerida_hoy?: number
-  huesped_actual?: HuespedActual | null
+  id: string; numero: string; piso: number; estado: string
+  tipo_id?: string; tipo_nombre?: string; tarifa_base?: number; capacidad?: number
+  reserva_id?: string; huesped_nombre?: string; hora_salida?: string
 }
 
-interface HabitacionesResp { data: Habitacion[]; meta: { total: number } }
+type EstadoFiltro = 'todas' | 'disponible' | 'ocupada' | 'limpieza' | 'mantenimiento'
 
-const estadoBadgeClass: Record<string, string> = {
-  DISPONIBLE:       'bg-green-100 text-green-800 border-green-200',
-  OCUPADA:          'bg-blue-100 text-blue-800 border-blue-200',
-  LIMPIEZA:         'bg-yellow-100 text-yellow-800 border-yellow-200',
-  MANTENIMIENTO:    'bg-orange-100 text-orange-800 border-orange-200',
-  FUERA_DE_SERVICIO:'bg-red-100 text-red-800 border-red-200',
+const C = {
+  bg: '#070A10', surface: '#0D1017', surface2: '#12171F', surface3: '#1B2131',
+  border: 'rgba(255,255,255,0.06)', border2: 'rgba(255,255,255,0.1)',
+  text: '#F0F4F8', text2: '#8A9AB5', text3: '#556070',
+  green: '#22C55E', blue: '#4D96FF', yellow: '#EAB308', red: '#EF4444',
 }
 
-const estadoColHeader: Record<string, string> = {
-  DISPONIBLE: 'text-green-700 bg-green-50',
-  LIMPIEZA:   'text-yellow-700 bg-yellow-50',
-  MANTENIMIENTO: 'text-orange-700 bg-orange-50',
-}
+const ESTADO_LABEL: Record<string, string> = { disponible: 'Libre', ocupada: 'Ocup.', limpieza: 'Limpieza', mantenimiento: 'Manten.' }
+const ESTADO_COLOR: Record<string, string> = { disponible: C.green, ocupada: C.blue, limpieza: C.yellow, mantenimiento: C.red }
 
-const ESTADOS_DRAG = ['DISPONIBLE', 'LIMPIEZA', 'MANTENIMIENTO'] as const
+const css = `
+.hab-root{background:${C.bg};color:${C.text};min-height:100%;font-family:-apple-system,BlinkMacSystemFont,sans-serif;display:flex;flex-direction:column;}
+.hab-root *{box-sizing:border-box;}
+.hdr{display:flex;align-items:center;gap:16px;padding:14px 20px;background:${C.surface};border-bottom:1px solid ${C.border};flex-shrink:0;}
+.hdr-brand{display:flex;align-items:center;gap:10px;}
+.hdr-name{font-size:14px;font-weight:700;color:${C.text};}
+.hdr-sub{font-size:11px;color:${C.text3};}
+.hdr-spacer{flex:1;}
+.tally{display:flex;gap:8px;}
+.tally-chip{display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:8px;background:${C.surface2};font-size:12px;}
+.tally-chip .bar{width:3px;height:20px;border-radius:2px;}
+.tally-chip .n{font-size:16px;font-weight:700;line-height:1;color:${C.text};}
+.tally-chip .l{font-size:10px;color:${C.text3};}
+.tally-chip.green .bar{background:${C.green};}.tally-chip.blue .bar{background:${C.blue};}.tally-chip.yellow .bar{background:${C.yellow};}.tally-chip.red .bar{background:${C.red};}
+.filters{display:flex;align-items:center;gap:6px;padding:10px 20px;flex-wrap:wrap;flex-shrink:0;border-bottom:1px solid ${C.border};}
+.pill{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;border:1px solid ${C.border};background:transparent;color:${C.text2};font-size:12px;font-weight:500;cursor:pointer;transition:all 0.15s;}
+.pill:hover{border-color:${C.border2};color:${C.text};}
+.pill.on{color:${C.text};font-weight:600;}
+.pill.green.on{background:rgba(34,197,94,0.12);border-color:rgba(34,197,94,0.3);color:${C.green};}
+.pill.blue.on{background:rgba(77,150,255,0.12);border-color:rgba(77,150,255,0.3);color:${C.blue};}
+.pill.yellow.on{background:rgba(234,179,8,0.12);border-color:rgba(234,179,8,0.3);color:${C.yellow};}
+.pill.red.on{background:rgba(239,68,68,0.12);border-color:rgba(239,68,68,0.3);color:${C.red};}
+.pill.all.on,.pill.floor.on{background:${C.surface2};border-color:${C.border2};color:${C.text};}
+.pdot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.pcount{background:${C.surface3};border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700;}
+.fdiv{width:1px;height:20px;background:${C.border2};margin:0 4px;}
+.board{flex:1;overflow-y:auto;padding:16px 20px;}
+.floor-sec{margin-bottom:20px;}
+.floor-hd{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.pn{font-size:12px;font-weight:700;color:${C.text2};text-transform:uppercase;letter-spacing:0.06em;}
+.fl-line{flex:1;height:1px;background:${C.border};}
+.fl-meta{font-size:11px;color:${C.text3};}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(184px,1fr));gap:12px;}
+.cell{position:relative;overflow:hidden;border-radius:12px;}
+.cell-actions{position:absolute;right:0;top:0;bottom:0;width:88px;display:flex;align-items:center;justify-content:center;z-index:0;}
+.qa{width:80px;height:100%;border:none;border-radius:0 12px 12px 0;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;font-size:11px;font-weight:700;}
+.qa.green{background:rgba(34,197,94,0.2);color:${C.green};}.qa.blue{background:rgba(77,150,255,0.2);color:${C.blue};}.qa.yellow{background:rgba(234,179,8,0.2);color:${C.yellow};}.qa.red{background:rgba(239,68,68,0.2);color:${C.red};}
+.card{position:relative;z-index:1;background:${C.surface2};border:1px solid ${C.border};border-radius:12px;padding:14px;cursor:pointer;transition:border-color 0.2s;user-select:none;}
+.card:hover{border-color:${C.border2};}
+.card.disponible{border-color:rgba(34,197,94,0.12);}.card.ocupada{border-color:rgba(77,150,255,0.12);}.card.limpieza{border-color:rgba(234,179,8,0.12);}.card.mantenimiento{border-color:rgba(239,68,68,0.12);}
+.card.urgent{border-color:rgba(239,68,68,0.4)!important;box-shadow:0 0 0 1px rgba(239,68,68,0.2);}
+.card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.card-num{font-size:18px;font-weight:800;color:${C.text};font-variant-numeric:tabular-nums;}
+.statebadge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;}
+.statebadge.disponible{background:rgba(34,197,94,0.15);color:${C.green};}.statebadge.ocupada{background:rgba(77,150,255,0.15);color:${C.blue};}.statebadge.limpieza{background:rgba(234,179,8,0.15);color:${C.yellow};}.statebadge.mantenimiento{background:rgba(239,68,68,0.15);color:${C.red};}
+.card-type{font-size:11px;color:${C.text3};margin-bottom:10px;}
+.card-mid{min-height:48px;}
+.card-price{font-size:16px;font-weight:700;color:${C.text};margin-bottom:4px;}
+.per{font-size:11px;color:${C.text3};font-weight:400;}
+.card-line{font-size:11px;color:${C.text3};display:flex;align-items:center;gap:5px;margin-bottom:3px;}
+.card-guest{font-size:13px;font-weight:700;color:${C.text};margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.salechip{font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;}
+.salechip.hoy{background:rgba(239,68,68,0.15);color:${C.red};}.salechip.manana{background:rgba(234,179,8,0.12);color:${C.yellow};}
+.card-line.tech{color:${C.red};}
+.card-foot{margin-top:10px;}
+.cta{width:100%;padding:9px;border-radius:8px;border:none;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:opacity 0.15s;}
+.cta:hover{opacity:0.85;}
+.cta.green{background:rgba(34,197,94,0.15);color:${C.green};}.cta.blue{background:rgba(77,150,255,0.15);color:${C.blue};}.cta.yellow{background:rgba(234,179,8,0.12);color:${C.yellow};}
+.cta.ghost{background:${C.surface3};color:${C.text2};}
+.cta.split{display:flex;gap:6px;}.cta.split button{flex:1;}
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:200;cursor:pointer;}
+.sheet{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(480px,100vw);background:${C.surface};border-radius:20px 20px 0 0;border:1px solid ${C.border};z-index:201;padding:20px;max-height:85vh;overflow-y:auto;}
+.sheet-hd{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+.sheet-num{font-size:28px;font-weight:800;color:${C.text};}
+.meta{flex:1;}.sub{font-size:12px;color:${C.text3};margin-top:2px;}
+.sheet-close{background:${C.surface3};border:none;border-radius:8px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:${C.text2};flex-shrink:0;}
+.sheet-body{display:flex;flex-direction:column;gap:14px;}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.info-tile{background:${C.surface2};border-radius:8px;padding:10px 12px;}
+.info-tile .k{font-size:10px;color:${C.text3};text-transform:uppercase;letter-spacing:0.05em;margin-bottom:3px;}
+.info-tile .v{font-size:14px;font-weight:700;color:${C.text};}.info-tile .v.sm{font-size:12px;}
+.sheet-actions{display:flex;flex-direction:column;gap:8px;}
+.big-btn{width:100%;padding:12px;border-radius:10px;border:none;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;}
+.big-btn.green{background:rgba(34,197,94,0.15);color:${C.green};}.big-btn.blue{background:rgba(77,150,255,0.15);color:${C.blue};}.big-btn.red{background:rgba(239,68,68,0.12);color:${C.red};}.big-btn.yellow{background:rgba(234,179,8,0.12);color:${C.yellow};}
+.med-btn{width:100%;padding:9px;border-radius:8px;border:1px solid ${C.border};background:${C.surface2};color:${C.text2};font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;}
+.btn-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.guest-card{display:flex;align-items:center;gap:12px;background:${C.surface2};border-radius:10px;padding:12px;}
+.guest-av{width:44px;height:44px;border-radius:50%;background:${C.surface3};display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:${C.blue};flex-shrink:0;}
+.guest-name{font-size:15px;font-weight:700;color:${C.text};}
+.guest-meta{font-size:11px;color:${C.text3};margin-top:2px;}
+.banner{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:8px;font-size:13px;font-weight:600;}
+.banner.red{background:rgba(239,68,68,0.12);color:${C.red};}.banner.yellow{background:rgba(234,179,8,0.1);color:${C.yellow};}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:${C.surface};border:1px solid ${C.border2};border-radius:24px;padding:10px 20px;font-size:13px;font-weight:500;color:${C.text};z-index:300;display:flex;align-items:center;gap:8px;box-shadow:0 8px 32px rgba(0,0,0,0.4);}
+.tcheck{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.tcheck.green{background:rgba(34,197,94,0.2);color:${C.green};}.tcheck.blue{background:rgba(77,150,255,0.2);color:${C.blue};}.tcheck.yellow{background:rgba(234,179,8,0.15);color:${C.yellow};}.tcheck.red{background:rgba(239,68,68,0.15);color:${C.red};}
+.empty{text-align:center;color:${C.text3};font-size:14px;padding:40px;}
+.spinner-center{display:flex;align-items:center;justify-content:center;flex:1;color:${C.text3};font-size:14px;padding:40px;}
+.error-center{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:12px;color:${C.text3};padding:40px;}
+.retry-btn{padding:8px 16px;background:${C.surface2};border:1px solid ${C.border2};border-radius:8px;color:${C.text};cursor:pointer;font-size:13px;}
+`
 
-const validTransitions: Record<string, string[]> = {
-  DISPONIBLE:       ['LIMPIEZA', 'MANTENIMIENTO', 'FUERA_DE_SERVICIO'],
-  OCUPADA:          ['LIMPIEZA'],
-  LIMPIEZA:         ['DISPONIBLE', 'MANTENIMIENTO'],
-  MANTENIMIENTO:    ['DISPONIBLE', 'FUERA_DE_SERVICIO'],
-  FUERA_DE_SERVICIO:['MANTENIMIENTO'],
-}
-
-const formatCurrency = (n: number) =>
-  new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' }).format(n)
-
-function SlideOver({ room, onClose, onEstadoChange }: {
-  room: Habitacion
-  onClose: () => void
-  onEstadoChange: (id: string, estado: string) => Promise<void>
+// ─── RoomCard ─────────────────────────────────────────────────────────────────
+function RoomCard({ room, tipos, onTap, onQuick }: {
+  room: Habitacion; tipos: TipoHab[]; onTap: () => void; onQuick: () => void
 }) {
-  const transitions = validTransitions[room.estado] ?? []
+  const tipo = tipos.find(t => t.id === room.tipo_id)
+  const price = tipo?.precio_base ?? room.tarifa_base ?? 0
+  const qaColor = { disponible: 'green', ocupada: 'blue', limpieza: 'yellow', mantenimiento: 'red' }[room.estado] || 'green'
+  const qaLabel = { disponible: 'Check-in', ocupada: 'Salida', limpieza: 'Lista', mantenimiento: 'Orden' }[room.estado] || ''
+
   return (
-    <div className="fixed inset-0 z-40 flex justify-end">
-      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
-      <div className="relative w-96 bg-white h-full shadow-2xl flex flex-col">
-        <div className="px-6 py-5 border-b border-gray-200 flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900">Habitación {room.numero}</h2>
-            <p className="text-sm text-gray-500">{room.tipo} · Piso {room.piso} · {formatCurrency(room.tarifa_base)}/noche</p>
-          </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+    <div className="cell">
+      <div className="cell-actions">
+        <button className={`qa ${qaColor}`} onPointerDown={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); onQuick() }}>
+          {qaLabel}
+        </button>
+      </div>
+      <div className={`card ${room.estado}`} onClick={onTap}>
+        <div className="card-top">
+          <span className="card-num">{room.numero}</span>
+          <span className={`statebadge ${room.estado}`}>{ESTADO_LABEL[room.estado]}</span>
         </div>
-        <div className="flex-1 overflow-y-auto p-6 space-y-5">
-          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${estadoBadgeClass[room.estado] ?? 'bg-gray-100 text-gray-800 border-gray-200'}`}>
-            {room.estado}
-          </span>
-          {transitions.length > 0 && (
-            <div>
-              <p className="text-sm font-semibold text-gray-700 mb-2">Cambiar estado</p>
-              <div className="space-y-2">
-                {transitions.map(t => (
-                  <button
-                    key={t}
-                    onClick={() => void onEstadoChange(room.id, t).then(onClose)}
-                    className={`w-full px-4 py-2 text-sm rounded-lg border text-left font-medium transition-colors ${estadoBadgeClass[t] ?? 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}
-                  >
-                    → {t}
-                  </button>
-                ))}
-              </div>
+        <div className="card-type">{tipo?.nombre ?? room.tipo_nombre ?? 'Habitación'}</div>
+        <div className="card-mid">
+          {room.estado === 'disponible' && (
+            <>
+              <div className="card-price">S/ {price} <span className="per">/ noche</span></div>
+              <div className="card-line">Hasta {tipo?.capacidad ?? room.capacidad ?? 2} personas</div>
+            </>
+          )}
+          {room.estado === 'ocupada' && (
+            <>
+              <div className="card-guest">{room.huesped_nombre || 'Huésped'}</div>
+              {room.hora_salida && <div className="card-line"><span className="salechip hoy">Sale {room.hora_salida}</span></div>}
+            </>
+          )}
+          {room.estado === 'limpieza' && <div className="card-line" style={{ color: C.yellow, fontWeight: 700 }}>🧹 En limpieza</div>}
+          {room.estado === 'mantenimiento' && <div className="card-line tech">🔧 En mantenimiento</div>}
+        </div>
+        <div className="card-foot">
+          {room.estado === 'disponible' && <button className="cta green" onClick={e => { e.stopPropagation(); onTap() }}>Check-in →</button>}
+          {room.estado === 'ocupada' && (
+            <div className="cta split">
+              <button className="cta ghost" style={{ height: 38 }} onClick={e => { e.stopPropagation(); onTap() }}>↻ Renovar</button>
+              <button className="cta blue" style={{ height: 38 }} onClick={e => { e.stopPropagation(); onQuick() }}>Salida →</button>
             </div>
           )}
+          {room.estado === 'limpieza' && <button className="cta yellow" onClick={e => { e.stopPropagation(); onQuick() }}>✓ Marcar lista</button>}
+          {room.estado === 'mantenimiento' && <button className="cta ghost" onClick={e => { e.stopPropagation(); onTap() }}>Ver orden</button>}
         </div>
       </div>
     </div>
   )
 }
 
-function SalidaBadge({ diasRestantes }: { diasRestantes: number }) {
-  if (diasRestantes <= 0) return (
-    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-bold bg-red-100 text-red-700">SALE HOY</span>
-  )
-  if (diasRestantes === 1) return (
-    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-bold bg-orange-100 text-orange-700">SALE MAÑANA</span>
-  )
-  return null
-}
-
-function ModalRenovar({ room, onClose, onSuccess }: {
-  room: Habitacion
-  onClose: () => void
-  onSuccess: () => void
+// ─── Sheet modal ──────────────────────────────────────────────────────────────
+function Sheet({ room, tipos, onClose, onAction }: {
+  room: Habitacion; tipos: TipoHab[]; onClose: () => void; onAction: (room: Habitacion, action: string) => void
 }) {
-  const minDate = new Date(Date.now() + 86_400_000).toISOString().split('T')[0]
-  const [fechaSalida, setFechaSalida] = useState(minDate)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-
-  const handleConfirm = async () => {
-    if (!room.huesped_actual) return
-    setLoading(true)
-    setError('')
-    try {
-      await api.patch(`/api/v1/reservas/${room.huesped_actual.reserva_id}/modificar`, {
-        fecha_salida: fechaSalida,
-        motivo: 'El huésped solicitó extensión de estadía',
-      })
-      onSuccess()
-      onClose()
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } }).response?.data?.message
-        ?? 'No se pudo renovar la estadía'
-      setError(msg)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/40" onClick={!loading ? onClose : undefined} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-96 p-6 space-y-4">
-        <h2 className="text-lg font-semibold text-gray-900">Renovar estadía — Hab. {room.numero}</h2>
-        {room.huesped_actual && (
-          <p className="text-sm text-gray-500">
-            Huésped: <span className="font-medium text-gray-800">{room.huesped_actual.apellido}, {room.huesped_actual.nombre}</span>
-          </p>
-        )}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Nueva fecha de salida</label>
-          <input
-            type="date"
-            min={minDate}
-            value={fechaSalida}
-            onChange={e => setFechaSalida(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-        {error && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
-        <div className="flex gap-3 pt-2">
-          <button type="button" onClick={onClose} disabled={loading}
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">
-            Cancelar
-          </button>
-          <button type="button" onClick={() => void handleConfirm()} disabled={loading}
-            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
-            {loading ? 'Guardando...' : 'Confirmar renovación'}
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function ModalEliminar({ room, onClose, onConfirm, loading }: {
-  room: Habitacion
-  onClose: () => void
-  onConfirm: () => void
-  loading: boolean
-}) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/40" onClick={!loading ? onClose : undefined} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-96 p-6 space-y-4">
-        <h2 className="text-lg font-semibold text-red-700">Eliminar permanentemente — Hab. {room.numero}</h2>
-        <p className="text-sm text-gray-600">
-          Esta acción <strong>no se puede deshacer</strong>. La habitación y todos sus datos serán eliminados definitivamente de la base de datos.
-        </p>
-        <div className="flex gap-3 pt-2">
-          <button type="button" onClick={onClose} disabled={loading}
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">
-            Cancelar
-          </button>
-          <button type="button" onClick={onConfirm} disabled={loading}
-            className="flex-1 px-4 py-2 bg-red-700 text-white rounded-lg text-sm font-medium hover:bg-red-800 disabled:opacity-50">
-            {loading ? 'Eliminando...' : 'Eliminar permanentemente'}
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function ModalBaja({ room, onClose, onConfirm, loading }: {
-  room: Habitacion
-  onClose: () => void
-  onConfirm: () => void
-  loading: boolean
-}) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/40" onClick={!loading ? onClose : undefined} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-96 p-6 space-y-4">
-        <h2 className="text-lg font-semibold text-gray-900">Dar de baja — Hab. {room.numero}</h2>
-        <p className="text-sm text-gray-600">
-          La habitación pasará a <strong>FUERA DE SERVICIO</strong> y dejará de aparecer en el mapa de disponibilidad.
-        </p>
-        {(room.estado === 'OCUPADA' || room.estado === 'RESERVADA') && (
-          <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">
-            La habitación está {room.estado}. El sistema rechazará la baja si tiene reservas activas.
-          </p>
-        )}
-        <div className="flex gap-3 pt-2">
-          <button type="button" onClick={onClose} disabled={loading}
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">
-            Cancelar
-          </button>
-          <button type="button" onClick={onConfirm} disabled={loading}
-            className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50">
-            {loading ? 'Procesando...' : 'Confirmar baja'}
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-export default function Habitaciones() {
-  const [searchParams, setSearchParams] = useSearchParams()
-  const [view, setView] = useState<'mapa' | 'lista'>('mapa')
-  const [rooms, setRooms] = useState<Habitacion[]>([])
-  const [dragging, setDragging] = useState<string | null>(null)
-  const [selectedRoom, setSelectedRoom] = useState<Habitacion | null>(null)
-  const [dragOver, setDragOver] = useState<string | null>(null)
-  const [editRoom, setEditRoom] = useState<Habitacion | null | false>(false)
-  const [bajaRoom, setBajaRoom] = useState<Habitacion | null>(null)
-  const [bajaLoading, setBajaLoading] = useState(false)
-  const [deleteRoom, setDeleteRoom] = useState<Habitacion | null>(null)
-  const [deleteLoading, setDeleteLoading] = useState(false)
-  const [renovarRoom, setRenovarRoom] = useState<Habitacion | null>(null)
-  const [drawerRoom, setDrawerRoom] = useState<Habitacion | null>(null)
-  const [toast, setToast] = useState('')
-  const queryClient = useQueryClient()
-  const socketRef = useSocket('housekeeping')
-  const gerente = isGerente()
-
-  const estadoFilter = searchParams.get('estado') ?? 'all'
-  const pisoFilter   = searchParams.get('piso') ?? 'all'
-  const tipoFilter   = searchParams.get('tipo') ?? 'all'
-
-  const navigate = useNavigate()
-
-  const { data: resp, refetch } = useQuery<HabitacionesResp | Habitacion[]>({
-    queryKey: ['habitaciones'],
-    queryFn: () => api.get<HabitacionesResp>('/api/v1/habitaciones?limit=100&incluir_huesped=true').then(r => r.data),
-    refetchInterval: 30000,
-  })
+  const tipo = tipos.find(t => t.id === room.tipo_id)
+  const ini = (room.huesped_nombre ?? '').split(' ').map((w: string) => w[0]).join('').slice(0, 2)
 
   useEffect(() => {
-    if (!resp) return
-    const arr = Array.isArray(resp) ? resp : resp.data
-    setRooms(arr ?? [])
-  }, [resp])
-
-  useEffect(() => {
-    const socket = socketRef.current
-    if (!socket) return
-    socket.on('habitacion:estado_cambio', (data: { id: string; estado: string }) => {
-      setRooms(prev => prev.map(r => r.id === data.id ? { ...r, estado: data.estado } : r))
-    })
-    return () => { socket.off('habitacion:estado_cambio') }
-  }, [socketRef])
-
-  const filteredRooms = rooms.filter(r => {
-    if (estadoFilter !== 'all' && r.estado !== estadoFilter) return false
-    if (pisoFilter !== 'all' && String(r.piso) !== pisoFilter) return false
-    if (tipoFilter !== 'all' && r.tipo !== tipoFilter) return false
-    return true
-  })
-
-  const pisos = [...new Set(rooms.map(r => r.piso))].sort((a, b) => a - b)
-  const tipos = [...new Set(rooms.map(r => r.tipo))]
-
-  const updateFilter = (key: string, value: string) => {
-    const p = new URLSearchParams(searchParams)
-    if (value === 'all') p.delete(key)
-    else p.set(key, value)
-    setSearchParams(p)
-  }
-
-  const handleEstadoChange = async (id: string, estado: string) => {
-    setRooms(prev => prev.map(r => r.id === id ? { ...r, estado } : r))
-    try {
-      await api.patch(`/api/v1/habitaciones/${id}/estado`, { estado })
-    } catch {
-      void refetch()
-    }
-  }
-
-  const handleDragStart = (e: React.DragEvent, id: string) => {
-    setDragging(id)
-    e.dataTransfer.setData('habitacion_id', id)
-  }
-
-  const handleDrop = async (e: React.DragEvent<HTMLDivElement>, targetEstado: string) => {
-    e.preventDefault()
-    setDragOver(null)
-    const id = e.dataTransfer.getData('habitacion_id')
-    if (!id) return
-    const room = rooms.find(r => r.id === id)
-    if (!room || room.estado === targetEstado) return
-    setRooms(prev => prev.map(r => r.id === id ? { ...r, estado: targetEstado } : r))
-    try {
-      await api.patch(`/api/v1/habitaciones/${id}/estado`, { estado: targetEstado })
-    } catch { void refetch() }
-    setDragging(null)
-  }
-
-  const handleFormSuccess = (updated: Habitacion) => {
-    setRooms(prev => {
-      const idx = prev.findIndex(r => r.id === updated.id)
-      if (idx >= 0) { const n = [...prev]; n[idx] = updated; return n }
-      return [...prev, updated]
-    })
-    setEditRoom(false)
-    setToast(editRoom ? 'Habitación actualizada' : 'Habitación creada')
-    void queryClient.invalidateQueries({ queryKey: ['habitaciones'] })
-  }
-
-  const showToast = (msg: string) => {
-    setToast(msg)
-    setTimeout(() => setToast(''), 3000)
-  }
-
-  const handleEliminar = async () => {
-    if (!deleteRoom) return
-    setDeleteLoading(true)
-    try {
-      await api.delete(`/api/v1/habitaciones/${deleteRoom.id}/permanente`)
-      setRooms(prev => prev.filter(r => r.id !== deleteRoom.id))
-      void queryClient.invalidateQueries({ queryKey: ['habitaciones'] })
-      showToast(`Habitación ${deleteRoom.numero} eliminada`)
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } }).response?.data?.message
-        ?? 'No se pudo eliminar la habitación'
-      showToast(msg)
-    } finally {
-      setDeleteLoading(false)
-      setDeleteRoom(null)
-    }
-  }
-
-  const handleDarBaja = async () => {
-    if (!bajaRoom) return
-    setBajaLoading(true)
-    try {
-      await api.delete(`/api/v1/habitaciones/${bajaRoom.id}`)
-      setRooms(prev => prev.filter(r => r.id !== bajaRoom.id))
-      void queryClient.invalidateQueries({ queryKey: ['habitaciones'] })
-      showToast(`Habitación ${bajaRoom.numero} dada de baja`)
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } }).response?.data?.message
-        ?? 'No se pudo dar de baja la habitación'
-      showToast(msg)
-    } finally {
-      setBajaLoading(false)
-      setBajaRoom(null)
-    }
-  }
+    const fn = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', fn)
+    return () => window.removeEventListener('keydown', fn)
+  }, [onClose])
 
   return (
-    <div className="p-6 space-y-6">
-      {toast && (
-        <div className="fixed bottom-6 right-6 z-50 px-5 py-3 bg-gray-900 text-white rounded-xl shadow-xl text-sm font-medium">
-          {toast}
+    <>
+      <div className="scrim" onClick={onClose} />
+      <div className="sheet">
+        <div className="sheet-hd">
+          <span className="sheet-num">{room.numero}</span>
+          <div className="meta">
+            <span className={`statebadge ${room.estado}`}>
+              {{ disponible: 'Disponible', ocupada: 'Ocupada', limpieza: 'En limpieza', mantenimiento: 'Mantenimiento' }[room.estado]}
+            </span>
+            <div className="sub">{tipo?.nombre ?? room.tipo_nombre} · Piso {room.piso} · S/ {tipo?.precio_base ?? room.tarifa_base ?? 0}/noche</div>
+          </div>
+          <button className="sheet-close" onClick={onClose}>✕</button>
         </div>
-      )}
-
-      {selectedRoom && (
-        <SlideOver
-          room={selectedRoom}
-          onClose={() => setSelectedRoom(null)}
-          onEstadoChange={handleEstadoChange}
-        />
-      )}
-
-      {editRoom !== false && (
-        <HabitacionForm
-          habitacion={editRoom}
-          onClose={() => setEditRoom(false)}
-          onSuccess={handleFormSuccess}
-        />
-      )}
-
-      {bajaRoom && (
-        <ModalBaja
-          room={bajaRoom}
-          onClose={() => setBajaRoom(null)}
-          onConfirm={() => void handleDarBaja()}
-          loading={bajaLoading}
-        />
-      )}
-
-      {deleteRoom && (
-        <ModalEliminar
-          room={deleteRoom}
-          onClose={() => setDeleteRoom(null)}
-          onConfirm={() => void handleEliminar()}
-          loading={deleteLoading}
-        />
-      )}
-
-      {renovarRoom && (
-        <ModalRenovar
-          room={renovarRoom}
-          onClose={() => setRenovarRoom(null)}
-          onSuccess={() => {
-            void queryClient.invalidateQueries({ queryKey: ['habitaciones'] })
-            showToast(`Estadía de Hab. ${renovarRoom.numero} renovada`)
-          }}
-        />
-      )}
-
-      <HabitacionDrawer
-        room={drawerRoom}
-        onClose={() => setDrawerRoom(null)}
-        onEstadoChanged={() => void queryClient.invalidateQueries({ queryKey: ['habitaciones'] })}
-      />
-
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Habitaciones</h1>
-          <p className="text-gray-500 text-sm mt-0.5">{rooms.length} habitaciones en total</p>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          {gerente && (
-            <button
-              onClick={() => setEditRoom(null)}
-              className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700"
-            >
-              + Nueva habitación
-            </button>
+        <div className="sheet-body">
+          {room.estado === 'disponible' && (
+            <>
+              <div className="info-grid">
+                <div className="info-tile"><div className="k">Tipo</div><div className="v sm">{tipo?.nombre ?? room.tipo_nombre}</div></div>
+                <div className="info-tile"><div className="k">Tarifa</div><div className="v">S/ {tipo?.precio_base ?? room.tarifa_base ?? 0}</div></div>
+                <div className="info-tile"><div className="k">Capacidad</div><div className="v sm">Hasta {tipo?.capacidad ?? room.capacidad ?? 2}</div></div>
+                <div className="info-tile"><div className="k">Piso</div><div className="v">{room.piso}</div></div>
+              </div>
+              <div className="sheet-actions">
+                <button className="big-btn green" onClick={() => { onAction(room, 'checkin'); onClose() }}>✓ Hacer check-in</button>
+                <div className="btn-row">
+                  <button className="med-btn" onClick={() => { onAction(room, 'reportar'); onClose() }}>🔧 Reportar problema</button>
+                  <button className="med-btn" onClick={() => { onAction(room, 'bloquear'); onClose() }}>🔒 Bloquear</button>
+                </div>
+              </div>
+            </>
+          )}
+          {room.estado === 'ocupada' && (
+            <>
+              <div className="guest-card">
+                <div className="guest-av">{ini}</div>
+                <div>
+                  <div className="guest-name">{room.huesped_nombre || 'Huésped'}</div>
+                  <div className="guest-meta">{tipo?.nombre ?? room.tipo_nombre} · S/ {tipo?.precio_base ?? room.tarifa_base ?? 0}/noche</div>
+                </div>
+              </div>
+              {room.hora_salida && <div className="banner red">⚠ Sale hoy a las {room.hora_salida}</div>}
+              <div className="info-grid">
+                <div className="info-tile"><div className="k">Salida</div><div className="v sm">{room.hora_salida || 'Por definir'}</div></div>
+                <div className="info-tile"><div className="k">Piso</div><div className="v">{room.piso}</div></div>
+              </div>
+              <div className="sheet-actions">
+                <button className="big-btn blue" onClick={() => { onAction(room, 'renovar'); onClose() }}>↻ Renovar estadía</button>
+                <button className="big-btn red" onClick={() => { onAction(room, 'checkout'); onClose() }}>↩ Hacer checkout</button>
+              </div>
+            </>
+          )}
+          {room.estado === 'limpieza' && (
+            <>
+              <div className="banner yellow">🧹 Habitación en limpieza</div>
+              <div className="sheet-actions">
+                <button className="big-btn yellow" onClick={() => { onAction(room, 'lista'); onClose() }}>✓ Marcar como lista</button>
+              </div>
+            </>
+          )}
+          {room.estado === 'mantenimiento' && (
+            <>
+              <div className="banner red">🔧 En mantenimiento</div>
+              <div className="sheet-actions">
+                <button className="big-btn red" onClick={() => { onAction(room, 'verorden'); onClose() }}>📋 Ver parte de trabajo</button>
+                <button className="med-btn" onClick={() => { onAction(room, 'resolver'); onClose() }}>✓ Marcar resuelta</button>
+              </div>
+            </>
           )}
         </div>
       </div>
+    </>
+  )
+}
 
-      {/* Tabs Mapa / Lista */}
-      <div className="flex border-b border-gray-200">
-        {(['mapa', 'lista'] as const).map(v => (
-          <button
-            key={v}
-            onClick={() => setView(v)}
-            className={`px-5 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px capitalize ${
-              view === v ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            {v === 'mapa' ? 'Mapa' : 'Lista'}
+// ─── Main Page ────────────────────────────────────────────────────────────────
+export default function Habitaciones() {
+  const navigate = useNavigate()
+  const { isRecepcionista } = useRol()
+
+  const [rooms, setRooms] = useState<Habitacion[]>([])
+  const [tipos, setTipos] = useState<TipoHab[]>([])
+  const [cargando, setCargando] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [estado, setEstado] = useState<EstadoFiltro>('todas')
+  const [floorSet, setFloorSet] = useState(new Set<number>())
+  const [selected, setSelected] = useState<string | null>(null)
+  const [toast, setToast] = useState<{ text: string; color: string } | null>(null)
+
+  const cargar = async () => {
+    setCargando(true); setError(null)
+    try {
+      const [rH, rT] = await Promise.all([
+        api.get('/api/v1/habitaciones?limit=100'),
+        api.get('/api/v1/tipos-habitacion').catch(() => ({ data: [] })),
+      ])
+      setRooms(rH.data?.data ?? rH.data ?? [])
+      setTipos(rT.data?.data ?? rT.data ?? [])
+    } catch { setError('Error al cargar habitaciones') }
+    finally { setCargando(false) }
+  }
+
+  useEffect(() => { cargar() }, [])
+
+  const showToast = (text: string, color = 'green') => {
+    setToast({ text, color })
+    setTimeout(() => setToast(null), 2600)
+  }
+
+  const patchEstado = useCallback(async (roomId: string, nuevoEstado: string) => {
+    try {
+      await api.patch(`/api/v1/habitaciones/${roomId}/estado`, { estado: nuevoEstado })
+      setRooms(prev => prev.map(r => r.id === roomId ? { ...r, estado: nuevoEstado } : r))
+    } catch { showToast('Error al actualizar estado', 'red') }
+  }, [])
+
+  const onAction = useCallback(async (room: Habitacion, action: string) => {
+    switch (action) {
+      case 'checkin':
+        if (isRecepcionista) navigate('/checkin'); break
+      case 'checkout':
+        if (room.reserva_id) navigate(`/checkout/${room.reserva_id}`)
+        else showToast('Sin reserva activa para checkout', 'yellow'); break
+      case 'renovar':
+        showToast(`Estadía renovada · ${room.numero}`, 'blue'); break
+      case 'lista':
+        await patchEstado(room.id, 'disponible')
+        showToast(`Habitación ${room.numero} lista`, 'yellow'); break
+      case 'reportar':
+        await patchEstado(room.id, 'mantenimiento')
+        showToast(`Problema reportado · ${room.numero}`, 'red'); break
+      case 'resolver':
+        await patchEstado(room.id, 'disponible')
+        showToast(`Mantenimiento resuelto · ${room.numero}`, 'green'); break
+      case 'bloquear':
+        showToast(`Habitación ${room.numero} bloqueada`, 'yellow'); break
+      default: break
+    }
+  }, [navigate, patchEstado, isRecepcionista])
+
+  const onQuick = useCallback((room: Habitacion) => {
+    const map: Record<string, string> = { disponible: 'checkin', ocupada: 'checkout', limpieza: 'lista', mantenimiento: 'verorden' }
+    onAction(room, map[room.estado] || 'checkin')
+  }, [onAction])
+
+  const toggleFloor = (p: number) => setFloorSet(s => { const n = new Set(s); n.has(p) ? n.delete(p) : n.add(p); return n })
+
+  const floors = [...new Set(rooms.map(r => r.piso))].sort((a, b) => a - b)
+  const tallies = {
+    total: rooms.length,
+    disponible: rooms.filter(r => r.estado === 'disponible').length,
+    ocupada: rooms.filter(r => r.estado === 'ocupada').length,
+    limpieza: rooms.filter(r => r.estado === 'limpieza').length,
+    mantenimiento: rooms.filter(r => r.estado === 'mantenimiento').length,
+  }
+
+  const visibleFloors = floors
+    .filter(f => floorSet.size === 0 || floorSet.has(f))
+    .map(f => ({ piso: f, shown: rooms.filter(r => r.piso === f && (estado === 'todas' || r.estado === estado)) }))
+    .filter(f => f.shown.length > 0)
+
+  const selectedRoom = rooms.find(r => r.id === selected)
+
+  return (
+    <div className="hab-root" style={{ height: '100%' }}>
+      <style>{css}</style>
+
+      <div className="hdr">
+        <div className="hdr-brand">
+          <div style={{ width: 32, height: 32, borderRadius: 8, background: '#1E3A5F', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🏨</div>
+          <div><div className="hdr-name">Mapa de habitaciones</div><div className="hdr-sub">Recepción · en vivo</div></div>
+        </div>
+        <div className="hdr-spacer" />
+        <div className="tally">
+          {['green', 'blue', 'yellow', 'red'].map((color, i) => {
+            const keys = ['disponible', 'ocupada', 'limpieza', 'mantenimiento']
+            const labels = ['Libres', 'Ocupadas', 'Limpieza', 'Manten.']
+            return (
+              <div key={color} className={`tally-chip ${color}`}>
+                <span className="bar" />
+                <div><div className="n">{tallies[keys[i] as keyof typeof tallies]}</div><div className="l">{labels[i]}</div></div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      <div className="filters">
+        {[
+          { key: 'todas', label: 'Todas', cls: 'all', n: tallies.total },
+          { key: 'disponible', label: 'Disponible', cls: 'green', n: tallies.disponible },
+          { key: 'ocupada', label: 'Ocupada', cls: 'blue', n: tallies.ocupada },
+          { key: 'limpieza', label: 'Limpieza', cls: 'yellow', n: tallies.limpieza },
+          { key: 'mantenimiento', label: 'Mantenimiento', cls: 'red', n: tallies.mantenimiento },
+        ].map(it => (
+          <button key={it.key} className={`pill ${it.cls}${estado === it.key ? ' on' : ''}`}
+            onClick={() => setEstado(it.key as EstadoFiltro)}>
+            {it.cls !== 'all' && <span className="pdot" style={{ background: ESTADO_COLOR[it.key] || '#888' }} />}
+            {it.label} <span className="pcount">{it.n}</span>
+          </button>
+        ))}
+        <div className="fdiv" />
+        {floors.map(f => (
+          <button key={f} className={`pill floor${floorSet.has(f) ? ' on' : ''}`} onClick={() => toggleFloor(f)}>
+            Piso {f}
           </button>
         ))}
       </div>
 
-      {/* ─── TAB MAPA ─── */}
-      {view === 'mapa' && (
-        <>
-          <div className="flex items-center gap-2 flex-wrap">
-            {[
-              { key: 'estado', val: estadoFilter, opts: ['all', 'DISPONIBLE', 'OCUPADA', 'LIMPIEZA', 'MANTENIMIENTO', 'FUERA_DE_SERVICIO'], label: 'Todos los estados' },
-              { key: 'piso', val: pisoFilter, opts: ['all', ...pisos.map(String)], label: 'Todos los pisos' },
-              { key: 'tipo', val: tipoFilter, opts: ['all', ...tipos], label: 'Todos los tipos' },
-            ].map(f => (
-              <select
-                key={f.key}
-                value={f.val}
-                onChange={e => updateFilter(f.key, e.target.value)}
-                className="px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="all">{f.label}</option>
-                {f.opts.filter(o => o !== 'all').map(o => (
-                  <option key={o} value={o}>{f.key === 'piso' ? `Piso ${o}` : o}</option>
-                ))}
-              </select>
-            ))}
-          </div>
-
-          {/* Kanban */}
-          <div className="grid grid-cols-3 gap-4">
-            {ESTADOS_DRAG.map(estado => (
-              <div
-                key={estado}
-                onDragOver={e => { e.preventDefault(); setDragOver(estado) }}
-                onDragLeave={() => setDragOver(null)}
-                onDrop={e => void handleDrop(e, estado)}
-                className={`rounded-2xl border-2 transition-colors ${
-                  dragOver === estado ? 'border-blue-400 bg-blue-50' : 'border-gray-200 bg-white'
-                }`}
-              >
-                <div className={`px-4 py-3 rounded-t-xl border-b border-gray-200 flex items-center justify-between ${estadoColHeader[estado] ?? 'bg-gray-50 text-gray-700'}`}>
-                  <span className="text-sm font-semibold">{estado}</span>
-                  <span className="text-xs font-bold bg-white/70 px-2 py-0.5 rounded-full">
-                    {filteredRooms.filter(r => r.estado === estado).length}
-                  </span>
-                </div>
-                <div className="p-3 space-y-2 min-h-32">
-                  {filteredRooms.filter(r => r.estado === estado).map(r => (
-                    <div
-                      key={r.id}
-                      draggable
-                      onDragStart={e => handleDragStart(e, r.id)}
-                      onClick={() => setSelectedRoom(r)}
-                      className={`bg-white border border-gray-200 rounded-xl p-3 cursor-pointer hover:border-blue-300 hover:shadow-sm transition-all select-none ${dragging === r.id ? 'opacity-40' : ''}`}
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-bold text-gray-900 text-sm">Hab. {r.numero}</span>
-                        <span className="text-xs text-gray-400">Piso {r.piso}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-500">{r.tipo}</span>
-                        <span className="text-xs text-gray-600 font-medium">{formatCurrency(r.tarifa_base)}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Habitaciones OCUPADAS — tarjetas con huésped */}
-          {filteredRooms.filter(r => r.estado === 'OCUPADA').length > 0 && (
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-              <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border bg-blue-100 text-blue-800 border-blue-200">OCUPADA</span>
-                <span className="text-xs text-gray-400">{filteredRooms.filter(r => r.estado === 'OCUPADA').length} habitaciones</span>
-              </div>
-              <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {filteredRooms.filter(r => r.estado === 'OCUPADA').map(r => {
-                  const h = r.huesped_actual
-                  return (
-                    <div key={r.id} className="border border-blue-200 rounded-xl p-4 bg-blue-50/40 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-blue-800 text-sm">HAB. {r.numero}</span>
-                        <div className="flex items-center gap-1">
-                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium border bg-blue-100 text-blue-800 border-blue-200">OCUPADA</span>
-                          {h && <SalidaBadge diasRestantes={h.dias_restantes} />}
-                        </div>
-                      </div>
-                      <p className="text-xs text-gray-500">Tipo: {r.tipo}</p>
-                      {h ? (
-                        <>
-                          <div className="border-t border-blue-200 pt-2 space-y-1">
-                            <p className="text-xs font-semibold text-gray-800">
-                              {h.apellido.toUpperCase()}, {h.nombre}
-                            </p>
-                            <p className={`text-xs ${h.dias_restantes <= 0 ? 'text-red-600 font-semibold' : 'text-gray-500'}`}>
-                              Salida: {h.fecha_salida}
-                              {h.dias_restantes > 0 && ` (${h.dias_restantes} día${h.dias_restantes !== 1 ? 's' : ''})`}
-                            </p>
-                          </div>
-                          <div className="border-t border-blue-200 pt-2 flex gap-2">
-                            <button
-                              onClick={() => setRenovarRoom(r)}
-                              className="flex-1 px-2 py-1.5 text-xs font-medium bg-white border border-blue-300 text-blue-700 rounded-lg hover:bg-blue-50 transition-colors"
-                            >
-                              Renovar
-                            </button>
-                            <button
-                              onClick={() => navigate(`/checkout/${h.reserva_id}`)}
-                              className="flex-1 px-2 py-1.5 text-xs font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                            >
-                              Checkout
-                            </button>
-                          </div>
-                        </>
-                      ) : (
-                        <button onClick={() => setSelectedRoom(r)}
-                          className="text-xs text-blue-600 hover:underline">Ver detalle</button>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
+      <div className="board">
+        {cargando && <div className="spinner-center">Cargando habitaciones...</div>}
+        {error && <div className="error-center"><span>{error}</span><button className="retry-btn" onClick={cargar}>Reintentar</button></div>}
+        {!cargando && !error && visibleFloors.length === 0 && <div className="empty">Sin habitaciones que coincidan con el filtro</div>}
+        {!cargando && !error && visibleFloors.map(f => (
+          <section className="floor-sec" key={f.piso}>
+            <div className="floor-hd">
+              <span className="pn">Piso {f.piso}</span><span className="fl-line" /><span className="fl-meta">{f.shown.length} habitaciones</span>
             </div>
-          )}
-
-          {/* FUERA DE SERVICIO */}
-          {filteredRooms.filter(r => r.estado === 'FUERA_DE_SERVICIO').length > 0 && (
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-              <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border bg-red-100 text-red-800 border-red-200">FUERA DE SERVICIO</span>
-                <span className="text-xs text-gray-400">{filteredRooms.filter(r => r.estado === 'FUERA_DE_SERVICIO').length}</span>
-              </div>
-              <div className="p-5 flex flex-wrap gap-1.5">
-                {filteredRooms.filter(r => r.estado === 'FUERA_DE_SERVICIO').map(r => (
-                  <button key={r.id} onClick={() => setSelectedRoom(r)}
-                    className="p-2 rounded-lg text-xs font-semibold border transition-all hover:scale-105 bg-red-100 text-red-800 border-red-200">
-                    {r.numero}
-                  </button>
-                ))}
-              </div>
+            <div className="grid">
+              {f.shown.map(r => <RoomCard key={r.id} room={r} tipos={tipos} onTap={() => setSelected(r.id)} onQuick={() => onQuick(r)} />)}
             </div>
-          )}
+          </section>
+        ))}
+      </div>
 
-          {/* By floor */}
-          {pisos.map(piso => {
-            const pisoRooms = filteredRooms.filter(r => r.piso === piso)
-            if (!pisoRooms.length) return null
-            return (
-              <div key={piso} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                <div className="px-5 py-3 border-b border-gray-100 flex items-center gap-3">
-                  <h3 className="text-sm font-semibold text-gray-900">Piso {piso}</h3>
-                  <span className="text-xs text-gray-400">{pisoRooms.length} habitaciones</span>
-                </div>
-                <div className="p-4 flex flex-wrap gap-2">
-                  {pisoRooms.map(r => (
-                    <button key={r.id} onClick={() => setSelectedRoom(r)} draggable onDragStart={e => handleDragStart(e, r.id)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all hover:scale-105 ${estadoBadgeClass[r.estado] ?? 'bg-gray-100 text-gray-800 border-gray-200'}`}>
-                      {r.numero}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )
-          })}
-        </>
-      )}
+      {selected && selectedRoom && <Sheet room={selectedRoom} tipos={tipos} onClose={() => setSelected(null)} onAction={onAction} />}
 
-      {/* ─── TAB LISTA ─── */}
-      {view === 'lista' && (
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-          {/* Filters */}
-          <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-3 flex-wrap">
-            {[
-              { key: 'piso', val: pisoFilter, opts: pisos.map(String), label: 'Piso' },
-              { key: 'tipo', val: tipoFilter, opts: tipos, label: 'Tipo' },
-              { key: 'estado', val: estadoFilter, opts: ['DISPONIBLE','OCUPADA','LIMPIEZA','MANTENIMIENTO','FUERA_DE_SERVICIO'], label: 'Estado' },
-            ].map(f => (
-              <select
-                key={f.key}
-                value={f.val}
-                onChange={e => updateFilter(f.key, e.target.value)}
-                className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="all">Todos los {f.label.toLowerCase()}s</option>
-                {f.opts.map(o => <option key={o} value={o}>{f.key === 'piso' ? `Piso ${o}` : o}</option>)}
-              </select>
-            ))}
-            <span className="text-xs text-gray-400 ml-auto">{filteredRooms.length} resultados</span>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  {['Nro.', 'Piso', 'Tipo', 'Estado', 'Capacidad', 'Tarifa base', 'Tarifa IA hoy', 'Acciones'].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {filteredRooms.length === 0 && (
-                  <tr><td colSpan={8} className="px-4 py-8 text-center text-sm text-gray-400">Sin habitaciones</td></tr>
-                )}
-                {filteredRooms.map(r => {
-                  const ia = r.tarifa_sugerida_hoy
-                  const iaColor = ia == null ? '' : ia > r.tarifa_base ? 'text-green-600 font-medium' : ia < r.tarifa_base ? 'text-red-500 font-medium' : 'text-gray-600'
-                  return (
-                    <tr key={r.id} className="hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => setDrawerRoom(r)}>
-                      <td className="px-4 py-3 text-sm font-semibold text-gray-900">{r.numero}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{r.piso}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{r.tipo}</td>
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${estadoBadgeClass[r.estado] ?? 'bg-gray-100 text-gray-800 border-gray-200'}`}>
-                          {r.estado}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
-                        {r.capacidad_adultos ?? r.capacidad} adultos
-                        {(r.capacidad_ninos ?? 0) > 0 && ` · ${r.capacidad_ninos} niños`}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-700 font-medium">{formatCurrency(r.tarifa_base)}</td>
-                      <td className={`px-4 py-3 text-sm ${iaColor}`}>
-                        {ia != null ? formatCurrency(ia) : <span className="text-gray-400">—</span>}
-                      </td>
-                      <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <button
-                            onClick={() => setDrawerRoom(r)}
-                            className="px-3 py-1 text-xs font-medium text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
-                          >
-                            🔧 Mantenimiento
-                          </button>
-                          {gerente && (
-                            <>
-                              <button
-                                onClick={() => setEditRoom(r)}
-                                className="px-3 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                              >
-                                Editar
-                              </button>
-                              <button
-                                onClick={() => setSelectedRoom(r)}
-                                className="px-3 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                              >
-                                Estado
-                              </button>
-                              {r.estado !== 'FUERA_DE_SERVICIO' && (
-                                <button
-                                  onClick={() => setBajaRoom(r)}
-                                  className="px-3 py-1 text-xs font-medium text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                                >
-                                  Dar de baja
-                                </button>
-                              )}
-                              <button
-                                onClick={() => setDeleteRoom(r)}
-                                className="px-3 py-1 text-xs font-medium text-red-800 hover:bg-red-100 rounded-lg transition-colors"
-                                title="Eliminar permanentemente"
-                              >
-                                Eliminar
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
+      {toast && (
+        <div className="toast"><span className={`tcheck ${toast.color}`}>✓</span>{toast.text}</div>
       )}
     </div>
   )

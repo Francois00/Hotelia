@@ -69,6 +69,16 @@ export default function Sidebar() {
           <NavItem to="/concierge" icon="💬" label="Concierge IA" />
         )}
 
+        {/* Calendario: gerente y recepcionista */}
+        {isRecepcionista && (
+          <NavItem to="/calendario" icon="📅" label="Calendario" />
+        )}
+
+        {/* Configuración: solo gerente */}
+        {isGerente && (
+          <NavItem to="/configuracion" icon="⚙️" label="Configuración" />
+        )}
+
         {/* Turno de caja */}
         {(isRecepcionista || isOperativo) && (
           <div className="pt-3 pb-1">

@@ -23,6 +23,8 @@ import NotificacionesPage from './pages/NotificacionesPage'
 import ConciergeTestPage from './pages/ConciergeTestPage'
 import AlmacenPage from './pages/AlmacenPage'
 import HousekeepingPage from './pages/HousekeepingPage'
+import CalendarioPage from './pages/CalendarioPage'
+import ConfiguracionPage from './pages/ConfiguracionPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -86,6 +88,8 @@ export default function App() {
           <Route path="/concierge-test" element={<GerentePage><ConciergeTestPage /></GerentePage>} />
           <Route path="/almacen" element={<ProtectedPage><AlmacenPage /></ProtectedPage>} />
           <Route path="/housekeeping" element={<ProtectedPage><HousekeepingPage /></ProtectedPage>} />
+          <Route path="/calendario" element={<ProtectedPage><CalendarioPage /></ProtectedPage>} />
+          <Route path="/configuracion" element={<GerentePage><ConfiguracionPage /></GerentePage>} />
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>
