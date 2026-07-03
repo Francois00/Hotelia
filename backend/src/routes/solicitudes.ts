@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
-import { RolPersonal } from '@prisma/client';
 import { prisma } from '../lib/prisma';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
+import { requirePermiso } from '../middleware/permisos';
 
 const router = Router();
 router.use(authenticate);
@@ -41,7 +41,7 @@ router.get('/solicitudes', async (req: Request, res: Response) => {
 // POST /api/v1/solicitudes
 router.post(
   '/solicitudes',
-  authorize(RolPersonal.ADMIN, RolPersonal.GERENTE, RolPersonal.RECEPCIONISTA),
+  requirePermiso('solicitudes.gestionar'),
   async (req: Request, res: Response) => {
     const { habitacion_numero, reserva_id, tipo, descripcion } = req.body as {
       habitacion_numero: string; reserva_id?: string; tipo: string; descripcion: string;
@@ -68,7 +68,7 @@ router.post(
 // PATCH /api/v1/solicitudes/:id
 router.patch(
   '/solicitudes/:id',
-  authorize(RolPersonal.ADMIN, RolPersonal.GERENTE, RolPersonal.RECEPCIONISTA, RolPersonal.HOUSEKEEPING),
+  requirePermiso('solicitudes.atender'),
   async (req: Request, res: Response) => {
     const { id } = req.params;
     const { estado } = req.body as { estado: 'atendiendo' | 'resuelto' };

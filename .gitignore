@@ -75,3 +75,4 @@ Documentos/.obsidian/workspace.json
 
 # ── Claude Code local data (memoria, sesiones) ───────────────────────────────
 .claude/
+backend/backups/

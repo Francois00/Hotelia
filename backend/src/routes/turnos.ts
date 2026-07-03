@@ -1,63 +1,62 @@
 import { Router } from 'express';
-import { RolPersonal } from '@prisma/client';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
+import { resolverLocal, requirePermiso } from '../middleware/permisos';
 import * as ctrl from '../controllers/turnos.controller';
 
 const router = Router();
 
-router.use(authenticate);
+router.use(authenticate, resolverLocal);
 
-// Historial de turnos cerrados
+// Historial de turnos cerrados — el controller filtra por permiso 'turnos.ver_todos'
 router.get(
   '/',
-  authorize(RolPersonal.GERENTE, RolPersonal.RECEPCIONISTA, RolPersonal.ADMIN),
   ctrl.listar,
 );
 
 // Abrir turno
 router.post(
   '/abrir',
-  authorize(RolPersonal.GERENTE, RolPersonal.RECEPCIONISTA, RolPersonal.ADMIN),
+  requirePermiso('turnos.gestionar'),
   ctrl.abrir,
 );
 
 // Turno activo con resumen en tiempo real — ANTES de /:id para evitar colisión
 router.get(
   '/activo',
-  authorize(RolPersonal.GERENTE, RolPersonal.RECEPCIONISTA, RolPersonal.ADMIN),
+  requirePermiso('turnos.gestionar'),
   ctrl.activo,
 );
 
 // Reporte del turno — ANTES de /:id/gastos y /:id/cerrar
 router.get(
   '/:id/reporte/pdf',
-  authorize(RolPersonal.GERENTE, RolPersonal.RECEPCIONISTA, RolPersonal.ADMIN),
+  requirePermiso('turnos.gestionar'),
   ctrl.reportePDF,
 );
 
 router.get(
   '/:id/reporte',
-  authorize(RolPersonal.GERENTE, RolPersonal.RECEPCIONISTA, RolPersonal.ADMIN),
+  requirePermiso('turnos.gestionar'),
   ctrl.reporte,
 );
 
 // Gastos de caja
 router.post(
   '/:id/gastos',
-  authorize(RolPersonal.GERENTE, RolPersonal.RECEPCIONISTA, RolPersonal.ADMIN),
+  requirePermiso('turnos.gestionar'),
   ctrl.registrarGasto,
 );
 
 router.get(
   '/:id/gastos',
-  authorize(RolPersonal.GERENTE, RolPersonal.RECEPCIONISTA, RolPersonal.ADMIN),
+  requirePermiso('turnos.gestionar'),
   ctrl.listarGastos,
 );
 
 // Cerrar turno
 router.post(
   '/:id/cerrar',
-  authorize(RolPersonal.GERENTE, RolPersonal.RECEPCIONISTA, RolPersonal.ADMIN),
+  requirePermiso('turnos.gestionar'),
   ctrl.cerrar,
 );
 

@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { RolPersonal } from '@prisma/client';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
+import { requirePermiso } from '../middleware/permisos';
 import * as ctrl from '../controllers/canales.controller';
 
 const router = Router();
@@ -12,7 +12,7 @@ router.post('/webhook/:canal', ctrl.webhook);
 router.get(
   '/sync-log',
   authenticate,
-  authorize(RolPersonal.ADMIN, RolPersonal.GERENTE),
+  requirePermiso('channel_manager.gestionar'),
   ctrl.syncLog,
 );
 

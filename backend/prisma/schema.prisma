@@ -191,6 +191,14 @@ enum EstadoTurno {
   CERRADO
 }
 
+enum TipoAsientoContable {
+  ingreso
+  egreso
+  ajuste
+  apertura
+  cierre
+}
+
 // ─── Modelos ──────────────────────────────────────────────────────────────────
 
 /// Staff del hotel (recepcionistas, housekeeping, gerentes, etc.)
@@ -201,6 +209,8 @@ model Personal {
   email         String      @unique @db.VarChar(255)
   password_hash String      @db.VarChar(255)
   rol           RolPersonal
+  /// Rol granular nuevo (roles.codigo). Reemplaza `rol` una vez completada la migración a permisos por local.
+  rol_id        String?     @db.Uuid
   activo        Boolean     @default(true)
   created_at    DateTime    @default(now()) @db.Timestamptz(3)
   updated_at    DateTime    @updatedAt @db.Timestamptz(3)
@@ -211,7 +221,10 @@ model Personal {
   pagos        Pago[]
   turnos       Turno[]
   gastos_caja_registrados GastoCaja[] @relation("gastos_registrado_por")
+  rol_nuevo       Rol?           @relation(fields: [rol_id], references: [id])
+  usuario_locales UsuarioLocal[]
 
+  @@index([rol_id])
   @@map("personal")
 }
 
@@ -221,11 +234,15 @@ model TipoHabitacionCustom {
   nombre      String   @db.VarChar(50)
   descripcion String?  @db.Text
   color_mapa  String   @default("#3B82F6") @db.VarChar(7)
+  /// NULL = plantilla compartida por toda la cadena; no-NULL = tipo custom de un local
+  local_id    String?  @db.Uuid
   activo      Boolean  @default(true)
   created_at  DateTime @default(now()) @db.Timestamptz(3)
 
   habitaciones Habitacion[]
+  local        Local?     @relation(fields: [local_id], references: [id])
 
+  @@index([local_id])
   @@map("tipos_habitacion")
 }
 
@@ -248,15 +265,18 @@ model Habitacion {
   fotos             Json             @default("[]")
   visible_otas      Boolean          @default(true)
   tipo_custom_id    String?          @db.Uuid
+  local_id          String           @db.Uuid
   created_at        DateTime         @default(now()) @db.Timestamptz(3)
   updated_at        DateTime         @updatedAt @db.Timestamptz(3)
 
   tipo_custom           TipoHabitacionCustom?  @relation(fields: [tipo_custom_id], references: [id])
+  local                 Local                  @relation(fields: [local_id], references: [id])
   reservas              Reserva[]
   tarifas_historial     TarifaHistorial[]
   alertas_mantenimiento AlertaMantenimiento[]
 
   @@index([estado])
+  @@index([local_id, estado])
   @@map("habitaciones")
 }
 
@@ -386,9 +406,14 @@ model ReglaTemporada {
   ajuste_porcentaje     Decimal       @db.Decimal(5, 2)
   estadia_minima_noches Int?
   aplica_a_tipos        Json          @default("[]")
+  /// NULL = regla global de cadena; no-NULL = override de un local
+  local_id              String?       @db.Uuid
   activo                Boolean       @default(true)
   created_at            DateTime      @default(now()) @db.Timestamptz(3)
 
+  local Local? @relation(fields: [local_id], references: [id])
+
+  @@index([local_id])
   @@map("reglas_temporada")
 }
 
@@ -403,11 +428,15 @@ model CanalSyncLog {
   estado          EstadoSync     @default(PENDIENTE)
   idempotency_key String         @unique @db.VarChar(100)
   error_mensaje   String?        @db.Text
+  /// Sin FK confiable cuando reserva_id es NULL (eventos de OTA sin reserva local, ej. bloqueo de calendario) — columna directa
+  local_id        String?        @db.Uuid
   created_at      DateTime       @default(now()) @db.Timestamptz(3)
 
   reserva Reserva? @relation(fields: [reserva_id], references: [id])
+  local   Local?   @relation(fields: [local_id], references: [id])
 
   @@index([canal, estado])
+  @@index([local_id])
   @@map("canal_sync_log")
 }
 
@@ -480,13 +509,17 @@ model ConciergeMessage {
   intent_detectado String?  @db.VarChar(50)
   escalado         Boolean  @default(false)
   escalado_motivo  String?  @db.VarChar(200)
+  /// reserva_id es nullable (chat pre-stay); columna directa poblada desde el contexto de la request al crear
+  local_id         String?  @db.Uuid
   created_at       DateTime @default(now()) @db.Timestamptz(3)
 
   huesped Huesped  @relation(fields: [huesped_id], references: [id])
   reserva Reserva? @relation(fields: [reserva_id], references: [id])
+  local   Local?   @relation(fields: [local_id], references: [id])
 
   @@index([huesped_id])
   @@index([escalado])
+  @@index([local_id])
   @@map("concierge_mensajes")
 }
 
@@ -506,12 +539,16 @@ model CampanaCrm {
   asunto_email        String?         @db.VarChar(255)
   cuerpo_email        String?         @db.Text
   personal_id         String?         @db.Uuid
+  /// NULL = campaña de cadena; no-NULL = campaña de un solo local
+  local_id            String?         @db.Uuid
   created_at          DateTime        @default(now()) @db.Timestamptz(3)
   updated_at          DateTime        @updatedAt @db.Timestamptz(3)
 
   personal Personal? @relation(fields: [personal_id], references: [id])
+  local    Local?    @relation(fields: [local_id], references: [id])
 
   @@index([estado, segmento_objetivo])
+  @@index([local_id])
   @@map("campanas_crm")
 }
 
@@ -550,14 +587,17 @@ model Turno {
   estado           EstadoTurno @default(ABIERTO)
   firma_hash       String?     @db.VarChar(64)
   observaciones    String?     @db.Text
+  local_id         String      @db.Uuid
   created_at       DateTime    @default(now()) @db.Timestamptz(3)
 
   recepcionista Personal          @relation(fields: [recepcionista_id], references: [id])
+  local         Local             @relation(fields: [local_id], references: [id])
   gastos_caja   GastoCaja[]
   reporte_cache ReporteTurnoCache?
 
   @@index([estado])
   @@index([fecha])
+  @@index([local_id, fecha])
   @@map("turnos")
 }
 
@@ -601,9 +641,164 @@ model AuditLog {
   actor_email        String?  @db.VarChar(255)
   actor_id           String?  @db.Uuid
   motivo             String?  @db.Text
+  /// Poblado best-effort desde el local activo del actor al momento de escribir
+  local_id           String?  @db.Uuid
   created_at         DateTime @default(now()) @db.Timestamptz(3)
+
+  local Local? @relation(fields: [local_id], references: [id])
 
   @@index([entidad, entidad_id])
   @@index([created_at(sort: Desc)])
+  @@index([local_id])
   @@map("audit_log")
+}
+
+// ─── Multi-local: locales, roles y permisos granulares ─────────────────────────
+
+/// Sede / local dentro de la cadena hotelera
+model Local {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  codigo         String   @unique @db.VarChar(30)
+  nombre         String   @db.VarChar(150)
+  ruc            String?  @db.VarChar(11)
+  razon_social   String?  @db.VarChar(200)
+  direccion      String?  @db.Text
+  ciudad         String?  @db.VarChar(100)
+  pais           String   @default("Perú") @db.VarChar(50)
+  timezone       String   @default("America/Lima") @db.VarChar(50)
+  moneda_default String   @default("PEN") @db.VarChar(3)
+  telefono       String?  @db.VarChar(20)
+  email          String?  @db.VarChar(150)
+  color_tema     String   @default("#1B3A6B") @db.VarChar(7)
+  estado         String   @default("activo") @db.VarChar(20)
+  razon_pausa    String?  @db.Text
+  activo         Boolean  @default(true)
+  created_at     DateTime @default(now()) @db.Timestamptz(3)
+  updated_at     DateTime @updatedAt @db.Timestamptz(3)
+
+  usuario_locales       UsuarioLocal[]
+  contabilidad_asientos ContabilidadAsiento[]
+  contabilidad_config   ContabilidadConfig?
+  tipos_habitacion      TipoHabitacionCustom[]
+  habitaciones          Habitacion[]
+  reglas_temporada      ReglaTemporada[]
+  canal_sync_log        CanalSyncLog[]
+  concierge_mensajes    ConciergeMessage[]
+  campanas_crm          CampanaCrm[]
+  turnos                Turno[]
+  audit_log             AuditLog[]
+
+  @@map("locales")
+}
+
+/// Rol del sistema (catálogo estático: superadmin, dueno, gerente_local, recepcionista, housekeeping, mantenimiento, almacen, contabilidad)
+model Rol {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  codigo         String   @unique @db.VarChar(30)
+  nombre         String   @db.VarChar(80)
+  descripcion    String?  @db.Text
+  /// true = superadmin/dueno: opera sobre cualquier local sin fila en usuario_locales
+  alcance_global Boolean  @default(false)
+  es_sistema     Boolean  @default(true)
+  created_at     DateTime @default(now()) @db.Timestamptz(3)
+
+  personal        Personal[]
+  roles_permisos  RolPermiso[]
+  usuario_locales UsuarioLocal[]
+
+  @@map("roles")
+}
+
+/// Permiso granular (código dot-namespaced, ej. "reservas.gestionar")
+model Permiso {
+  id          String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  codigo      String  @unique @db.VarChar(60)
+  nombre      String  @db.VarChar(100)
+  modulo      String  @db.VarChar(50)
+  descripcion String? @db.Text
+
+  roles_permisos RolPermiso[]
+
+  @@index([modulo])
+  @@map("permisos")
+}
+
+/// Permisos por defecto de cada rol (catálogo, no por usuario)
+model RolPermiso {
+  rol_id     String @db.Uuid
+  permiso_id String @db.Uuid
+
+  rol     Rol     @relation(fields: [rol_id], references: [id], onDelete: Cascade)
+  permiso Permiso @relation(fields: [permiso_id], references: [id], onDelete: Cascade)
+
+  @@id([rol_id, permiso_id])
+  @@map("roles_permisos")
+}
+
+/// Grant: acceso de un usuario a un local específico con un rol y permisos custom
+model UsuarioLocal {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  personal_id        String   @db.Uuid
+  local_id           String   @db.Uuid
+  rol_id             String   @db.Uuid
+  es_local_principal Boolean  @default(true)
+  puede_operar       Boolean  @default(true)
+  puede_ver_info     Boolean  @default(true)
+  /// Permisos adicionales sobre el rol base (array de códigos de permisos.codigo)
+  permisos_extra     Json     @default("[]")
+  /// Permisos quitados del rol base (array de códigos de permisos.codigo)
+  permisos_removidos Json     @default("[]")
+  activo             Boolean  @default(true)
+  created_at         DateTime @default(now()) @db.Timestamptz(3)
+
+  personal Personal @relation(fields: [personal_id], references: [id], onDelete: Cascade)
+  local    Local    @relation(fields: [local_id], references: [id], onDelete: Cascade)
+  rol      Rol      @relation(fields: [rol_id], references: [id])
+
+  @@unique([personal_id, local_id])
+  @@index([local_id])
+  @@map("usuario_locales")
+}
+
+// ─── Contabilidad ────────────────────────────────────────────────────────────
+
+/// Asiento contable (manual o generado automáticamente desde pagos/folio)
+model ContabilidadAsiento {
+  id              String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  local_id        String              @db.Uuid
+  fecha           DateTime            @db.Date
+  numero_asiento  String?             @db.VarChar(20)
+  tipo            TipoAsientoContable
+  concepto        String              @db.Text
+  debe            Decimal             @default(0) @db.Decimal(12, 2)
+  haber           Decimal             @default(0) @db.Decimal(12, 2)
+  cuenta_contable String?             @db.VarChar(20)
+  referencia_id   String?             @db.Uuid
+  referencia_tipo String?             @db.VarChar(30)
+  creado_por_id   String?             @db.Uuid
+  created_at      DateTime            @default(now()) @db.Timestamptz(3)
+
+  local Local @relation(fields: [local_id], references: [id])
+
+  @@index([local_id, fecha])
+  @@map("contabilidad_asientos")
+}
+
+/// Configuración contable/SUNAT por local (incluye correlativos de comprobantes)
+model ContabilidadConfig {
+  id                   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  local_id             String   @unique @db.Uuid
+  plan_cuentas         Json     @default("{}")
+  periodo_fiscal       String?  @db.VarChar(7)
+  moneda_principal     String   @default("PEN") @db.VarChar(3)
+  sistema_contable     String   @default("manual") @db.VarChar(50)
+  serie_boleta         String   @default("B001") @db.VarChar(10)
+  correlativo_boleta   Int      @default(0)
+  serie_factura        String   @default("F001") @db.VarChar(10)
+  correlativo_factura  Int      @default(0)
+  created_at           DateTime @default(now()) @db.Timestamptz(3)
+
+  local Local @relation(fields: [local_id], references: [id])
+
+  @@map("contabilidad_config")
 }

@@ -1,29 +1,29 @@
 import { Router } from 'express';
-import { RolPersonal } from '@prisma/client';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
+import { resolverLocal, requirePermiso } from '../middleware/permisos';
 import * as ctrl from '../controllers/reglas-temporada.controller';
 
 const router = Router();
 
-router.use(authenticate);
+router.use(authenticate, resolverLocal);
 
 router.get('/', ctrl.listar);
 
 router.post(
   '/',
-  authorize(RolPersonal.GERENTE, RolPersonal.ADMIN),
+  requirePermiso('tarifas.reglas.gestionar'),
   ctrl.crear,
 );
 
 router.put(
   '/:id',
-  authorize(RolPersonal.GERENTE, RolPersonal.ADMIN),
+  requirePermiso('tarifas.reglas.gestionar'),
   ctrl.actualizar,
 );
 
 router.delete(
   '/:id',
-  authorize(RolPersonal.GERENTE, RolPersonal.ADMIN),
+  requirePermiso('tarifas.reglas.gestionar'),
   ctrl.desactivar,
 );
 

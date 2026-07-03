@@ -62,7 +62,7 @@ export async function checkinManual(req: Request, res: Response, next: NextFunct
       ...data,
       datos_facturacion: data.datos_facturacion ?? null,
       personal_id:       req.user?.sub,
-    });
+    }, req.localId);
     res.status(201).json(result);
   } catch (err) { next(err); }
 }
@@ -71,7 +71,7 @@ export async function checkinManual(req: Request, res: Response, next: NextFunct
 export async function disponibles(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const q    = disponiblesQuerySchema.parse(req.query);
-    const data = await listarDisponiblesParaCheckin(q.fecha_entrada, q.fecha_salida, q.personas);
+    const data = await listarDisponiblesParaCheckin(q.fecha_entrada, q.fecha_salida, q.personas, req.localId);
     res.json({ data, total: data.length });
   } catch (err) { next(err); }
 }

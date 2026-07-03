@@ -14,7 +14,7 @@ export async function iniciar(req: Request, res: Response, next: NextFunction) {
       res.status(400).json({ code: 'PARAMS_FALTANTES', message: 'Se requieren reserva_id y metodo_pago' });
       return;
     }
-    const result = await iniciarPagoReserva(reserva_id, metodo_pago);
+    const result = await iniciarPagoReserva(reserva_id, metodo_pago, req.localId);
     res.json({ data: result });
   } catch (err) { next(err); }
 }
@@ -24,7 +24,7 @@ export async function confirmar(req: Request, res: Response, next: NextFunction)
     const { reserva_id, session_key, payment_intent_id } = req.body as {
       reserva_id: string; session_key?: string; payment_intent_id?: string;
     };
-    const result = await confirmarPago(reserva_id, session_key, payment_intent_id);
+    const result = await confirmarPago(reserva_id, session_key, payment_intent_id, req.localId);
     res.json({ data: result });
   } catch (err) { next(err); }
 }
@@ -33,14 +33,14 @@ export async function reembolso(req: Request, res: Response, next: NextFunction)
   try {
     const { id }     = req.params;
     const { motivo } = req.body as { motivo: string };
-    const result     = await procesarReembolso(id, motivo);
+    const result     = await procesarReembolso(id, motivo, req.localId);
     res.json({ data: result });
   } catch (err) { next(err); }
 }
 
 export async function porReserva(req: Request, res: Response, next: NextFunction) {
   try {
-    const data = await listarPagosPorReserva(req.params.reserva_id);
+    const data = await listarPagosPorReserva(req.params.reserva_id, req.localId);
     res.json({ data });
   } catch (err) { next(err); }
 }

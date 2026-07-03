@@ -115,12 +115,13 @@ export async function sincronizarEstadosHabitaciones(): Promise<void> {
   `;
 }
 
-export async function listarHabitaciones(query: ListarHabitacionesQuery) {
+export async function listarHabitaciones(query: ListarHabitacionesQuery, localId?: string | null) {
   const page  = query.page  ?? 1;
   const limit = Math.min(query.limit ?? 20, 100);
   const hoy   = new Date().toISOString().slice(0, 10);
 
   const where: Prisma.HabitacionWhereInput = {};
+  if (localId)                            where.local_id     = localId;
   if (query.estado)                       where.estado       = query.estado;
   if (query.tipo)                         where.tipo         = query.tipo;
   if (query.piso !== undefined)           where.piso         = query.piso;
@@ -201,12 +202,14 @@ export async function listarHabitaciones(query: ListarHabitacionesQuery) {
   return { data, meta: { total, page, limit, pages: Math.ceil(total / limit) } };
 }
 
-export async function obtenerHabitacion(id: string) {
+export async function obtenerHabitacion(id: string, localId?: string | null) {
   const h = await prisma.habitacion.findUnique({
     where:   { id },
     include: { tipo_custom: { select: { id: true, nombre: true, color_mapa: true } } },
   });
-  if (!h) throw new AppError('HABITACION_NO_ENCONTRADA', 404, 'Habitación no encontrada');
+  if (!h || (localId && h.local_id !== localId)) {
+    throw new AppError('HABITACION_NO_ENCONTRADA', 404, 'Habitación no encontrada');
+  }
 
   const hoy = new Date().toISOString().slice(0, 10);
   const tarifa_sugerida_hoy = (await obtenerTarifaSugerida(id, hoy)) ?? Number(h.tarifa_base);
@@ -223,7 +226,7 @@ export async function obtenerHabitacion(id: string) {
   return { ...h, tarifa_sugerida_hoy, historial_precios: historial, amenidades: normalizeAmenidades(h.amenidades) };
 }
 
-export async function crearHabitacion(data: CrearHabitacionInput) {
+export async function crearHabitacion(data: CrearHabitacionInput, localId: string | null | undefined) {
   validarTarifas(data.tarifa_base, data.tarifa_minima, data.tarifa_maxima);
   if ((data.capacidad_adultos ?? 1) < 1) {
     throw new AppError('CAPACIDAD_INVALIDA', 400, 'capacidad_adultos debe ser al menos 1');
@@ -231,10 +234,14 @@ export async function crearHabitacion(data: CrearHabitacionInput) {
   if (data.piso < 0) {
     throw new AppError('PISO_INVALIDO', 400, 'piso debe ser 0 o mayor');
   }
+  if (!localId) {
+    throw new AppError('LOCAL_REQUERIDO', 400, 'Debe especificar el local (header X-Local-Id)');
+  }
 
   try {
     const h = await prisma.habitacion.create({
       data: {
+        local_id:          localId,
         numero:            data.numero,
         tipo:              data.tipo,
         piso:              data.piso,
@@ -266,12 +273,14 @@ export async function crearHabitacion(data: CrearHabitacionInput) {
   }
 }
 
-export async function actualizarHabitacion(id: string, data: ActualizarHabitacionInput) {
+export async function actualizarHabitacion(id: string, data: ActualizarHabitacionInput, localId?: string | null) {
   const actual = await prisma.habitacion.findUnique({
     where:  { id },
-    select: { id: true, tarifa_base: true, tarifa_minima: true, tarifa_maxima: true },
+    select: { id: true, local_id: true, tarifa_base: true, tarifa_minima: true, tarifa_maxima: true },
   });
-  if (!actual) throw new AppError('HABITACION_NO_ENCONTRADA', 404, 'Habitación no encontrada');
+  if (!actual || (localId && actual.local_id !== localId)) {
+    throw new AppError('HABITACION_NO_ENCONTRADA', 404, 'Habitación no encontrada');
+  }
 
   const nuevaBase   = data.tarifa_base   ?? Number(actual.tarifa_base);
   const nuevaMinima = data.tarifa_minima ?? (actual.tarifa_minima != null ? Number(actual.tarifa_minima) : undefined);
@@ -314,12 +323,14 @@ export async function actualizarHabitacion(id: string, data: ActualizarHabitacio
   }
 }
 
-export async function eliminarHabitacion(id: string) {
+export async function eliminarHabitacion(id: string, localId?: string | null) {
   const h = await prisma.habitacion.findUnique({
     where: { id },
-    select: { id: true, numero: true },
+    select: { id: true, numero: true, local_id: true },
   });
-  if (!h) throw new AppError('HABITACION_NO_ENCONTRADA', 404, 'Habitación no encontrada');
+  if (!h || (localId && h.local_id !== localId)) {
+    throw new AppError('HABITACION_NO_ENCONTRADA', 404, 'Habitación no encontrada');
+  }
 
   const reservasActivas = await prisma.reserva.count({
     where: {
@@ -341,12 +352,14 @@ export async function eliminarHabitacion(id: string) {
   return { deleted: true, numero: h.numero };
 }
 
-export async function darDeBajaHabitacion(id: string) {
+export async function darDeBajaHabitacion(id: string, localId?: string | null) {
   const h = await prisma.habitacion.findUnique({
     where:  { id },
-    select: { id: true, estado: true },
+    select: { id: true, estado: true, local_id: true },
   });
-  if (!h) throw new AppError('HABITACION_NO_ENCONTRADA', 404, 'Habitación no encontrada');
+  if (!h || (localId && h.local_id !== localId)) {
+    throw new AppError('HABITACION_NO_ENCONTRADA', 404, 'Habitación no encontrada');
+  }
 
   const reservasActivas = await prisma.reserva.count({
     where: {
@@ -370,9 +383,11 @@ export async function darDeBajaHabitacion(id: string) {
   });
 }
 
-export async function subirFotos(id: string, archivos: Express.Multer.File[]): Promise<string[]> {
-  const h = await prisma.habitacion.findUnique({ where: { id }, select: { id: true, fotos: true } });
-  if (!h) throw new AppError('HABITACION_NO_ENCONTRADA', 404, 'Habitación no encontrada');
+export async function subirFotos(id: string, archivos: Express.Multer.File[], localId?: string | null): Promise<string[]> {
+  const h = await prisma.habitacion.findUnique({ where: { id }, select: { id: true, fotos: true, local_id: true } });
+  if (!h || (localId && h.local_id !== localId)) {
+    throw new AppError('HABITACION_NO_ENCONTRADA', 404, 'Habitación no encontrada');
+  }
 
   const fotosActuales = (Array.isArray(h.fotos) ? h.fotos : []) as string[];
   if (fotosActuales.length + archivos.length > 10) {
@@ -397,9 +412,11 @@ export async function subirFotos(id: string, archivos: Express.Multer.File[]): P
   return todasFotos;
 }
 
-export async function reordenarFotos(id: string, fotos: string[]): Promise<string[]> {
-  const h = await prisma.habitacion.findUnique({ where: { id }, select: { id: true } });
-  if (!h) throw new AppError('HABITACION_NO_ENCONTRADA', 404, 'Habitación no encontrada');
+export async function reordenarFotos(id: string, fotos: string[], localId?: string | null): Promise<string[]> {
+  const h = await prisma.habitacion.findUnique({ where: { id }, select: { id: true, local_id: true } });
+  if (!h || (localId && h.local_id !== localId)) {
+    throw new AppError('HABITACION_NO_ENCONTRADA', 404, 'Habitación no encontrada');
+  }
 
   await prisma.habitacion.update({
     where: { id },
@@ -408,7 +425,7 @@ export async function reordenarFotos(id: string, fotos: string[]): Promise<strin
   return fotos;
 }
 
-export async function habitacionesDisponibles(query: DisponiblesQuery) {
+export async function habitacionesDisponibles(query: DisponiblesQuery, localId?: string | null) {
   const entrada = new Date(query.fecha_entrada);
   const salida  = new Date(query.fecha_salida);
 
@@ -425,6 +442,7 @@ export async function habitacionesDisponibles(query: DisponiblesQuery) {
 
   const rows = await prisma.habitacion.findMany({
     where: {
+      ...(localId ? { local_id: localId } : {}),
       estado: { notIn: [EstadoHabitacion.FUERA_DE_SERVICIO, EstadoHabitacion.MANTENIMIENTO] },
       id:     { notIn: idsOcupadas },
     },
@@ -438,13 +456,13 @@ export async function habitacionesDisponibles(query: DisponiblesQuery) {
   return rows.map(r => ({ ...r, amenidades: normalizeAmenidades(r.amenidades) }));
 }
 
-export async function cambiarEstadoHabitacion(id: string, nuevoEstado: EstadoHabitacion) {
+export async function cambiarEstadoHabitacion(id: string, nuevoEstado: EstadoHabitacion, localId?: string | null) {
   const habitacion = await prisma.habitacion.findUnique({
     where:  { id },
-    select: { id: true, estado: true, numero: true },
+    select: { id: true, estado: true, numero: true, local_id: true },
   });
 
-  if (!habitacion) {
+  if (!habitacion || (localId && habitacion.local_id !== localId)) {
     throw new AppError('HABITACION_NO_ENCONTRADA', 404, 'Habitación no encontrada');
   }
 

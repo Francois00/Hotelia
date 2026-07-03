@@ -5,6 +5,7 @@ import express from 'express';
 import cors from 'cors';
 import { prisma } from './lib/prisma';
 import { redis } from './lib/redis';
+import { iniciarRefrescoPeriodico } from './lib/rolePermissionCache';
 import authRouter           from './routes/auth';
 import reservasRouter       from './routes/reservas';
 import habitacionesRouter   from './routes/habitaciones';
@@ -32,6 +33,9 @@ import housekeepingRouter   from './routes/housekeeping';
 import reportesRouter        from './routes/reportes';
 import campanasRouter        from './routes/campanas';
 import folioRouter           from './routes/folio';
+import contabilidadRouter    from './routes/contabilidad';
+import localesRouter         from './routes/locales';
+import rolesRouter           from './routes/roles';
 import { health } from './controllers/health.controller';
 import './jobs/scheduler';
 import { errorHandler } from './middleware/error-handler';
@@ -96,6 +100,9 @@ app.use('/api/v1',                   housekeepingRouter);
 app.use('/api/v1',                   reportesRouter);
 app.use('/api/v1',                   campanasRouter);
 app.use('/api/v1/reservas/:id/folio', folioRouter);
+app.use('/api/v1', contabilidadRouter);
+app.use('/api/v1', localesRouter);
+app.use('/api/v1', rolesRouter);
 
 // Also expose habitacion-scoped alerts under habitaciones prefix
 app.use('/api/v1/habitaciones',      alertasRouter);
@@ -130,6 +137,7 @@ setInterval(async () => {
 
 async function main(): Promise<void> {
   await redis.connect();
+  iniciarRefrescoPeriodico();
   httpServer.listen(PORT, () => {
     console.log(`[server] running on port ${PORT} — env: ${process.env.NODE_ENV ?? 'development'}`);
   });

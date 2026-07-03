@@ -1,16 +1,15 @@
 import { Router, Request, Response } from 'express';
-import { RolPersonal, EstadoHabitacion } from '@prisma/client';
+import { EstadoHabitacion } from '@prisma/client';
 import { prisma } from '../lib/prisma';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
+import { requirePermiso } from '../middleware/permisos';
 
 const router = Router();
 router.use(authenticate);
 
-const HK_ROLES = [RolPersonal.ADMIN, RolPersonal.GERENTE, RolPersonal.RECEPCIONISTA, RolPersonal.HOUSEKEEPING];
-
 // ─── GET /api/v1/housekeeping/plan-dia ───────────────────────────────────────
 
-router.get('/housekeeping/plan-dia', authorize(...HK_ROLES), async (_req: Request, res: Response) => {
+router.get('/housekeeping/plan-dia', requirePermiso('housekeeping.gestionar'), async (_req: Request, res: Response) => {
   try {
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
@@ -165,7 +164,7 @@ router.get('/housekeeping/plan-dia', authorize(...HK_ROLES), async (_req: Reques
 
 // ─── PATCH /api/v1/housekeeping/habitaciones/:numero/estado ──────────────────
 
-router.patch('/housekeeping/habitaciones/:numero/estado', authorize(...HK_ROLES), async (req: Request, res: Response) => {
+router.patch('/housekeeping/habitaciones/:numero/estado', requirePermiso('housekeeping.gestionar'), async (req: Request, res: Response) => {
   const { numero } = req.params;
   const { estado, notas } = req.body as { estado: string; notas?: string };
 
@@ -210,7 +209,7 @@ router.patch('/housekeeping/habitaciones/:numero/estado', authorize(...HK_ROLES)
 
 // ─── GET /api/v1/housekeeping/habitaciones/:numero/detalle ───────────────────
 
-router.get('/housekeeping/habitaciones/:numero/detalle', authorize(...HK_ROLES), async (req: Request, res: Response) => {
+router.get('/housekeeping/habitaciones/:numero/detalle', requirePermiso('housekeeping.gestionar'), async (req: Request, res: Response) => {
   const { numero } = req.params;
 
   try {

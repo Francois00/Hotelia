@@ -58,14 +58,14 @@ const reordenarFotosSchema = z.object({
 export async function listar(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const query = listarQuerySchema.parse(req.query);
-    const resultado = await service.listarHabitaciones(query);
+    const resultado = await service.listarHabitaciones(query, req.localId);
     res.json(resultado);
   } catch (err) { next(err); }
 }
 
 export async function obtener(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const h = await service.obtenerHabitacion(req.params.id);
+    const h = await service.obtenerHabitacion(req.params.id, req.localId);
     res.json(h);
   } catch (err) { next(err); }
 }
@@ -73,7 +73,7 @@ export async function obtener(req: Request, res: Response, next: NextFunction): 
 export async function crear(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const data = crearSchema.parse(req.body);
-    const h = await service.crearHabitacion(data);
+    const h = await service.crearHabitacion(data, req.localId);
     res.status(201).json(h);
   } catch (err) { next(err); }
 }
@@ -81,21 +81,21 @@ export async function crear(req: Request, res: Response, next: NextFunction): Pr
 export async function actualizar(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const data = actualizarSchema.parse(req.body);
-    const h = await service.actualizarHabitacion(req.params.id, data);
+    const h = await service.actualizarHabitacion(req.params.id, data, req.localId);
     res.json(h);
   } catch (err) { next(err); }
 }
 
 export async function darDeBaja(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const h = await service.darDeBajaHabitacion(req.params.id);
+    const h = await service.darDeBajaHabitacion(req.params.id, req.localId);
     res.json(h);
   } catch (err) { next(err); }
 }
 
 export async function eliminar(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const result = await service.eliminarHabitacion(req.params.id);
+    const result = await service.eliminarHabitacion(req.params.id, req.localId);
     res.json(result);
   } catch (err) { next(err); }
 }
@@ -107,7 +107,7 @@ export async function subirFotos(req: Request, res: Response, next: NextFunction
       res.status(400).json({ code: 'SIN_ARCHIVOS', message: 'Se requiere al menos un archivo' });
       return;
     }
-    const fotos = await service.subirFotos(req.params.id, archivos);
+    const fotos = await service.subirFotos(req.params.id, archivos, req.localId);
     res.json({ fotos });
   } catch (err) { next(err); }
 }
@@ -115,7 +115,7 @@ export async function subirFotos(req: Request, res: Response, next: NextFunction
 export async function reordenarFotos(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const { fotos } = reordenarFotosSchema.parse(req.body);
-    const resultado = await service.reordenarFotos(req.params.id, fotos);
+    const resultado = await service.reordenarFotos(req.params.id, fotos, req.localId);
     res.json({ fotos: resultado });
   } catch (err) { next(err); }
 }
@@ -123,7 +123,7 @@ export async function reordenarFotos(req: Request, res: Response, next: NextFunc
 export async function disponibles(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const query = disponiblesQuerySchema.parse(req.query);
-    const habitaciones = await service.habitacionesDisponibles(query);
+    const habitaciones = await service.habitacionesDisponibles(query, req.localId);
     res.json({ data: habitaciones, total: habitaciones.length });
   } catch (err) { next(err); }
 }
@@ -131,7 +131,7 @@ export async function disponibles(req: Request, res: Response, next: NextFunctio
 export async function cambiarEstado(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const { estado } = cambiarEstadoSchema.parse(req.body);
-    const habitacion = await service.cambiarEstadoHabitacion(req.params.id, estado);
+    const habitacion = await service.cambiarEstadoHabitacion(req.params.id, estado, req.localId);
     res.json(habitacion);
   } catch (err) { next(err); }
 }

@@ -90,7 +90,7 @@ async function notificarGrupoCheckin(
 
 // ─── Operación principal ──────────────────────────────────────────────────────
 
-export async function ejecutarCheckinManual(input: CheckinManualInput) {
+export async function ejecutarCheckinManual(input: CheckinManualInput, localId?: string | null) {
   const fechaEntrada = new Date(input.fecha_entrada);
   const fechaSalida  = calcFechaSalida(input.fecha_entrada, input.numero_noches);
 
@@ -123,9 +123,9 @@ export async function ejecutarCheckinManual(input: CheckinManualInput) {
     const reserva = await prisma.$transaction(async (tx) => {
       // Bloquear la fila de habitación para evitar overbooking
       const rows = await tx.$queryRaw<Array<{
-        id: string; numero: string; tipo: string; estado: string; capacidad: number;
+        id: string; numero: string; tipo: string; estado: string; capacidad: number; local_id: string;
       }>>`
-        SELECT id, numero, tipo::text, estado::text, capacidad
+        SELECT id, numero, tipo::text, estado::text, capacidad, local_id::text
         FROM habitaciones
         WHERE id = ${input.habitacion_id}::uuid
         FOR UPDATE NOWAIT
@@ -136,6 +136,11 @@ export async function ejecutarCheckinManual(input: CheckinManualInput) {
       }
 
       const hab = rows[0];
+
+      // Verificación de local — no cambia el lock, comprobación adicional dentro de la tx.
+      if (localId && hab.local_id !== localId) {
+        throw new AppError('HABITACION_NOT_FOUND', 404, 'Habitación no encontrada');
+      }
 
       if (
         hab.estado === EstadoHabitacion.MANTENIMIENTO ||
@@ -325,6 +330,7 @@ export async function listarDisponiblesParaCheckin(
   fechaEntrada: string,
   fechaSalida:  string,
   personas:     number,
+  localId?:     string | null,
 ) {
   const entrada = new Date(fechaEntrada);
   const salida  = new Date(fechaSalida);
@@ -342,6 +348,7 @@ export async function listarDisponiblesParaCheckin(
 
   const habitaciones = await prisma.habitacion.findMany({
     where: {
+      ...(localId ? { local_id: localId } : {}),
       estado:    { notIn: [EstadoHabitacion.FUERA_DE_SERVICIO, EstadoHabitacion.MANTENIMIENTO, EstadoHabitacion.OCUPADA] },
       id:        { notIn: idsOcupadas },
       capacidad: { gte: personas },

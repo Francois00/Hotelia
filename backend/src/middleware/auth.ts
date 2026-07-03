@@ -1,22 +1,29 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { RolPersonal } from '@prisma/client';
 
 // ─── Payload del token ────────────────────────────────────────────────────────
 
+export interface AuthLocalGrant {
+  local_id: string;
+  rol: string; // roles.codigo
+}
+
 export interface AuthPayload {
-  sub: string;      // personal.id (UUID)
+  sub: string;           // personal.id (UUID)
   email: string;
-  rol: RolPersonal;
+  rolPrincipal: string;  // roles.codigo del rol "home" del usuario — solo para display
+  esGlobal: boolean;     // true = superadmin/dueno, opera sobre cualquier local
+  locales: AuthLocalGrant[];
   iat?: number;
   exp?: number;
 }
 
-// Extiende Express.Request para que req.user y req.rawBody estén tipados
+// Extiende Express.Request para que req.user, req.localId y req.rawBody estén tipados
 declare global {
   namespace Express {
     interface Request {
       user?:    AuthPayload;
+      localId?: string | null;
       rawBody?: Buffer;
     }
   }
@@ -68,30 +75,4 @@ export function authenticate(req: Request, res: Response, next: NextFunction): v
       message: expired ? 'El token ha expirado, inicie sesión nuevamente' : 'Token inválido',
     });
   }
-}
-
-/**
- * Middleware factory: verifica que req.user tenga uno de los roles permitidos.
- * Debe usarse siempre después de `authenticate`.
- *
- * Uso: router.post('/ruta', authenticate, authorize(RolPersonal.GERENTE, RolPersonal.RECEPCIONISTA), handler)
- */
-export function authorize(...roles: RolPersonal[]) {
-  return (req: Request, res: Response, next: NextFunction): void => {
-    if (!req.user) {
-      // Nunca debería llegar aquí si authenticate está antes, pero lo cubrimos
-      res.status(401).json({ code: 'TOKEN_REQUERIDO', message: 'Autenticación requerida' });
-      return;
-    }
-
-    if (roles.length > 0 && !roles.includes(req.user.rol)) {
-      res.status(403).json({
-        code: 'SIN_PERMISO',
-        message: `Acceso restringido. Roles permitidos: ${roles.join(', ')}`,
-      });
-      return;
-    }
-
-    next();
-  };
 }

@@ -1,15 +1,14 @@
 import { Router } from 'express';
-import { authenticate, authorize } from '../middleware/auth';
-import { RolPersonal } from '@prisma/client';
+import { authenticate } from '../middleware/auth';
+import { resolverLocal, requirePermiso } from '../middleware/permisos';
 import { iniciar, confirmar, reembolso, porReserva } from '../controllers/pagos.controller';
 
 const router = Router();
-const staff  = [RolPersonal.RECEPCIONISTA, RolPersonal.GERENTE, RolPersonal.ADMIN];
-const mgmt   = [RolPersonal.GERENTE, RolPersonal.ADMIN];
+router.use(authenticate, resolverLocal);
 
-router.post('/iniciar',               authenticate, authorize(...staff),  iniciar);
-router.post('/confirmar',             authenticate, authorize(...staff),  confirmar);
-router.post('/:id/reembolso',         authenticate, authorize(...mgmt),   reembolso);
-router.get('/reserva/:reserva_id',    authenticate,                       porReserva);
+router.post('/iniciar',               requirePermiso('pagos.procesar'),    iniciar);
+router.post('/confirmar',             requirePermiso('pagos.procesar'),    confirmar);
+router.post('/:id/reembolso',         requirePermiso('pagos.reembolsar'),  reembolso);
+router.get('/reserva/:reserva_id',                                         porReserva);
 
 export default router;

@@ -1,23 +1,23 @@
 import { Router } from 'express';
-import { RolPersonal } from '@prisma/client';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
+import { resolverLocal, requirePermiso } from '../middleware/permisos';
 import * as ctrl from '../controllers/clientes.controller';
 
 const router = Router();
 
-router.use(authenticate);
+router.use(authenticate, resolverLocal);
 
 // Consulta DNI en RENIEC
 router.get(
   '/reniec/:dni',
-  authorize(RolPersonal.GERENTE, RolPersonal.RECEPCIONISTA, RolPersonal.ADMIN),
+  requirePermiso('huespedes.gestionar'),
   ctrl.porDNI,
 );
 
 // Consulta RUC en SUNAT
 router.get(
   '/sunat/:ruc',
-  authorize(RolPersonal.GERENTE, RolPersonal.RECEPCIONISTA, RolPersonal.ADMIN),
+  requirePermiso('huespedes.gestionar'),
   ctrl.porRUC,
 );
 

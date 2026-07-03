@@ -2,7 +2,7 @@ import type { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { TipoTurno } from '@prisma/client';
 import * as service from '../services/turnos.service';
-import { RolPersonal } from '@prisma/client';
+import { tienePermisoActivo } from '../middleware/permisos';
 
 // ─── Schemas ──────────────────────────────────────────────────────────────────
 
@@ -39,15 +39,15 @@ export async function abrir(req: Request, res: Response, next: NextFunction): Pr
       tipo:          data.tipo,
       saldo_inicial: data.saldo_inicial,
       personal_id:   req.user!.sub,
-    });
+    }, req.localId);
     res.status(201).json(turno);
   } catch (err) { next(err); }
 }
 
 // GET /api/v1/turnos/activo
-export async function activo(_req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function activo(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const resultado = await service.obtenerTurnoActivo();
+    const resultado = await service.obtenerTurnoActivo(req.localId);
     res.json(resultado);
   } catch (err) { next(err); }
 }
@@ -62,7 +62,7 @@ export async function registrarGasto(req: Request, res: Response, next: NextFunc
       monto:                 data.monto,
       comprobante_proveedor: data.comprobante_proveedor,
       registrado_por_id:     req.user!.sub,
-    });
+    }, req.localId);
     res.status(201).json(gasto);
   } catch (err) { next(err); }
 }
@@ -70,7 +70,7 @@ export async function registrarGasto(req: Request, res: Response, next: NextFunc
 // GET /api/v1/turnos/:id/gastos
 export async function listarGastos(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const gastos = await service.listarGastos(req.params.id);
+    const gastos = await service.listarGastos(req.params.id, req.localId);
     res.json({ data: gastos, total: gastos.length });
   } catch (err) { next(err); }
 }
@@ -79,7 +79,7 @@ export async function listarGastos(req: Request, res: Response, next: NextFuncti
 export async function cerrar(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const { pin } = cerrarTurnoSchema.parse(req.body);
-    const result  = await service.cerrarTurno(req.params.id, pin);
+    const result  = await service.cerrarTurno(req.params.id, pin, req.localId);
     res.json(result);
   } catch (err) { next(err); }
 }
@@ -87,7 +87,7 @@ export async function cerrar(req: Request, res: Response, next: NextFunction): P
 // GET /api/v1/turnos/:id/reporte
 export async function reporte(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const data = await service.obtenerReporte(req.params.id);
+    const data = await service.obtenerReporte(req.params.id, req.localId);
     res.json(data);
   } catch (err) { next(err); }
 }
@@ -95,7 +95,7 @@ export async function reporte(req: Request, res: Response, next: NextFunction): 
 // GET /api/v1/turnos/:id/reporte/pdf
 export async function reportePDF(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const pdfBuffer = await service.obtenerPDF(req.params.id);
+    const pdfBuffer = await service.obtenerPDF(req.params.id, req.localId);
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="reporte-turno-${req.params.id}.pdf"`);
     res.send(pdfBuffer);
@@ -106,13 +106,13 @@ export async function reportePDF(req: Request, res: Response, next: NextFunction
 export async function listar(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const query = listarQuerySchema.parse(req.query);
-    const esGerente =
-      req.user?.rol === RolPersonal.GERENTE || req.user?.rol === RolPersonal.ADMIN;
+    const esGerente = req.user?.esGlobal || (await tienePermisoActivo(req, 'turnos.ver_todos'));
 
     const resultado = await service.listarTurnos({
       ...query,
       solo_propios: !esGerente,
       personal_id:  req.user?.sub,
+      local_id:     req.localId,
     });
     res.json(resultado);
   } catch (err) { next(err); }

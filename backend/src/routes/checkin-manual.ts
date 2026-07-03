@@ -1,17 +1,17 @@
 import { Router } from 'express';
-import { RolPersonal } from '@prisma/client';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
+import { resolverLocal, requirePermiso } from '../middleware/permisos';
 import * as ctrl from '../controllers/checkin-manual.controller';
 
 const router = Router();
 
-router.use(authenticate);
+router.use(authenticate, resolverLocal);
 
 // Habitaciones disponibles para check-in manual — debe ir ANTES de la ruta con body
 // GET /api/v1/reservas/checkin-manual/disponibles
 router.get(
   '/disponibles',
-  authorize(RolPersonal.GERENTE, RolPersonal.RECEPCIONISTA, RolPersonal.ADMIN),
+  requirePermiso('checkin.ejecutar'),
   ctrl.disponibles,
 );
 
@@ -19,7 +19,7 @@ router.get(
 // POST /api/v1/reservas/checkin-manual
 router.post(
   '/',
-  authorize(RolPersonal.GERENTE, RolPersonal.RECEPCIONISTA, RolPersonal.ADMIN),
+  requirePermiso('checkin.ejecutar'),
   ctrl.checkinManual,
 );
 

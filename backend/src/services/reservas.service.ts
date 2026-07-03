@@ -66,7 +66,7 @@ function esErrorExclusion(err: unknown): boolean {
 
 const INCLUDE_BASE = {
   huesped:    { select: { id: true, nombre: true, apellido: true, email: true } },
-  habitacion: { select: { id: true, numero: true, tipo: true, piso: true, tarifa_base: true } },
+  habitacion: { select: { id: true, numero: true, tipo: true, piso: true, tarifa_base: true, local_id: true } },
 } satisfies Prisma.ReservaInclude;
 
 // Tipo derivado del include para tipado estricto en el formatter
@@ -147,7 +147,7 @@ export interface ModificarReservaInput {
 
 // ─── Operaciones ──────────────────────────────────────────────────────────────
 
-export async function crearReserva(data: CrearReservaInput, personalId?: string) {
+export async function crearReserva(data: CrearReservaInput, personalId?: string, localId?: string | null) {
   // Idempotencia: misma key → mismo resultado
   if (data.idempotency_key) {
     const existente = await prisma.reserva.findUnique({
@@ -176,8 +176,8 @@ export async function crearReserva(data: CrearReservaInput, personalId?: string)
   try {
     const reserva = await prisma.$transaction(async (tx) => {
       // FOR UPDATE NOWAIT bloquea la fila; si hay otra TX concurrente → 55P03 inmediato
-      const rows = await tx.$queryRaw<Array<{ id: string; numero: string; estado: string; tarifa_base: string }>>`
-        SELECT id, numero, estado::text, tarifa_base::text
+      const rows = await tx.$queryRaw<Array<{ id: string; numero: string; estado: string; tarifa_base: string; local_id: string }>>`
+        SELECT id, numero, estado::text, tarifa_base::text, local_id::text
         FROM habitaciones
         WHERE id = ${data.habitacion_id}::uuid
         FOR UPDATE NOWAIT
@@ -188,6 +188,12 @@ export async function crearReserva(data: CrearReservaInput, personalId?: string)
       }
 
       const hab = rows[0];
+
+      // Verificación de local — no cambia el lock, es una comprobación adicional
+      // dentro de la misma transacción antes de cualquier escritura.
+      if (localId && hab.local_id !== localId) {
+        throw new AppError('HABITACION_NOT_FOUND', 404, 'Habitación no encontrada');
+      }
 
       // La habitación no puede estar en estado que bloquee nuevas reservas
       if (
@@ -304,11 +310,12 @@ export async function crearReserva(data: CrearReservaInput, personalId?: string)
   }
 }
 
-export async function listarReservas(query: ListarReservasQuery) {
+export async function listarReservas(query: ListarReservasQuery, localId?: string | null) {
   const page  = query.page  ?? 1;
   const limit = Math.min(query.limit ?? 20, 100);
 
   const where: Prisma.ReservaWhereInput = {};
+  if (localId) where.habitacion = { local_id: localId };
 
   // Tab filter takes effect only if no explicit estado filter is set
   if (query.estado) {
@@ -354,7 +361,7 @@ export async function listarReservas(query: ListarReservasQuery) {
   };
 }
 
-export async function obtenerReserva(id: string) {
+export async function obtenerReserva(id: string, localId?: string | null) {
   const reserva = await prisma.reserva.findUnique({
     where:   { id },
     include: {
@@ -364,7 +371,9 @@ export async function obtenerReserva(id: string) {
       personal:    { select: { nombre: true, apellido: true, rol: true } },
     },
   });
-  if (!reserva) throw new AppError('RESERVA_NOT_FOUND', 404, 'Reserva no encontrada');
+  if (!reserva || (localId && reserva.habitacion.local_id !== localId)) {
+    throw new AppError('RESERVA_NOT_FOUND', 404, 'Reserva no encontrada');
+  }
   return formatReserva(reserva as unknown as ReservaRow);
 }
 
@@ -372,6 +381,7 @@ export async function cambiarEstado(
   id: string,
   nuevoEstado: EstadoReserva,
   observaciones?: string,
+  localId?: string | null,
 ) {
   // Captured inside tx, used for fire-and-forget sync after commit
   let habitacionIdCapture: string | undefined;
@@ -381,12 +391,17 @@ export async function cambiarEstado(
   const result = await prisma.$transaction(async (tx) => {
     const reserva = await tx.reserva.findUnique({
       where:  { id },
-      select: { estado: true, habitacion_id: true, fecha_entrada: true, fecha_salida: true },
+      select: {
+        estado: true, habitacion_id: true, fecha_entrada: true, fecha_salida: true,
+        habitacion: { select: { local_id: true } },
+      },
     });
     habitacionIdCapture = reserva?.habitacion_id;
     fechaEntradaCapture = reserva?.fecha_entrada;
     fechaSalidaCapture  = reserva?.fecha_salida;
-    if (!reserva) throw new AppError('RESERVA_NOT_FOUND', 404, 'Reserva no encontrada');
+    if (!reserva || (localId && reserva.habitacion.local_id !== localId)) {
+      throw new AppError('RESERVA_NOT_FOUND', 404, 'Reserva no encontrada');
+    }
 
     const permitidos = TRANSICIONES[reserva.estado];
     if (!permitidos.includes(nuevoEstado)) {
@@ -488,8 +503,8 @@ export async function cambiarEstado(
 }
 
 // Soft-delete: reutiliza la transición a CANCELADA con todos sus efectos secundarios
-export async function cancelarReserva(id: string) {
-  return cambiarEstado(id, EstadoReserva.CANCELADA);
+export async function cancelarReserva(id: string, localId?: string | null) {
+  return cambiarEstado(id, EstadoReserva.CANCELADA, undefined, localId);
 }
 
 // ─── Modificar reserva (solo CONFIRMADA) ─────────────────────────────────────
@@ -499,9 +514,12 @@ export async function modificarReserva(
   data: ModificarReservaInput,
   actorId: string,
   actorEmail: string,
+  localId?: string | null,
 ) {
   const reserva = await prisma.reserva.findUnique({ where: { id }, include: INCLUDE_BASE });
-  if (!reserva) throw new AppError('RESERVA_NO_ENCONTRADA', 404, 'Reserva no encontrada');
+  if (!reserva || (localId && reserva.habitacion.local_id !== localId)) {
+    throw new AppError('RESERVA_NO_ENCONTRADA', 404, 'Reserva no encontrada');
+  }
   if (reserva.estado !== EstadoReserva.CONFIRMADA) {
     throw new AppError(
       'MODIFICACION_NO_PERMITIDA', 422,
@@ -576,7 +594,16 @@ interface AuditEntry {
   created_at: Date;
 }
 
-export async function obtenerAuditoria(reservaId: string): Promise<AuditEntry[]> {
+export async function obtenerAuditoria(reservaId: string, localId?: string | null): Promise<AuditEntry[]> {
+  if (localId) {
+    const reserva = await prisma.reserva.findUnique({
+      where: { id: reservaId },
+      select: { habitacion: { select: { local_id: true } } },
+    });
+    if (!reserva || reserva.habitacion.local_id !== localId) {
+      throw new AppError('RESERVA_NOT_FOUND', 404, 'Reserva no encontrada');
+    }
+  }
   const rows = await prisma.$queryRaw<AuditEntry[]>`
     SELECT id, accion, campos_modificados, actor_email, motivo, created_at
     FROM audit_log

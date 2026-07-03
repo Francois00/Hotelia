@@ -2,11 +2,18 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '../lib/prisma';
 import { signToken } from '../middleware/auth';
 import { AppError } from '../lib/errors';
+import { asegurarCacheCargado, permisosDeRol } from '../lib/rolePermissionCache';
 
 const CREDENCIALES_INVALIDAS = new AppError(
   'CREDENCIALES_INVALIDAS',
   401,
   'Email o contraseña incorrectos',
+);
+
+const SIN_ROL_ASIGNADO = new AppError(
+  'SIN_ROL_ASIGNADO',
+  403,
+  'Este usuario no tiene un rol asignado. Contacte al administrador.',
 );
 
 export async function login(email: string, password: string) {
@@ -17,9 +24,18 @@ export async function login(email: string, password: string) {
       nombre: true,
       apellido: true,
       email: true,
-      rol: true,
       activo: true,
       password_hash: true,
+      rol_nuevo: { select: { codigo: true, alcance_global: true } },
+      usuario_locales: {
+        where: { activo: true },
+        select: {
+          local_id: true,
+          es_local_principal: true,
+          local: { select: { nombre: true, color_tema: true } },
+          rol: { select: { codigo: true } },
+        },
+      },
     },
   });
 
@@ -33,7 +49,29 @@ export async function login(email: string, password: string) {
     throw CREDENCIALES_INVALIDAS;
   }
 
-  const token = signToken({ sub: personal.id, email: personal.email, rol: personal.rol });
+  if (!personal.rol_nuevo) {
+    throw SIN_ROL_ASIGNADO;
+  }
+
+  const locales = personal.usuario_locales.map((ul) => ({
+    local_id: ul.local_id,
+    rol: ul.rol.codigo,
+  }));
+
+  const token = signToken({
+    sub: personal.id,
+    email: personal.email,
+    rolPrincipal: personal.rol_nuevo.codigo,
+    esGlobal: personal.rol_nuevo.alcance_global,
+    locales,
+  });
+
+  await asegurarCacheCargado();
+  const rolesInvolucrados = new Set([personal.rol_nuevo.codigo, ...locales.map((l) => l.rol)]);
+  const catalogoPermisos: Record<string, string[]> = {};
+  for (const codigo of rolesInvolucrados) {
+    catalogoPermisos[codigo] = permisosDeRol(codigo);
+  }
 
   return {
     token,
@@ -42,8 +80,17 @@ export async function login(email: string, password: string) {
       nombre: personal.nombre,
       apellido: personal.apellido,
       email: personal.email,
-      rol: personal.rol,
+      rolPrincipal: personal.rol_nuevo.codigo,
+      esGlobal: personal.rol_nuevo.alcance_global,
+      locales: personal.usuario_locales.map((ul) => ({
+        local_id: ul.local_id,
+        local_nombre: ul.local.nombre,
+        local_color: ul.local.color_tema,
+        rol: ul.rol.codigo,
+        es_local_principal: ul.es_local_principal,
+      })),
     },
+    catalogoPermisos,
   };
 }
 

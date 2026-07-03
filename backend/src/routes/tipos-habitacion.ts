@@ -1,29 +1,29 @@
 import { Router } from 'express';
-import { RolPersonal } from '@prisma/client';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
+import { resolverLocal, requirePermiso } from '../middleware/permisos';
 import * as ctrl from '../controllers/tipos-habitacion.controller';
 
 const router = Router();
 
-router.use(authenticate);
+router.use(authenticate, resolverLocal);
 
 router.get('/', ctrl.listar);
 
 router.post(
   '/',
-  authorize(RolPersonal.GERENTE, RolPersonal.ADMIN),
+  requirePermiso('habitaciones.tipos.gestionar'),
   ctrl.crear,
 );
 
 router.put(
   '/:id',
-  authorize(RolPersonal.GERENTE, RolPersonal.ADMIN),
+  requirePermiso('habitaciones.tipos.gestionar'),
   ctrl.actualizar,
 );
 
 router.delete(
   '/:id',
-  authorize(RolPersonal.GERENTE, RolPersonal.ADMIN),
+  requirePermiso('habitaciones.tipos.gestionar'),
   ctrl.desactivar,
 );
 

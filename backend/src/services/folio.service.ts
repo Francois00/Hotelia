@@ -19,12 +19,14 @@ const ESTADOS_PAGO: EstadoReserva[] = [
   EstadoReserva.CHECKOUT_REALIZADO,
 ];
 
-async function verificarReserva(id: string, estadosPermitidos?: EstadoReserva[]) {
+async function verificarReserva(id: string, estadosPermitidos?: EstadoReserva[], localId?: string | null) {
   const reserva = await prisma.reserva.findUnique({
     where:  { id },
-    select: { id: true, estado: true },
+    select: { id: true, estado: true, habitacion: { select: { local_id: true } } },
   });
-  if (!reserva) throw new AppError('RESERVA_NOT_FOUND', 404, 'Reserva no encontrada');
+  if (!reserva || (localId && reserva.habitacion.local_id !== localId)) {
+    throw new AppError('RESERVA_NOT_FOUND', 404, 'Reserva no encontrada');
+  }
   if (estadosPermitidos && !estadosPermitidos.includes(reserva.estado)) {
     throw new AppError(
       'ESTADO_INVALIDO',
@@ -57,8 +59,8 @@ export interface RegistrarPagoInput {
 
 // ─── Folio summary ────────────────────────────────────────────────────────────
 
-export async function obtenerFolio(reservaId: string) {
-  await verificarReserva(reservaId);
+export async function obtenerFolio(reservaId: string, localId?: string | null) {
+  await verificarReserva(reservaId, undefined, localId);
 
   const [items, pagos] = await Promise.all([
     prisma.folioItem.findMany({
@@ -124,8 +126,9 @@ export async function agregarCargo(
   reservaId: string,
   data: AgregarCargoInput,
   personalId?: string,
+  localId?: string | null,
 ) {
-  await verificarReserva(reservaId, ESTADOS_CARGO);
+  await verificarReserva(reservaId, ESTADOS_CARGO, localId);
 
   const item = await prisma.folioItem.create({
     data: {
@@ -162,8 +165,9 @@ export async function anularCargo(
   reservaId: string,
   itemId: string,
   personalId?: string,
+  localId?: string | null,
 ) {
-  await verificarReserva(reservaId);
+  await verificarReserva(reservaId, undefined, localId);
 
   const item = await prisma.folioItem.findUnique({
     where:  { id: itemId },
@@ -197,8 +201,9 @@ export async function registrarPago(
   reservaId: string,
   data: RegistrarPagoInput,
   personalId?: string,
+  localId?: string | null,
 ) {
-  await verificarReserva(reservaId, ESTADOS_PAGO);
+  await verificarReserva(reservaId, ESTADOS_PAGO, localId);
 
   const pago = await prisma.pago.create({
     data: {

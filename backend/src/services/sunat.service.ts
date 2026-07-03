@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { AppError } from '../lib/errors';
 import { obtenerFolio } from './folio.service';
@@ -207,17 +208,46 @@ export async function enviarSUNAT(
   }
 }
 
-// ─── Auto-increment correlativo ───────────────────────────────────────────────
+// ─── Auto-increment correlativo (por local, bajo FOR UPDATE) ─────────────────
+// Antes: MAX(correlativo)+1 global sin lock — condición de carrera real y, con
+// multi-local, un contador compartido entre locales. Ahora: cada local tiene su
+// propia fila en contabilidad_config con serie/correlativo independientes,
+// incrementados atómicamente bajo FOR UPDATE (espera, no NOWAIT — aquí sí
+// queremos que la segunda transacción espere en vez de fallar).
 
-async function siguienteCorrelativo(tipo: 'BOLETA' | 'FACTURA'): Promise<{ serie: string; correlativo: string }> {
-  const serie   = tipo === 'BOLETA' ? 'B001' : 'F001';
-  const ultimo  = await prisma.comprobante.findFirst({
-    where:   { tipo },
-    orderBy: { created_at: 'desc' },
-    select:  { correlativo: true },
+async function siguienteCorrelativo(
+  tipo: 'BOLETA' | 'FACTURA',
+  localId: string,
+): Promise<{ serie: string; correlativo: string }> {
+  const campoSerie = tipo === 'BOLETA' ? 'serie_boleta' : 'serie_factura';
+  const campoCorr  = tipo === 'BOLETA' ? 'correlativo_boleta' : 'correlativo_factura';
+
+  return prisma.$transaction(async (tx) => {
+    const rows = await tx.$queryRaw<Array<{ serie: string; correlativo: number }>>`
+      SELECT ${Prisma.raw(campoSerie)} AS serie, ${Prisma.raw(campoCorr)} AS correlativo
+      FROM contabilidad_config
+      WHERE local_id = ${localId}::uuid
+      FOR UPDATE
+    `;
+
+    if (rows.length === 0) {
+      throw new AppError(
+        'CONFIG_CONTABLE_NO_ENCONTRADA',
+        500,
+        `No existe configuración contable (contabilidad_config) para el local ${localId}`,
+      );
+    }
+
+    const nuevoNumero = rows[0].correlativo + 1;
+
+    await tx.$executeRaw`
+      UPDATE contabilidad_config
+      SET ${Prisma.raw(campoCorr)} = ${nuevoNumero}
+      WHERE local_id = ${localId}::uuid
+    `;
+
+    return { serie: rows[0].serie, correlativo: String(nuevoNumero).padStart(8, '0') };
   });
-  const num = ultimo ? parseInt(ultimo.correlativo, 10) + 1 : 1;
-  return { serie, correlativo: String(num).padStart(8, '0') };
 }
 
 // ─── Main emitter ─────────────────────────────────────────────────────────────
@@ -236,6 +266,7 @@ export async function emitirComprobante(reserva_id: string) {
           tipo_documento:   true,
         },
       },
+      habitacion: { select: { local_id: true } },
     },
   });
   if (!reserva) throw new AppError('RESERVA_NOT_FOUND', 404, 'Reserva no encontrada');
@@ -267,7 +298,7 @@ export async function emitirComprobante(reserva_id: string) {
       };
     });
 
-  const { serie, correlativo } = await siguienteCorrelativo(tipo);
+  const { serie, correlativo } = await siguienteCorrelativo(tipo, reserva.habitacion.local_id);
   const fecha_emision = new Date().toISOString().slice(0, 10);
 
   const datos: DatosComprobante = {
@@ -333,20 +364,24 @@ export async function emitirComprobante(reserva_id: string) {
   };
 }
 
-export async function obtenerComprobantePorReserva(reserva_id: string) {
+export async function obtenerComprobantePorReserva(reserva_id: string, localId?: string | null) {
   const c = await prisma.comprobante.findUnique({
     where:  { reserva_id },
     select: {
       id: true, tipo: true, serie: true, correlativo: true,
       fecha_emision: true, total: true, estado: true, pdf_url: true, created_at: true,
+      reserva: { select: { habitacion: { select: { local_id: true } } } },
     },
   });
-  if (!c) throw new AppError('COMPROBANTE_NOT_FOUND', 404, 'Comprobante no encontrado');
-  return { ...c, total: Number(c.total) };
+  if (!c || (localId && c.reserva.habitacion.local_id !== localId)) {
+    throw new AppError('COMPROBANTE_NOT_FOUND', 404, 'Comprobante no encontrado');
+  }
+  const { reserva: _reserva, ...rest } = c;
+  return { ...rest, total: Number(c.total) };
 }
 
 export async function listarComprobantes(filtros: {
-  tipo?: string; estado?: string; desde?: string; hasta?: string; page?: number; limit?: number;
+  tipo?: string; estado?: string; desde?: string; hasta?: string; page?: number; limit?: number; localId?: string | null;
 }) {
   const page  = filtros.page  ?? 1;
   const limit = Math.min(filtros.limit ?? 20, 100);
@@ -354,6 +389,7 @@ export async function listarComprobantes(filtros: {
   const where: Record<string, unknown> = {};
   if (filtros.tipo)   where.tipo   = filtros.tipo;
   if (filtros.estado) where.estado = filtros.estado;
+  if (filtros.localId) where.reserva = { habitacion: { local_id: filtros.localId } };
   if (filtros.desde || filtros.hasta) {
     where.fecha_emision = {
       ...(filtros.desde ? { gte: new Date(filtros.desde) } : {}),

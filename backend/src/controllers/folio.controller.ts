@@ -26,15 +26,14 @@ const PagoSchema = z.object({
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function personalId(req: Request): string | undefined {
-  const user = req.user as { id?: string } | undefined;
-  return user?.id;
+  return req.user?.sub;
 }
 
 // ─── Handlers ────────────────────────────────────────────────────────────────
 
 export async function obtenerFolio(req: Request, res: Response, next: NextFunction) {
   try {
-    const result = await folio.obtenerFolio(req.params.id);
+    const result = await folio.obtenerFolio(req.params.id, req.localId);
     res.json(result);
   } catch (err) {
     next(err);
@@ -48,7 +47,7 @@ export async function agregarCargo(req: Request, res: Response, next: NextFuncti
       res.status(400).json({ error: 'VALIDACION', details: parsed.error.flatten() });
       return;
     }
-    const result = await folio.agregarCargo(req.params.id, parsed.data, personalId(req));
+    const result = await folio.agregarCargo(req.params.id, parsed.data, personalId(req), req.localId);
     res.status(201).json(result);
   } catch (err) {
     next(err);
@@ -57,7 +56,7 @@ export async function agregarCargo(req: Request, res: Response, next: NextFuncti
 
 export async function anularCargo(req: Request, res: Response, next: NextFunction) {
   try {
-    const result = await folio.anularCargo(req.params.id, req.params.itemId, personalId(req));
+    const result = await folio.anularCargo(req.params.id, req.params.itemId, personalId(req), req.localId);
     res.json(result);
   } catch (err) {
     next(err);
@@ -71,7 +70,7 @@ export async function registrarPago(req: Request, res: Response, next: NextFunct
       res.status(400).json({ error: 'VALIDACION', details: parsed.error.flatten() });
       return;
     }
-    const result = await folio.registrarPago(req.params.id, parsed.data, personalId(req));
+    const result = await folio.registrarPago(req.params.id, parsed.data, personalId(req), req.localId);
     res.status(201).json(result);
   } catch (err) {
     next(err);

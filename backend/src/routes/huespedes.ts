@@ -1,15 +1,15 @@
 import { Router } from 'express';
-import { RolPersonal } from '@prisma/client';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
+import { resolverLocal, requirePermiso } from '../middleware/permisos';
 import * as ctrl from '../controllers/huespedes.controller';
 
 const router = Router();
 
-router.use(authenticate);
+router.use(authenticate, resolverLocal);
 
 router.post(
   '/',
-  authorize(RolPersonal.ADMIN, RolPersonal.GERENTE, RolPersonal.RECEPCIONISTA),
+  requirePermiso('huespedes.gestionar'),
   ctrl.crear,
 );
 
@@ -22,13 +22,13 @@ router.get('/:id', ctrl.obtener);
 
 router.patch(
   '/:id',
-  authorize(RolPersonal.ADMIN, RolPersonal.GERENTE, RolPersonal.RECEPCIONISTA),
+  requirePermiso('huespedes.gestionar'),
   ctrl.actualizar,
 );
 
 router.delete(
   '/:id',
-  authorize(RolPersonal.ADMIN, RolPersonal.GERENTE),
+  requirePermiso('huespedes.eliminar'),
   ctrl.eliminar,
 );
 

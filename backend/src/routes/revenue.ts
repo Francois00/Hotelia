@@ -1,11 +1,11 @@
 import { Router } from 'express';
-import { RolPersonal } from '@prisma/client';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
+import { requirePermiso } from '../middleware/permisos';
 import * as ctrl from '../controllers/revenue.controller';
 
 const router = Router();
 
-router.use(authenticate, authorize(RolPersonal.ADMIN, RolPersonal.GERENTE));
+router.use(authenticate, requirePermiso('revenue.ver'));
 
 router.get('/kpis',     ctrl.kpis);
 router.get('/forecast', ctrl.forecast);

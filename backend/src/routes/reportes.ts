@@ -1,16 +1,24 @@
 import { Router, Request, Response } from 'express';
-import { RolPersonal } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
+import { requirePermiso } from '../middleware/permisos';
 import PDFDocument from 'pdfkit';
 import ExcelJS from 'exceljs';
+import { AZUL as AZUL_XLSX, BLANCO as BLANCO_XLSX, GRIS as GRIS_XLSX, headerStyle, autoWidth } from '../lib/exceljsHelpers';
 
 const router = Router();
 router.use(authenticate);
 
-const MGMT = [RolPersonal.ADMIN, RolPersonal.GERENTE];
-
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/**
+ * Fragmento SQL condicional para filtrar por local a través de un JOIN a `habitaciones`.
+ * `alias` es siempre un literal fijo (nunca input de usuario) — seguro para Prisma.raw.
+ */
+function filtroLocal(alias: string, localId: string | null | undefined) {
+  return localId ? Prisma.sql`AND ${Prisma.raw(alias)}.local_id = ${localId}::uuid` : Prisma.empty;
+}
 
 function parseMes(mesParam: unknown): { inicio: string; fin: string; label: string } | null {
   const mes = typeof mesParam === 'string' ? mesParam : '';
@@ -35,21 +43,23 @@ function fmt(v: unknown): string {
 
 // ─── Cálculo de datos ─────────────────────────────────────────────────────────
 
-async function calcularReporte(inicio: string, fin: string) {
+async function calcularReporte(inicio: string, fin: string, localId: string | null | undefined) {
   type ResumenRow = {
     total_reservas: bigint; cancelaciones: bigint; no_shows: bigint; checkins: bigint;
     ingresos: string; noches: string;
   };
   const [resumen] = await prisma.$queryRaw<ResumenRow[]>`
     SELECT
-      COUNT(*) FILTER (WHERE estado != 'CANCELADA' AND estado != 'NO_SHOW') AS total_reservas,
-      COUNT(*) FILTER (WHERE estado = 'CANCELADA')  AS cancelaciones,
-      COUNT(*) FILTER (WHERE estado = 'NO_SHOW')    AS no_shows,
-      COUNT(*) FILTER (WHERE estado IN ('CHECKIN_REALIZADO','CHECKOUT_REALIZADO')) AS checkins,
-      COALESCE(SUM(tarifa_acordada) FILTER (WHERE estado != 'CANCELADA' AND estado != 'NO_SHOW'), 0)::text AS ingresos,
-      COALESCE(SUM(fecha_salida - fecha_entrada)   FILTER (WHERE estado != 'CANCELADA' AND estado != 'NO_SHOW'), 0)::text AS noches
-    FROM reservas
-    WHERE fecha_entrada BETWEEN ${inicio}::date AND ${fin}::date
+      COUNT(*) FILTER (WHERE r.estado != 'CANCELADA' AND r.estado != 'NO_SHOW') AS total_reservas,
+      COUNT(*) FILTER (WHERE r.estado = 'CANCELADA')  AS cancelaciones,
+      COUNT(*) FILTER (WHERE r.estado = 'NO_SHOW')    AS no_shows,
+      COUNT(*) FILTER (WHERE r.estado IN ('CHECKIN_REALIZADO','CHECKOUT_REALIZADO')) AS checkins,
+      COALESCE(SUM(r.tarifa_acordada) FILTER (WHERE r.estado != 'CANCELADA' AND r.estado != 'NO_SHOW'), 0)::text AS ingresos,
+      COALESCE(SUM(r.fecha_salida - r.fecha_entrada)   FILTER (WHERE r.estado != 'CANCELADA' AND r.estado != 'NO_SHOW'), 0)::text AS noches
+    FROM reservas r
+    JOIN habitaciones h ON h.id = r.habitacion_id
+    WHERE r.fecha_entrada BETWEEN ${inicio}::date AND ${fin}::date
+      ${filtroLocal('h', localId)}
   `;
 
   const noches = Number(resumen.noches ?? 0);
@@ -64,20 +74,24 @@ async function calcularReporte(inicio: string, fin: string) {
     SELECT p.metodo::text, COALESCE(SUM(p.monto),0)::text AS total, COUNT(*) AS cantidad
     FROM pagos p
     JOIN reservas r ON r.id = p.reserva_id
+    JOIN habitaciones h ON h.id = r.habitacion_id
     WHERE r.fecha_entrada BETWEEN ${inicio}::date AND ${fin}::date
       AND p.estado = 'COMPLETADO'
+      ${filtroLocal('h', localId)}
     GROUP BY p.metodo
     ORDER BY SUM(p.monto) DESC
   `;
 
   type CanalRow = { canal: string; total: string; cantidad: bigint };
   const por_canal = await prisma.$queryRaw<CanalRow[]>`
-    SELECT canal::text, COALESCE(SUM(tarifa_acordada),0)::text AS total, COUNT(*) AS cantidad
-    FROM reservas
-    WHERE fecha_entrada BETWEEN ${inicio}::date AND ${fin}::date
-      AND estado != 'CANCELADA' AND estado != 'NO_SHOW'
-    GROUP BY canal
-    ORDER BY SUM(tarifa_acordada) DESC
+    SELECT r.canal::text, COALESCE(SUM(r.tarifa_acordada),0)::text AS total, COUNT(*) AS cantidad
+    FROM reservas r
+    JOIN habitaciones h ON h.id = r.habitacion_id
+    WHERE r.fecha_entrada BETWEEN ${inicio}::date AND ${fin}::date
+      AND r.estado != 'CANCELADA' AND r.estado != 'NO_SHOW'
+      ${filtroLocal('h', localId)}
+    GROUP BY r.canal
+    ORDER BY SUM(r.tarifa_acordada) DESC
   `;
 
   type TipoRow = { tipo: string; total: string; noches: string; cantidad: bigint };
@@ -89,6 +103,7 @@ async function calcularReporte(inicio: string, fin: string) {
     JOIN habitaciones h ON h.id = r.habitacion_id
     WHERE r.fecha_entrada BETWEEN ${inicio}::date AND ${fin}::date
       AND r.estado != 'CANCELADA' AND r.estado != 'NO_SHOW'
+      ${filtroLocal('h', localId)}
     GROUP BY h.tipo
     ORDER BY SUM(r.tarifa_acordada) DESC
   `;
@@ -101,6 +116,7 @@ async function calcularReporte(inicio: string, fin: string) {
     JOIN habitaciones h ON h.id = r.habitacion_id
     WHERE r.fecha_entrada BETWEEN ${inicio}::date AND ${fin}::date
       AND r.estado != 'CANCELADA' AND r.estado != 'NO_SHOW'
+      ${filtroLocal('h', localId)}
     GROUP BY h.numero, h.tipo
     ORDER BY SUM(r.tarifa_acordada) DESC
     LIMIT 5
@@ -114,8 +130,10 @@ async function calcularReporte(inicio: string, fin: string) {
            COALESCE(SUM(r.tarifa_acordada),0)::text AS gasto
     FROM reservas r
     JOIN huespedes hue ON hue.id = r.huesped_id
+    JOIN habitaciones h ON h.id = r.habitacion_id
     WHERE r.fecha_entrada BETWEEN ${inicio}::date AND ${fin}::date
       AND r.estado != 'CANCELADA' AND r.estado != 'NO_SHOW'
+      ${filtroLocal('h', localId)}
     GROUP BY hue.id, hue.nombre, hue.apellido, hue.numero_documento
     ORDER BY SUM(r.tarifa_acordada) DESC
     LIMIT 5
@@ -138,6 +156,7 @@ async function calcularReporte(inicio: string, fin: string) {
     JOIN huespedes hue ON hue.id = r.huesped_id
     JOIN habitaciones h ON h.id = r.habitacion_id
     WHERE r.fecha_entrada BETWEEN ${inicio}::date AND ${fin}::date
+      ${filtroLocal('h', localId)}
     ORDER BY r.fecha_entrada, r.codigo
   `;
 
@@ -169,14 +188,14 @@ async function calcularReporte(inicio: string, fin: string) {
 
 // ─── GET /reportes/mensual ────────────────────────────────────────────────────
 
-router.get('/reportes/mensual', authorize(...MGMT), async (req: Request, res: Response) => {
+router.get('/reportes/mensual', requirePermiso('reportes.ver'), async (req: Request, res: Response) => {
   const rango = parseMes(req.query.mes);
   if (!rango) {
     res.status(400).json({ code: 'MES_INVALIDO', message: 'Formato esperado: YYYY-MM' });
     return;
   }
   try {
-    const data = await calcularReporte(rango.inicio, rango.fin);
+    const data = await calcularReporte(rango.inicio, rango.fin, req.localId);
     res.json({ mes: req.query.mes, periodo: rango, ...data });
   } catch (err) {
     console.error('[reportes] mensual error', err);
@@ -186,14 +205,14 @@ router.get('/reportes/mensual', authorize(...MGMT), async (req: Request, res: Re
 
 // ─── GET /reportes/mensual/pdf ────────────────────────────────────────────────
 
-router.get('/reportes/mensual/pdf', authorize(...MGMT), async (req: Request, res: Response) => {
+router.get('/reportes/mensual/pdf', requirePermiso('reportes.ver'), async (req: Request, res: Response) => {
   const rango = parseMes(req.query.mes);
   if (!rango) {
     res.status(400).json({ code: 'MES_INVALIDO', message: 'Formato esperado: YYYY-MM' });
     return;
   }
   try {
-    const data = await calcularReporte(rango.inicio, rango.fin);
+    const data = await calcularReporte(rango.inicio, rango.fin, req.localId);
     const { resumen, por_metodo, por_tipo, top_habitaciones, top_huespedes, detalle } = data;
 
     const buffers: Buffer[] = [];
@@ -351,45 +370,21 @@ router.get('/reportes/mensual/pdf', authorize(...MGMT), async (req: Request, res
 
 // ─── GET /reportes/mensual/excel ──────────────────────────────────────────────
 
-router.get('/reportes/mensual/excel', authorize(...MGMT), async (req: Request, res: Response) => {
+router.get('/reportes/mensual/excel', requirePermiso('reportes.ver'), async (req: Request, res: Response) => {
   const rango = parseMes(req.query.mes);
   if (!rango) {
     res.status(400).json({ code: 'MES_INVALIDO', message: 'Formato esperado: YYYY-MM' });
     return;
   }
   try {
-    const data = await calcularReporte(rango.inicio, rango.fin);
+    const data = await calcularReporte(rango.inicio, rango.fin, req.localId);
     const { resumen, por_metodo, por_canal, por_tipo, top_habitaciones, top_huespedes, detalle } = data;
 
     const wb = new ExcelJS.Workbook();
     wb.creator = 'Hotel Hotelia PMS';
     wb.created = new Date();
 
-    const AZUL  = { argb: 'FF1B3A6B' } as ExcelJS.Color;
-    const BLANCO = { argb: 'FFFFFFFF' } as ExcelJS.Color;
-    const GRIS  = { argb: 'FFF5F5F5' } as ExcelJS.Color;
-
-    const headerStyle = (ws: ExcelJS.Worksheet, row: ExcelJS.Row) => {
-      row.eachCell(cell => {
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: AZUL };
-        cell.font = { bold: true, color: BLANCO };
-        cell.alignment = { horizontal: 'center', vertical: 'middle' };
-        cell.border = { bottom: { style: 'thin', color: { argb: 'FFCCCCCC' } } };
-      });
-      row.height = 20;
-      void ws;
-    };
-
-    const autoWidth = (ws: ExcelJS.Worksheet) => {
-      ws.columns.forEach(col => {
-        let max = 10;
-        col.eachCell?.({ includeEmpty: false }, cell => {
-          const len = String(cell.value ?? '').length;
-          if (len > max) max = len;
-        });
-        col.width = Math.min(max + 4, 40);
-      });
-    };
+    const AZUL = AZUL_XLSX, BLANCO = BLANCO_XLSX, GRIS = GRIS_XLSX;
 
     // ── Hoja Resumen ──
     const wsR = wb.addWorksheet('Resumen');
@@ -489,7 +484,7 @@ router.get('/reportes/mensual/excel', authorize(...MGMT), async (req: Request, r
 
 // ─── GET /reportes/comparativo ────────────────────────────────────────────────
 
-router.get('/reportes/comparativo', authorize(...MGMT), async (req: Request, res: Response) => {
+router.get('/reportes/comparativo', requirePermiso('reportes.ver'), async (req: Request, res: Response) => {
   const rango = parseMes(req.query.mes);
   if (!rango) {
     res.status(400).json({ code: 'MES_INVALIDO', message: 'Formato esperado: YYYY-MM' });
@@ -501,8 +496,8 @@ router.get('/reportes/comparativo', authorize(...MGMT), async (req: Request, res
     const rangoAnt = parseMes(mesAnt)!;
 
     const [actual, anterior] = await Promise.all([
-      calcularReporte(rango.inicio, rango.fin),
-      calcularReporte(rangoAnt.inicio, rangoAnt.fin),
+      calcularReporte(rango.inicio, rango.fin, req.localId),
+      calcularReporte(rangoAnt.inicio, rangoAnt.fin, req.localId),
     ]);
 
     const pct = (a: number, b: number) =>

@@ -16,6 +16,13 @@ export interface AbrirTurnoInput {
   personal_id:   string;
 }
 
+function requerirLocal(localId: string | null | undefined): string {
+  if (!localId) {
+    throw new AppError('LOCAL_REQUERIDO', 400, 'Debe especificar el local (header X-Local-Id)');
+  }
+  return localId;
+}
+
 export interface RegistrarGastoInput {
   turno_id:              string;
   concepto:              string;
@@ -28,20 +35,24 @@ export interface RegistrarGastoInput {
 
 const METODOS_TARJETA: MetodoPago[] = [MetodoPago.TARJETA_CREDITO, MetodoPago.TARJETA_DEBITO, MetodoPago.TARJETA, MetodoPago.NIUBIZ, MetodoPago.STRIPE];
 
-async function calcularResumenTurno(turnoId: string, horaApertura: Date) {
+async function calcularResumenTurno(turnoId: string, horaApertura: Date, localId: string) {
   const [reservas, pagos, gastos] = await Promise.all([
-    // Reservas creadas durante el turno
+    // Reservas creadas durante el turno, en el local del turno
     prisma.reserva.findMany({
       where: {
         created_at: { gte: horaApertura },
         estado:     { in: ['CHECKIN_REALIZADO', 'CHECKOUT_REALIZADO', 'CONFIRMADA'] as const },
+        habitacion: { local_id: localId },
       },
       select: { id: true, estado: true, created_at: true },
     }),
 
-    // Todos los pagos de reservas creadas en el turno
+    // Pagos de reservas del local creadas en el turno
     prisma.pago.findMany({
-      where:  { created_at: { gte: horaApertura } },
+      where: {
+        created_at: { gte: horaApertura },
+        reserva:    { habitacion: { local_id: localId } },
+      },
       select: { metodo: true, monto: true },
     }),
 
@@ -91,21 +102,24 @@ async function notificarCierreTurno(reporte: Record<string, unknown>): Promise<v
 
 // ─── Operaciones ──────────────────────────────────────────────────────────────
 
-export async function abrirTurno(input: AbrirTurnoInput) {
+export async function abrirTurno(input: AbrirTurnoInput, localId: string | null | undefined) {
+  const local = requerirLocal(localId);
+
   const turnoAbierto = await prisma.turno.findFirst({
-    where: { estado: EstadoTurno.ABIERTO },
+    where: { estado: EstadoTurno.ABIERTO, local_id: local },
   });
 
   if (turnoAbierto) {
     throw new AppError(
       'TURNO_YA_ABIERTO',
       409,
-      'Ya existe un turno abierto. Debe cerrarlo antes de abrir uno nuevo.',
+      'Ya existe un turno abierto en este local. Debe cerrarlo antes de abrir uno nuevo.',
     );
   }
 
   const turno = await prisma.turno.create({
     data: {
+      local_id:         local,
       tipo:             input.tipo,
       recepcionista_id: input.personal_id,
       fecha:            new Date(),
@@ -120,15 +134,17 @@ export async function abrirTurno(input: AbrirTurnoInput) {
   return turno;
 }
 
-export async function obtenerTurnoActivo() {
+export async function obtenerTurnoActivo(localId: string | null | undefined) {
+  const local = requerirLocal(localId);
+
   const turno = await prisma.turno.findFirst({
-    where:   { estado: EstadoTurno.ABIERTO },
+    where:   { estado: EstadoTurno.ABIERTO, local_id: local },
     include: { recepcionista: { select: { nombre: true, apellido: true } } },
   });
 
   if (!turno) throw new AppError('SIN_TURNO_ACTIVO', 404, 'No hay ningún turno abierto actualmente');
 
-  const resumen = await calcularResumenTurno(turno.id, turno.hora_apertura);
+  const resumen = await calcularResumenTurno(turno.id, turno.hora_apertura, local);
 
   return {
     turno: {
@@ -145,12 +161,14 @@ export async function obtenerTurnoActivo() {
   };
 }
 
-export async function registrarGasto(input: RegistrarGastoInput) {
+export async function registrarGasto(input: RegistrarGastoInput, localId?: string | null) {
   const turno = await prisma.turno.findUnique({
     where:  { id: input.turno_id },
-    select: { id: true, estado: true },
+    select: { id: true, estado: true, local_id: true },
   });
-  if (!turno) throw new AppError('TURNO_NO_ENCONTRADO', 404, 'Turno no encontrado');
+  if (!turno || (localId && turno.local_id !== localId)) {
+    throw new AppError('TURNO_NO_ENCONTRADO', 404, 'Turno no encontrado');
+  }
   if (turno.estado !== EstadoTurno.ABIERTO) {
     throw new AppError('TURNO_CERRADO', 409, 'No se pueden agregar gastos a un turno cerrado');
   }
@@ -167,9 +185,11 @@ export async function registrarGasto(input: RegistrarGastoInput) {
   });
 }
 
-export async function listarGastos(turnoId: string) {
-  const turno = await prisma.turno.findUnique({ where: { id: turnoId }, select: { id: true } });
-  if (!turno) throw new AppError('TURNO_NO_ENCONTRADO', 404, 'Turno no encontrado');
+export async function listarGastos(turnoId: string, localId?: string | null) {
+  const turno = await prisma.turno.findUnique({ where: { id: turnoId }, select: { id: true, local_id: true } });
+  if (!turno || (localId && turno.local_id !== localId)) {
+    throw new AppError('TURNO_NO_ENCONTRADO', 404, 'Turno no encontrado');
+  }
 
   return prisma.gastoCaja.findMany({
     where:   { turno_id: turnoId },
@@ -178,12 +198,14 @@ export async function listarGastos(turnoId: string) {
   });
 }
 
-export async function cerrarTurno(turnoId: string, pin: string) {
+export async function cerrarTurno(turnoId: string, pin: string, localId?: string | null) {
   const turno = await prisma.turno.findUnique({
     where:   { id: turnoId },
     include: { recepcionista: true },
   });
-  if (!turno) throw new AppError('TURNO_NO_ENCONTRADO', 404, 'Turno no encontrado');
+  if (!turno || (localId && turno.local_id !== localId)) {
+    throw new AppError('TURNO_NO_ENCONTRADO', 404, 'Turno no encontrado');
+  }
   if (turno.estado !== EstadoTurno.ABIERTO) {
     throw new AppError('TURNO_YA_CERRADO', 409, 'El turno ya está cerrado');
   }
@@ -194,7 +216,7 @@ export async function cerrarTurno(turnoId: string, pin: string) {
     throw new AppError('PIN_INVALIDO', 401, 'PIN o contraseña incorrectos');
   }
 
-  const resumen    = await calcularResumenTurno(turnoId, turno.hora_apertura);
+  const resumen    = await calcularResumenTurno(turnoId, turno.hora_apertura, turno.local_id);
   const horaCierre = new Date();
   const saldoFinal = Number(turno.saldo_inicial) + resumen.efectivo_neto;
 
@@ -206,7 +228,7 @@ export async function cerrarTurno(turnoId: string, pin: string) {
   });
 
   const reservasTurno = await prisma.reserva.findMany({
-    where:  { created_at: { gte: turno.hora_apertura } },
+    where:  { created_at: { gte: turno.hora_apertura }, habitacion: { local_id: turno.local_id } },
     include: {
       huesped:    { select: { nombre: true, apellido: true, tipo_documento: true, numero_documento: true } },
       habitacion: { select: { numero: true } },
@@ -338,7 +360,17 @@ export async function cerrarTurno(turnoId: string, pin: string) {
   return { turno_id: turnoId, reporte, pdf_url: pdfUrl, firma_hash };
 }
 
-export async function obtenerReporte(turnoId: string) {
+async function verificarLocalTurno(turnoId: string, localId: string | null | undefined): Promise<void> {
+  if (!localId) return;
+  const turno = await prisma.turno.findUnique({ where: { id: turnoId }, select: { local_id: true } });
+  if (!turno || turno.local_id !== localId) {
+    throw new AppError('TURNO_NO_ENCONTRADO', 404, 'Turno no encontrado');
+  }
+}
+
+export async function obtenerReporte(turnoId: string, localId?: string | null) {
+  await verificarLocalTurno(turnoId, localId);
+
   const cache = await prisma.reporteTurnoCache.findUnique({
     where: { turno_id: turnoId },
   });
@@ -352,11 +384,13 @@ export async function obtenerReporte(turnoId: string) {
   });
   if (!turno) throw new AppError('TURNO_NO_ENCONTRADO', 404, 'Turno no encontrado');
 
-  const resumen = await calcularResumenTurno(turnoId, turno.hora_apertura);
+  const resumen = await calcularResumenTurno(turnoId, turno.hora_apertura, turno.local_id);
   return { turno_id: turnoId, estado: turno.estado, resumen };
 }
 
-export async function obtenerPDF(turnoId: string): Promise<Buffer> {
+export async function obtenerPDF(turnoId: string, localId?: string | null): Promise<Buffer> {
+  await verificarLocalTurno(turnoId, localId);
+
   const cache = await prisma.reporteTurnoCache.findUnique({
     where: { turno_id: turnoId },
   });
@@ -384,6 +418,7 @@ export async function listarTurnos(query: {
   limit?:            number;
   solo_propios?:     boolean;
   personal_id?:      string;
+  local_id?:         string | null;
 }) {
   const page  = query.page  ?? 1;
   const limit = Math.min(query.limit ?? 20, 100);
@@ -392,6 +427,7 @@ export async function listarTurnos(query: {
     estado: EstadoTurno.CERRADO,
   };
 
+  if (query.local_id)         where.local_id         = query.local_id;
   if (query.fecha)            where.fecha            = new Date(query.fecha);
   if (query.tipo)             where.tipo             = query.tipo;
   if (query.recepcionista_id) where.recepcionista_id = query.recepcionista_id;

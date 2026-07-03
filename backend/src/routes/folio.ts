@@ -1,29 +1,29 @@
 import { Router } from 'express';
-import { RolPersonal } from '@prisma/client';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
+import { resolverLocal, requirePermiso } from '../middleware/permisos';
 import * as ctrl from '../controllers/folio.controller';
 
 const router = Router({ mergeParams: true });
 
-router.use(authenticate);
+router.use(authenticate, resolverLocal);
 
 router.get('/', ctrl.obtenerFolio);
 
 router.post(
   '/items',
-  authorize(RolPersonal.ADMIN, RolPersonal.GERENTE, RolPersonal.RECEPCIONISTA),
+  requirePermiso('folio.gestionar'),
   ctrl.agregarCargo,
 );
 
 router.delete(
   '/items/:itemId',
-  authorize(RolPersonal.ADMIN, RolPersonal.GERENTE, RolPersonal.RECEPCIONISTA),
+  requirePermiso('folio.gestionar'),
   ctrl.anularCargo,
 );
 
 router.post(
   '/pagos',
-  authorize(RolPersonal.ADMIN, RolPersonal.GERENTE, RolPersonal.RECEPCIONISTA),
+  requirePermiso('folio.gestionar'),
   ctrl.registrarPago,
 );
 

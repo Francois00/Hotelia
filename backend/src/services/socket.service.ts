@@ -1,17 +1,19 @@
 import { Server as HTTPServer } from 'http';
 import { Server, Socket } from 'socket.io';
 import jwt from 'jsonwebtoken';
-import { RolPersonal } from '@prisma/client';
 import { AuthPayload } from '../middleware/auth';
 
-// ─── Role → Socket.IO room mapping ───────────────────────────────────────────
+// ─── Rol → Socket.IO room mapping ────────────────────────────────────────────
 
-const ROLE_ROOMS: Record<RolPersonal, string[]> = {
-  [RolPersonal.ADMIN]:         ['dashboard'],
-  [RolPersonal.GERENTE]:       ['dashboard'],
-  [RolPersonal.RECEPCIONISTA]: ['recepcion'],
-  [RolPersonal.HOUSEKEEPING]:  ['housekeeping'],
-  [RolPersonal.MANTENIMIENTO]: ['mantenimiento'],
+const ROLE_ROOMS: Record<string, string[]> = {
+  superadmin:    ['dashboard'],
+  dueno:         ['dashboard'],
+  gerente_local: ['dashboard'],
+  recepcionista: ['recepcion'],
+  housekeeping:  ['housekeeping'],
+  mantenimiento: ['mantenimiento'],
+  almacen:       ['almacen'],
+  contabilidad:  ['contabilidad'],
 };
 
 // ─── Singleton ────────────────────────────────────────────────────────────────
@@ -46,8 +48,8 @@ export function initSocket(server: HTTPServer): Server {
 
   _io.on('connection', (socket: Socket) => {
     const user = socket.data.user as AuthPayload;
-    const rooms = ROLE_ROOMS[user.rol] ?? [];
-    rooms.forEach((room) => socket.join(room));
+    const rooms = ROLE_ROOMS[user.rolPrincipal] ?? [];
+    rooms.forEach((room: string) => socket.join(room));
     socket.emit('connected', { rooms });
 
     socket.on('disconnect', () => {

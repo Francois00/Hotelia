@@ -1,30 +1,30 @@
 import { Router } from 'express';
-import { RolPersonal } from '@prisma/client';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
+import { resolverLocal, requirePermiso } from '../middleware/permisos';
 import * as ctrl from '../controllers/alertas.controller';
 
 const router = Router();
 
-router.use(authenticate);
+router.use(authenticate, resolverLocal);
 
 // All active alerts (admin/gerente)
 router.get(
   '/',
-  authorize(RolPersonal.ADMIN, RolPersonal.GERENTE),
+  requirePermiso('alertas.gestionar'),
   ctrl.listar,
 );
 
 // Alerts for a specific room
 router.get(
   '/habitacion/:id',
-  authorize(RolPersonal.ADMIN, RolPersonal.GERENTE, RolPersonal.MANTENIMIENTO),
+  requirePermiso('alertas.resolver'),
   ctrl.listarPorHabitacion,
 );
 
 // Resolve an alert
 router.patch(
   '/:id/resolver',
-  authorize(RolPersonal.ADMIN, RolPersonal.GERENTE, RolPersonal.MANTENIMIENTO),
+  requirePermiso('alertas.resolver'),
   ctrl.resolver,
 );
 

@@ -1,13 +1,11 @@
 import { Router, Request, Response } from 'express';
-import { RolPersonal } from '@prisma/client';
 import { prisma } from '../lib/prisma';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
+import { requirePermiso } from '../middleware/permisos';
 import axios from 'axios';
 
 const router = Router();
 router.use(authenticate);
-
-const MGMT = [RolPersonal.ADMIN, RolPersonal.GERENTE];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -61,7 +59,7 @@ async function enviarWppMensaje(telefono: string, texto: string): Promise<void> 
 
 // ─── GET /campanas ────────────────────────────────────────────────────────────
 
-router.get('/campanas', authorize(...MGMT), async (_req: Request, res: Response) => {
+router.get('/campanas', requirePermiso('crm.campanas.gestionar'), async (_req: Request, res: Response) => {
   try {
     const campanas = await prisma.$queryRaw<Array<Record<string, unknown>>>`
       SELECT c.*,
@@ -80,7 +78,7 @@ router.get('/campanas', authorize(...MGMT), async (_req: Request, res: Response)
 
 // ─── POST /campanas/preview ───────────────────────────────────────────────────
 
-router.post('/campanas/preview', authorize(...MGMT), async (req: Request, res: Response) => {
+router.post('/campanas/preview', requirePermiso('crm.campanas.gestionar'), async (req: Request, res: Response) => {
   const { segmento } = req.body as { segmento?: string };
   if (!segmento) {
     res.status(400).json({ code: 'SEGMENTO_REQUERIDO', message: 'Se requiere el campo segmento' });
@@ -106,7 +104,7 @@ router.post('/campanas/preview', authorize(...MGMT), async (req: Request, res: R
 
 // ─── POST /campanas ───────────────────────────────────────────────────────────
 
-router.post('/campanas', authorize(...MGMT), async (req: Request, res: Response) => {
+router.post('/campanas', requirePermiso('crm.campanas.gestionar'), async (req: Request, res: Response) => {
   const { nombre, mensaje, segmento_objetivo, tipo } = req.body as {
     nombre?: string; mensaje?: string; segmento_objetivo?: string; tipo?: string;
   };
@@ -136,7 +134,7 @@ router.post('/campanas', authorize(...MGMT), async (req: Request, res: Response)
 
 // ─── POST /campanas/:id/enviar ────────────────────────────────────────────────
 
-router.post('/campanas/:id/enviar', authorize(...MGMT), async (req: Request, res: Response) => {
+router.post('/campanas/:id/enviar', requirePermiso('crm.campanas.gestionar'), async (req: Request, res: Response) => {
   const { id } = req.params;
   try {
     const rows = await prisma.$queryRaw<Array<Record<string, unknown>>>`
@@ -225,7 +223,7 @@ router.post('/campanas/:id/enviar', authorize(...MGMT), async (req: Request, res
 
 // ─── GET /campanas/:id/estado ─────────────────────────────────────────────────
 
-router.get('/campanas/:id/estado', authorize(...MGMT), async (req: Request, res: Response) => {
+router.get('/campanas/:id/estado', requirePermiso('crm.campanas.gestionar'), async (req: Request, res: Response) => {
   const { id } = req.params;
   try {
     const rows = await prisma.$queryRaw<Array<Record<string, unknown>>>`

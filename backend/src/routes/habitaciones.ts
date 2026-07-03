@@ -1,8 +1,8 @@
 import path from 'path';
 import { Router } from 'express';
 import multer from 'multer';
-import { RolPersonal } from '@prisma/client';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
+import { resolverLocal, requirePermiso } from '../middleware/permisos';
 import * as ctrl from '../controllers/habitaciones.controller';
 
 const router = Router();
@@ -18,9 +18,9 @@ const upload = multer({
   },
 });
 
-router.use(authenticate);
+router.use(authenticate, resolverLocal);
 
-// Consultas — cualquier rol autenticado
+// Consultas — cualquier rol autenticado con acceso al local
 router.get('/',            ctrl.listar);
 router.get('/disponibles', ctrl.disponibles);
 router.get('/:id',         ctrl.obtener);
@@ -28,53 +28,48 @@ router.get('/:id',         ctrl.obtener);
 // CRUD completo — solo gerente / admin
 router.post(
   '/',
-  authorize(RolPersonal.GERENTE, RolPersonal.ADMIN),
+  requirePermiso('habitaciones.administrar'),
   ctrl.crear,
 );
 
 router.put(
   '/:id',
-  authorize(RolPersonal.GERENTE, RolPersonal.ADMIN),
+  requirePermiso('habitaciones.administrar'),
   ctrl.actualizar,
 );
 
 // Eliminación física — solo gerente
 router.delete(
   '/:id/permanente',
-  authorize(RolPersonal.GERENTE, RolPersonal.ADMIN),
+  requirePermiso('habitaciones.administrar'),
   ctrl.eliminar,
 );
 
 // Baja lógica (fuera_de_servicio) — solo gerente
 router.delete(
   '/:id',
-  authorize(RolPersonal.GERENTE, RolPersonal.ADMIN),
+  requirePermiso('habitaciones.administrar'),
   ctrl.darDeBaja,
 );
 
 // Fotos
 router.post(
   '/:id/fotos',
-  authorize(RolPersonal.GERENTE, RolPersonal.ADMIN),
+  requirePermiso('habitaciones.administrar'),
   upload.array('fotos', 10),
   ctrl.subirFotos,
 );
 
 router.patch(
   '/:id/fotos',
-  authorize(RolPersonal.GERENTE, RolPersonal.ADMIN),
+  requirePermiso('habitaciones.administrar'),
   ctrl.reordenarFotos,
 );
 
 // Cambiar estado — operativo (housekeeping, mantenimiento, gerente)
 router.patch(
   '/:id/estado',
-  authorize(
-    RolPersonal.ADMIN,
-    RolPersonal.GERENTE,
-    RolPersonal.HOUSEKEEPING,
-    RolPersonal.MANTENIMIENTO,
-  ),
+  requirePermiso('habitaciones.estado.cambiar'),
   ctrl.cambiarEstado,
 );
 

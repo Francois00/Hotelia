@@ -1,16 +1,16 @@
 import { Router } from 'express';
-import { RolPersonal } from '@prisma/client';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
+import { resolverLocal, requirePermiso } from '../middleware/permisos';
 import * as ctrl from '../controllers/reservas.controller';
 import folioRouter from './folio';
 
 const router = Router();
 
-router.use(authenticate);
+router.use(authenticate, resolverLocal);
 
 router.post(
   '/',
-  authorize(RolPersonal.ADMIN, RolPersonal.GERENTE, RolPersonal.RECEPCIONISTA),
+  requirePermiso('reservas.gestionar'),
   ctrl.crear,
 );
 
@@ -20,28 +20,28 @@ router.get('/:id', ctrl.obtener);
 
 router.patch(
   '/:id/estado',
-  authorize(RolPersonal.ADMIN, RolPersonal.GERENTE, RolPersonal.RECEPCIONISTA),
+  requirePermiso('reservas.gestionar'),
   ctrl.cambiarEstado,
 );
 
 // Soft-delete: solo ADMIN y GERENTE pueden cancelar vía DELETE
 router.delete(
   '/:id',
-  authorize(RolPersonal.ADMIN, RolPersonal.GERENTE),
+  requirePermiso('reservas.anular'),
   ctrl.eliminar,
 );
 
 // Modificar reserva con auditoría — recepción + gerente (precio solo gerente)
 router.patch(
   '/:id/modificar',
-  authorize(RolPersonal.ADMIN, RolPersonal.GERENTE, RolPersonal.RECEPCIONISTA),
+  requirePermiso('reservas.gestionar'),
   ctrl.modificar,
 );
 
 // Bitácora de cambios — solo gerente
 router.get(
   '/:id/auditoria',
-  authorize(RolPersonal.ADMIN, RolPersonal.GERENTE),
+  requirePermiso('reservas.anular'),
   ctrl.auditoria,
 );
 

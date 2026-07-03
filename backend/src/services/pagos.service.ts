@@ -14,8 +14,8 @@ function stripeClient(): InstanceType<typeof Stripe> {
   return new Stripe(key, { apiVersion: '2026-04-22.dahlia' });
 }
 
-async function getSaldoPendiente(reserva_id: string): Promise<number> {
-  const folio = await obtenerFolio(reserva_id);
+async function getSaldoPendiente(reserva_id: string, localId?: string | null): Promise<number> {
+  const folio = await obtenerFolio(reserva_id, localId);
   return folio.balance;
 }
 
@@ -54,8 +54,9 @@ export interface ConfirmarPagoResult {
 export async function iniciarPagoReserva(
   reserva_id: string,
   metodo_pago: MetodoPago,
+  localId?: string | null,
 ): Promise<IniciarPagoResult> {
-  const saldo = await getSaldoPendiente(reserva_id);
+  const saldo = await getSaldoPendiente(reserva_id, localId);
   if (saldo <= 0) throw new AppError('FOLIO_SALDADO', 422, 'El folio ya está saldado');
 
   if (metodo_pago === MetodoPago.NIUBIZ) {
@@ -91,8 +92,9 @@ export async function confirmarPago(
   reserva_id: string,
   session_key?: string,
   payment_intent_id?: string,
+  localId?: string | null,
 ): Promise<ConfirmarPagoResult> {
-  const saldo = await getSaldoPendiente(reserva_id);
+  const saldo = await getSaldoPendiente(reserva_id, localId);
   if (saldo <= 0) throw new AppError('FOLIO_SALDADO', 422, 'El folio ya está saldado');
 
   const huesped = await prisma.reserva.findUnique({
@@ -125,10 +127,10 @@ export async function confirmarPago(
     metodo,
     monto:              saldo,
     referencia_externa: referencia,
-  });
+  }, undefined, localId);
 
   // Fire-and-forget: trigger n8n if folio now balanced
-  const nuevoFolio = await obtenerFolio(reserva_id);
+  const nuevoFolio = await obtenerFolio(reserva_id, localId);
   if (nuevoFolio.balance <= 0) {
     notificarN8N(reserva_id).catch(() => null);
   }
@@ -139,9 +141,15 @@ export async function confirmarPago(
 export async function procesarReembolso(
   pago_id: string,
   motivo: string,
+  localId?: string | null,
 ): Promise<{ reembolso_id: string; estado: string; motivo: string }> {
-  const pago = await prisma.pago.findUnique({ where: { id: pago_id } });
-  if (!pago) throw new AppError('PAGO_NOT_FOUND', 404, 'Pago no encontrado');
+  const pago = await prisma.pago.findUnique({
+    where: { id: pago_id },
+    include: { reserva: { select: { habitacion: { select: { local_id: true } } } } },
+  });
+  if (!pago || (localId && pago.reserva.habitacion.local_id !== localId)) {
+    throw new AppError('PAGO_NOT_FOUND', 404, 'Pago no encontrado');
+  }
 
   // Stub: in production call Niubiz/Stripe refund API
   const updated = await prisma.pago.update({
@@ -153,7 +161,17 @@ export async function procesarReembolso(
   return { reembolso_id: updated.id, estado: 'procesado', motivo };
 }
 
-export async function listarPagosPorReserva(reserva_id: string) {
+export async function listarPagosPorReserva(reserva_id: string, localId?: string | null) {
+  if (localId) {
+    const reserva = await prisma.reserva.findUnique({
+      where: { id: reserva_id },
+      select: { habitacion: { select: { local_id: true } } },
+    });
+    if (!reserva || reserva.habitacion.local_id !== localId) {
+      throw new AppError('RESERVA_NOT_FOUND', 404, 'Reserva no encontrada');
+    }
+  }
+
   const pagos = await prisma.pago.findMany({
     where:   { reserva_id },
     orderBy: { created_at: 'desc' },

@@ -1,7 +1,8 @@
 import type { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { EstadoReserva, CanalReserva, RolPersonal } from '@prisma/client';
+import { EstadoReserva, CanalReserva } from '@prisma/client';
 import * as service from '../services/reservas.service';
+import { tienePermisoActivo } from '../middleware/permisos';
 
 // ─── Schemas de validación ────────────────────────────────────────────────────
 
@@ -63,7 +64,7 @@ const cambiarEstadoSchema = z.object({
 export async function crear(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const data  = crearSchema.parse(req.body);
-    const reserva = await service.crearReserva(data, req.user?.sub);
+    const reserva = await service.crearReserva(data, req.user?.sub, req.localId);
     res.status(201).json(reserva);
   } catch (err) {
     next(err);
@@ -73,7 +74,7 @@ export async function crear(req: Request, res: Response, next: NextFunction): Pr
 export async function listar(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const query    = listarQuerySchema.parse(req.query);
-    const resultado = await service.listarReservas(query);
+    const resultado = await service.listarReservas(query, req.localId);
     res.json(resultado);
   } catch (err) {
     next(err);
@@ -82,7 +83,7 @@ export async function listar(req: Request, res: Response, next: NextFunction): P
 
 export async function obtener(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const reserva = await service.obtenerReserva(req.params.id);
+    const reserva = await service.obtenerReserva(req.params.id, req.localId);
     res.json(reserva);
   } catch (err) {
     next(err);
@@ -92,7 +93,7 @@ export async function obtener(req: Request, res: Response, next: NextFunction): 
 export async function cambiarEstado(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const { estado, observaciones } = cambiarEstadoSchema.parse(req.body);
-    const reserva = await service.cambiarEstado(req.params.id, estado, observaciones);
+    const reserva = await service.cambiarEstado(req.params.id, estado, observaciones, req.localId);
     res.json(reserva);
   } catch (err) {
     next(err);
@@ -101,7 +102,7 @@ export async function cambiarEstado(req: Request, res: Response, next: NextFunct
 
 export async function eliminar(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const reserva = await service.cancelarReserva(req.params.id);
+    const reserva = await service.cancelarReserva(req.params.id, req.localId);
     res.json(reserva);
   } catch (err) {
     next(err);
@@ -111,12 +112,12 @@ export async function eliminar(req: Request, res: Response, next: NextFunction):
 export async function modificar(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const data = modificarSchema.parse(req.body);
-    // Recepcionistas no pueden modificar precio
+    // Solo roles con reservas.modificar_precio pueden modificar la tarifa
     if (
       data.tarifa_acordada !== undefined &&
-      req.user?.rol === RolPersonal.RECEPCIONISTA
+      !(await tienePermisoActivo(req, 'reservas.modificar_precio'))
     ) {
-      res.status(403).json({ code: 'SIN_PERMISO', message: 'Recepcionistas no pueden modificar la tarifa' });
+      res.status(403).json({ code: 'SIN_PERMISO', message: 'No tiene permiso para modificar la tarifa' });
       return;
     }
     const reserva = await service.modificarReserva(
@@ -124,6 +125,7 @@ export async function modificar(req: Request, res: Response, next: NextFunction)
       data,
       req.user?.sub ?? '',
       req.user?.email ?? '',
+      req.localId,
     );
     res.json(reserva);
   } catch (err) {
@@ -133,7 +135,7 @@ export async function modificar(req: Request, res: Response, next: NextFunction)
 
 export async function auditoria(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const logs = await service.obtenerAuditoria(req.params.id);
+    const logs = await service.obtenerAuditoria(req.params.id, req.localId);
     res.json(logs);
   } catch (err) {
     next(err);

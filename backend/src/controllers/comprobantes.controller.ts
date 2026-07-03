@@ -19,7 +19,7 @@ export async function emitir(req: Request, res: Response, next: NextFunction) {
 
 export async function porReserva(req: Request, res: Response, next: NextFunction) {
   try {
-    const data = await obtenerComprobantePorReserva(req.params.reserva_id);
+    const data = await obtenerComprobantePorReserva(req.params.reserva_id, req.localId);
     res.json({ data });
   } catch (err) { next(err); }
 }
@@ -34,6 +34,7 @@ export async function listar(req: Request, res: Response, next: NextFunction) {
       hasta,
       page:  page  ? parseInt(page,  10) : undefined,
       limit: limit ? parseInt(limit, 10) : undefined,
+      localId: req.localId,
     });
     res.json(result);
   } catch (err) { next(err); }
