@@ -374,7 +374,7 @@ function SeguridadSection() {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function ConfiguracionPage() {
-  const { isGerente } = useRol()
+  const { esNivelAlto: isGerente } = useRol()
   const [seccion, setSeccion] = useState<Seccion>('datos')
   const [cfg, setCfg] = useState<Config>({})
   const [cargando, setCargando] = useState(true)

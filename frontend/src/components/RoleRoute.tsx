@@ -1,13 +1,13 @@
 import type { ReactNode } from 'react'
 import { Navigate } from 'react-router-dom'
-import { isGerente } from '../utils/auth'
+import { tienePermiso } from '../utils/auth'
 
-export default function RoleRoute({ children, requireGerente = false }: {
+export default function RoleRoute({ children, requierePermiso }: {
   children: ReactNode
-  requireGerente?: boolean
+  requierePermiso?: string
 }) {
   const token = localStorage.getItem('token')
   if (!token) return <Navigate to="/login" replace />
-  if (requireGerente && !isGerente()) return <Navigate to="/dashboard" replace />
+  if (requierePermiso && !tienePermiso(requierePermiso)) return <Navigate to="/dashboard" replace />
   return <>{children}</>
 }

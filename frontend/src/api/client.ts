@@ -1,10 +1,13 @@
 import axios from "axios"
+import { getActiveLocalId } from "../utils/auth"
 
 const api = axios.create({ baseURL: import.meta.env.VITE_API_URL ?? "http://localhost:3000" })
 
 api.interceptors.request.use(config => {
   const token = localStorage.getItem("token")
   if (token) config.headers.Authorization = `Bearer ${token}`
+  const localId = getActiveLocalId()
+  if (localId) config.headers["X-Local-Id"] = localId
   return config
 })
 
@@ -13,6 +16,8 @@ api.interceptors.response.use(
   err => {
     if (err.response?.status === 401) {
       localStorage.removeItem("token")
+      localStorage.removeItem("catalogoPermisos")
+      localStorage.removeItem("activeLocalId")
       window.location.href = "/login"
     }
     return Promise.reject(err)

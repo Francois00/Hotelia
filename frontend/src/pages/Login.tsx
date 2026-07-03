@@ -2,6 +2,21 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../api/client'
 
+interface LoginResponse {
+  token: string
+  personal: {
+    esGlobal: boolean
+    locales: Array<{
+      local_id: string
+      local_nombre: string
+      local_color: string
+      rol: string
+      es_local_principal: boolean
+    }>
+  }
+  catalogoPermisos: Record<string, string[]>
+}
+
 export default function Login() {
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
@@ -14,8 +29,15 @@ export default function Login() {
     setError('')
     setLoading(true)
     try {
-      const { data } = await api.post<{ token: string }>('/api/v1/auth/login', { email, password })
+      const { data } = await api.post<LoginResponse>('/api/v1/auth/login', { email, password })
       localStorage.setItem('token', data.token)
+      localStorage.setItem('catalogoPermisos', JSON.stringify(data.catalogoPermisos))
+      localStorage.setItem('localesInfo', JSON.stringify(data.personal.locales))
+
+      const principal = data.personal.locales.find(l => l.es_local_principal) ?? data.personal.locales[0]
+      if (principal) localStorage.setItem('activeLocalId', principal.local_id)
+      else localStorage.removeItem('activeLocalId')
+
       navigate('/dashboard')
     } catch {
       setError('Credenciales incorrectas')

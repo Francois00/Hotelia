@@ -259,7 +259,8 @@ function Sheet({ room, tipos, onClose, onAction }: {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function Habitaciones() {
   const navigate = useNavigate()
-  const { isRecepcionista } = useRol()
+  const { tienePermiso } = useRol()
+  const isRecepcionista = tienePermiso('reservas.gestionar')
 
   const [rooms, setRooms] = useState<Habitacion[]>([])
   const [tipos, setTipos] = useState<TipoHab[]>([])

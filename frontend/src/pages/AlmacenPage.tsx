@@ -177,7 +177,7 @@ function MovModal({ producto, tipo, onClose, onConfirm }: MovModalProps) {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function AlmacenPage() {
-  const { isGerente } = useRol()
+  const { esNivelAlto: isGerente } = useRol()
 
   const [cats, setCats] = useState<Categoria[]>([])
   const [prods, setProds] = useState<Producto[]>([])

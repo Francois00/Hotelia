@@ -2,8 +2,7 @@ import { NavLink } from 'react-router-dom'
 import { useRol } from '../hooks/useRol'
 
 export default function Sidebar() {
-  const { isGerente, isRecepcionista, isHousekeeping, isMantenimiento } = useRol()
-  const isOperativo = isHousekeeping || isMantenimiento
+  const { esGlobal, esNivelAlto, tienePermiso } = useRol()
 
   const handleLogout = () => {
     localStorage.removeItem('token')
@@ -23,70 +22,51 @@ export default function Sidebar() {
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+        {/* ─── Principal ─────────────────────────────────────────────── */}
+        <GroupLabel label="Principal" />
+        {esGlobal && <NavItem to="/dashboard-consolidado" icon="🌐" label="Dashboard consolidado" />}
         <NavItem to="/dashboard" icon="⊞" label="Dashboard" />
+        <NavItem to="/crm" icon="⊕" label="CRM" />
+        {esNivelAlto && <NavItem to="/revenue" icon="⊠" label="Revenue" />}
 
-        {/* Habitaciones: todos los roles operativos */}
+        {/* ─── Operaciones ────────────────────────────────────────────── */}
+        <GroupLabel label="Operaciones" />
         <NavItem to="/habitaciones" icon="⊡" label="Habitaciones" />
-        {isGerente && (
+        {tienePermiso('habitaciones.tipos.gestionar') && <SubItem to="/habitaciones/tipos" label="Tipos" />}
+        {tienePermiso('tarifas.reglas.gestionar') && <SubItem to="/habitaciones/tarifas" label="Reglas de tarifa" />}
+        <NavItem to="/reservas" icon="⊟" label="Reservas" />
+        {tienePermiso('checkin.ejecutar') && <NavItem to="/checkin" icon="✅" label="Check-in" highlight />}
+        <NavItem to="/checkin-qr" icon="📱" label="Check-in QR" />
+        {tienePermiso('reservas.gestionar') && <NavItem to="/concierge" icon="💬" label="Concierge IA" />}
+        <NavItem to="/calendario" icon="📅" label="Calendario" />
+        <NavItem to="/housekeeping" icon="🧹" label="Housekeeping" />
+        {tienePermiso('turnos.gestionar') && <NavItem to="/turno" icon="💰" label="Turno activo" />}
+        {tienePermiso('turnos.ver_todos') && <NavItem to="/turnos/historial" icon="📋" label="Historial de turnos" />}
+
+        {/* ─── Almacén ────────────────────────────────────────────────── */}
+        {(tienePermiso('almacen.administrar') || tienePermiso('almacen.movimiento.registrar')) && (
           <>
-            <SubItem to="/habitaciones/tipos" label="Tipos" />
-            <SubItem to="/habitaciones/tarifas" label="Reglas de tarifa" />
+            <GroupLabel label="Almacén" />
+            <NavItem to="/almacen" icon="📦" label="Almacén" />
           </>
         )}
 
-        {/* Reservas y check-in: solo recepción/gerente */}
-        {isRecepcionista && (
+        {/* ─── Contabilidad ───────────────────────────────────────────── */}
+        {tienePermiso('contabilidad.ver') && (
           <>
-            <NavItem to="/reservas" icon="⊟" label="Reservas" />
-            <NavItem to="/checkin" icon="✅" label="Check-in Manual" highlight />
-            <NavItem to="/checkin-qr" icon="📱" label="Check-in QR" />
+            <GroupLabel label="Contabilidad" />
+            <NavItem to="/contabilidad" icon="🧾" label="Contabilidad" />
           </>
         )}
 
-        {/* Revenue y CRM: solo gerente */}
-        {isGerente && (
-          <>
-            <NavItem to="/revenue" icon="⊠" label="Revenue" />
-            <NavItem to="/crm" icon="⊕" label="CRM" />
-            <NavItem to="/channel-manager" icon="📡" label="Channel Manager" />
-            <NavItem to="/notificaciones" icon="🔔" label="Notificaciones" />
-            <NavItem to="/concierge-test" icon="🤖" label="Test Concierge IA" />
-          </>
-        )}
-
-        {/* Almacén: gerente y recepcionista */}
-        {isRecepcionista && (
-          <NavItem to="/almacen" icon="📦" label="Almacén" />
-        )}
-
-        {/* Housekeeping: plan del día */}
-        {(isHousekeeping || isRecepcionista) && (
-          <NavItem to="/housekeeping" icon="🧹" label="Plan del día" />
-        )}
-
-        {/* Concierge IA: recepción y gerente */}
-        {isRecepcionista && (
-          <NavItem to="/concierge" icon="💬" label="Concierge IA" />
-        )}
-
-        {/* Calendario: gerente y recepcionista */}
-        {isRecepcionista && (
-          <NavItem to="/calendario" icon="📅" label="Calendario" />
-        )}
-
-        {/* Configuración: solo gerente */}
-        {isGerente && (
-          <NavItem to="/configuracion" icon="⚙️" label="Configuración" />
-        )}
-
-        {/* Turno de caja */}
-        {(isRecepcionista || isOperativo) && (
-          <div className="pt-3 pb-1">
-            <p className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Turno de caja</p>
-          </div>
-        )}
-        {isRecepcionista && <NavItem to="/turno" icon="💰" label="Turno activo" />}
-        {isGerente && <NavItem to="/turnos/historial" icon="📋" label="Historial" />}
+        {/* ─── Administración ─────────────────────────────────────────── */}
+        <GroupLabel label="Administración" />
+        {tienePermiso('channel_manager.gestionar') && <NavItem to="/channel-manager" icon="📡" label="Channel Manager" />}
+        {esNivelAlto && <NavItem to="/notificaciones" icon="🔔" label="Notificaciones" />}
+        {esNivelAlto && <NavItem to="/concierge-test" icon="🤖" label="Concierge IA test" />}
+        {esNivelAlto && <NavItem to="/configuracion" icon="⚙️" label="Configuración" />}
+        {tienePermiso('locales.gestionar') && <NavItem to="/locales" icon="🏨" label="Gestión de locales" />}
+        {tienePermiso('personal.gestionar') && <NavItem to="/personal" icon="👥" label="Personal" />}
       </nav>
 
       <div className="px-3 py-4 border-t border-gray-700/50">
@@ -99,6 +79,14 @@ export default function Sidebar() {
         </button>
       </div>
     </aside>
+  )
+}
+
+function GroupLabel({ label }: { label: string }) {
+  return (
+    <div className="pt-3 pb-1">
+      <p className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">{label}</p>
+    </div>
   )
 }
 

@@ -225,7 +225,7 @@ function HabCard({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function HousekeepingPage() {
-  const { rol } = useRol()
+  const { esHousekeeping } = useRol()
   const qc = useQueryClient()
 
   const [filtro, setFiltro] = useState<Filtro>('todas')
@@ -365,7 +365,7 @@ export default function HousekeepingPage() {
             <p className="text-sm font-medium text-gray-600">
               {filtro === 'todas' ? 'No hay habitaciones pendientes de limpieza hoy' : 'Sin habitaciones en este filtro'}
             </p>
-            {rol === 'HOUSEKEEPING' && filtro === 'todas' && (
+            {esHousekeeping && filtro === 'todas' && (
               <p className="text-xs text-gray-400 mt-1">Todas las habitaciones están listas</p>
             )}
           </div>

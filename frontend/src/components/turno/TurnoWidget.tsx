@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../../api/client'
-import { canCheckin } from '../../utils/auth'
+import { tienePermiso } from '../../utils/auth'
 import AbrirTurnoModal from './AbrirTurnoModal'
 
 interface TurnoActivo {
@@ -33,7 +33,7 @@ export default function TurnoWidget() {
   const queryClient = useQueryClient()
   const [showModal, setShowModal] = useState(false)
 
-  if (!canCheckin()) return null
+  if (!tienePermiso('turnos.gestionar')) return null
 
   const { data, isError } = useQuery<TurnoActivo | null>({
     queryKey: ['turno-activo-widget'],

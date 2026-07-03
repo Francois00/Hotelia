@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { format, parseISO } from 'date-fns'
 import api from '../api/client'
-import { isGerente, canCheckin } from '../utils/auth'
+import { tienePermiso } from '../utils/auth'
 
 interface Huesped {
   id: string
@@ -98,7 +98,7 @@ function ModalModificarRegistro({ reserva, onClose, onSuccess }: {
   onClose: () => void
   onSuccess: () => void
 }) {
-  const gerente = isGerente()
+  const gerente = tienePermiso('reservas.modificar_precio')
   const [form, setForm] = useState({
     fecha_entrada: reserva.fecha_entrada.slice(0, 10),
     fecha_salida: reserva.fecha_salida.slice(0, 10),
@@ -441,7 +441,7 @@ function NuevaReservaModal({ onClose, onSuccess }: { onClose: () => void; onSucc
 // ─── ReservaDrawer ────────────────────────────────────────────────────────────
 
 function ReservaDrawer({ reserva, onClose }: { reserva: Reserva; onClose: () => void }) {
-  const gerente = isGerente()
+  const gerente = tienePermiso('reservas.anular')
   const [folioResumen, setFolioResumen] = useState<FolioResumen | null>(null)
   const [folioData, setFolioData] = useState<FolioData | null>(null)
   const [auditLog, setAuditLog] = useState<AuditEntry[] | null>(null)
@@ -736,8 +736,8 @@ export default function Reservas() {
   const [anularReserva, setAnularReserva] = useState<Reserva | null>(null)
   const [toast, setToast] = useState<string | null>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const gerente = isGerente()
-  const puedeCheckin = canCheckin()
+  const gerente = tienePermiso('reservas.anular')
+  const puedeCheckin = tienePermiso('checkin.ejecutar')
 
   const q = searchParams.get('q') ?? ''
   const estado = searchParams.get('estado') ?? ''
