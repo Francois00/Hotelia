@@ -3,12 +3,13 @@ import { useNavigate } from 'react-router-dom'
 import api from '../api/client'
 import { useRol } from '../hooks/useRol'
 
+// Paleta ligada a los theme tokens (theme.css) — cambia sola con [data-theme].
 const C = {
-  bg: '#070A10', surface: '#0D1017', surface2: '#12171F', surface3: '#1B2131',
-  border: 'rgba(255,255,255,0.06)', border2: 'rgba(255,255,255,0.1)',
-  text: '#F0F4F8', text2: '#8A9AB5', text3: '#556070',
-  green: '#22C55E', blue: '#4D96FF', yellow: '#EAB308', red: '#EF4444',
-  gold: '#D4A853',
+  bg: 'var(--bg-primary)', surface: 'var(--bg-secondary)', surface2: 'var(--bg-card)', surface3: 'var(--bg-tertiary)',
+  border: 'var(--border-primary)', border2: 'var(--border-secondary)',
+  text: 'var(--text-primary)', text2: 'var(--text-secondary)', text3: 'var(--text-tertiary)',
+  green: 'var(--estado-disponible)', blue: 'var(--estado-ocupada)', yellow: 'var(--estado-limpieza)', red: 'var(--estado-mantenimiento)',
+  gold: 'var(--brand-accent)',
 }
 
 interface LocalKpi {
@@ -66,7 +67,7 @@ const css = `
 .dc-actions{display:flex;gap:8px;margin-top:4px;}
 .dc-act-btn{flex:1;padding:8px;border-radius:8px;border:1px solid ${C.border2};background:transparent;color:${C.text2};font-size:12px;font-weight:600;cursor:pointer;}
 .dc-act-btn:hover{color:${C.text};}
-.dc-overlay{position:absolute;inset:0;background:rgba(7,10,16,0.82);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;font-size:14px;font-weight:700;backdrop-filter:blur(1px);}
+.dc-overlay{position:absolute;inset:0;background:var(--bg-overlay);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;font-size:14px;font-weight:700;backdrop-filter:blur(1px);}
 .spinner-center{text-align:center;color:${C.text3};font-size:14px;padding:48px;}
 .empty{text-align:center;color:${C.text3};font-size:14px;padding:48px;}
 `
