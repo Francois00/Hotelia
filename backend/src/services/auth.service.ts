@@ -26,7 +26,12 @@ export async function login(email: string, password: string) {
       email: true,
       activo: true,
       password_hash: true,
+      empresa_id: true,
+      es_superadmin_plataforma: true,
       rol_nuevo: { select: { codigo: true, alcance_global: true } },
+      empresa: {
+        select: { estado: true, motivo_suspension: true, nombre_sistema: true, logo_url: true, color_primario: true },
+      },
       usuario_locales: {
         where: { activo: true },
         select: {
@@ -53,6 +58,20 @@ export async function login(email: string, password: string) {
     throw SIN_ROL_ASIGNADO;
   }
 
+  if (!personal.es_superadmin_plataforma && personal.empresa) {
+    if (personal.empresa.estado === 'suspendida') {
+      throw new AppError(
+        'SUSCRIPCION_SUSPENDIDA',
+        402,
+        'La suscripción de tu empresa está suspendida. Contacta al administrador.',
+        { motivo: personal.empresa.motivo_suspension },
+      );
+    }
+    if (personal.empresa.estado === 'cancelada') {
+      throw new AppError('SUSCRIPCION_CANCELADA', 402, 'La suscripción de tu empresa ha sido cancelada.');
+    }
+  }
+
   const locales = personal.usuario_locales.map((ul) => ({
     local_id: ul.local_id,
     rol: ul.rol.codigo,
@@ -64,6 +83,11 @@ export async function login(email: string, password: string) {
     rolPrincipal: personal.rol_nuevo.codigo,
     esGlobal: personal.rol_nuevo.alcance_global,
     locales,
+    empresaId: personal.empresa_id,
+    esSuperadminPlataforma: personal.es_superadmin_plataforma,
+    empresaNombreSistema: personal.empresa?.nombre_sistema ?? 'Hotelia PMS',
+    empresaLogoUrl: personal.empresa?.logo_url ?? null,
+    empresaColorPrimario: personal.empresa?.color_primario ?? '#1B3A6B',
   });
 
   await asegurarCacheCargado();

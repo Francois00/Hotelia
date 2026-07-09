@@ -30,6 +30,8 @@ import GestionLocalesPage from './pages/GestionLocalesPage'
 import GestionPersonalPage from './pages/GestionPersonalPage'
 import ContabilidadPage from './pages/ContabilidadPage'
 import DashboardConsolidadoPage from './pages/DashboardConsolidadoPage'
+import EmpresasPage from './pages/plataforma/EmpresasPage'
+import { useEmpresa } from './hooks/useEmpresa'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -75,6 +77,17 @@ function NivelAltoPage({ children }: { children: React.ReactNode }) {
   )
 }
 
+// Panel de plataforma SaaS: vista separada del PMS, sin Sidebar del hotel.
+// Gateada directamente por el flag esSuperadminPlataforma del JWT (no por el
+// catálogo de permisos normal, que es por-local/por-empresa).
+function PlataformaRoute({ children }: { children: React.ReactNode }) {
+  const { esSuperadminPlataforma } = useEmpresa()
+  const token = localStorage.getItem('token')
+  if (!token) return <Navigate to="/login" replace />
+  if (!esSuperadminPlataforma) return <Navigate to="/dashboard" replace />
+  return <ErrorBoundary>{children}</ErrorBoundary>
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -116,6 +129,9 @@ export default function App() {
           <Route path="/locales" element={<PermisoPage permiso="locales.gestionar"><GestionLocalesPage /></PermisoPage>} />
           <Route path="/personal" element={<PermisoPage permiso="personal.gestionar"><GestionPersonalPage /></PermisoPage>} />
           <Route path="/contabilidad" element={<PermisoPage permiso="contabilidad.ver"><ContabilidadPage /></PermisoPage>} />
+
+          {/* Plataforma SaaS — superadmin_plataforma */}
+          <Route path="/plataforma/empresas" element={<PlataformaRoute><EmpresasPage /></PlataformaRoute>} />
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>

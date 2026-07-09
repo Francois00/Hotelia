@@ -12,8 +12,14 @@ export interface AuthPayload {
   sub: string;           // personal.id (UUID)
   email: string;
   rolPrincipal: string;  // roles.codigo del rol "home" del usuario — solo para display
-  esGlobal: boolean;     // true = superadmin/dueno, opera sobre cualquier local
+  esGlobal: boolean;     // true = superadmin/dueno, opera sobre cualquier local DE SU EMPRESA
   locales: AuthLocalGrant[];
+  // ─── SaaS multi-empresa ───────────────────────────────────────────────────
+  empresaId: string | null;
+  esSuperadminPlataforma: boolean; // true = dueño de la plataforma, sin acotar por empresa
+  empresaNombreSistema: string;
+  empresaLogoUrl: string | null;
+  empresaColorPrimario: string;
   iat?: number;
   exp?: number;
 }

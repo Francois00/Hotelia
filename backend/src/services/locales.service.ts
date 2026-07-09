@@ -17,8 +17,13 @@ export interface CrearLocalInput {
 export async function listarLocales(user: AuthPayload, incluirTodos: boolean) {
   const where = incluirTodos ? {} : { activo: true };
 
+  // esGlobal (dueno/admin_empresa) ve todos los locales de SU empresa; el superadmin
+  // de plataforma (sin empresa asignada) ve todos sin acotar.
   const locales = user.esGlobal
-    ? await prisma.local.findMany({ where, orderBy: { nombre: 'asc' } })
+    ? await prisma.local.findMany({
+        where: user.esSuperadminPlataforma ? where : { ...where, empresa_id: user.empresaId },
+        orderBy: { nombre: 'asc' },
+      })
     : await prisma.local.findMany({
         where: { ...where, id: { in: user.locales.map((l) => l.local_id) } },
         orderBy: { nombre: 'asc' },

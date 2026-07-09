@@ -36,6 +36,7 @@ import folioRouter           from './routes/folio';
 import contabilidadRouter    from './routes/contabilidad';
 import localesRouter         from './routes/locales';
 import rolesRouter           from './routes/roles';
+import plataformaRouter      from './routes/plataforma';
 import { health } from './controllers/health.controller';
 import './jobs/scheduler';
 import { errorHandler } from './middleware/error-handler';
@@ -103,6 +104,7 @@ app.use('/api/v1/reservas/:id/folio', folioRouter);
 app.use('/api/v1', contabilidadRouter);
 app.use('/api/v1', localesRouter);
 app.use('/api/v1', rolesRouter);
+app.use('/api/v1', plataformaRouter);
 
 // Also expose habitacion-scoped alerts under habitaciones prefix
 app.use('/api/v1/habitaciones',      alertasRouter);

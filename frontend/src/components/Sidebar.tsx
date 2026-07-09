@@ -1,8 +1,15 @@
+import { useEffect } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useRol } from '../hooks/useRol'
+import { useEmpresa } from '../hooks/useEmpresa'
 
 export default function Sidebar() {
   const { esGlobal, esNivelAlto, tienePermiso } = useRol()
+  const { nombreSistema, logoUrl, colorPrimario, esSuperadminPlataforma } = useEmpresa()
+
+  useEffect(() => {
+    document.documentElement.style.setProperty('--color-primario', colorPrimario)
+  }, [colorPrimario])
 
   const handleLogout = () => {
     localStorage.removeItem('token')
@@ -13,9 +20,15 @@ export default function Sidebar() {
     <aside className="w-60 bg-gray-900 flex flex-col shrink-0">
       <div className="px-6 py-5 border-b border-gray-700/50">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm">H</div>
+          {logoUrl ? (
+            <img src={logoUrl} alt={nombreSistema} className="w-8 h-8 rounded-lg object-cover" />
+          ) : (
+            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm">
+              {nombreSistema.charAt(0).toUpperCase()}
+            </div>
+          )}
           <div>
-            <p className="text-white font-semibold text-sm leading-tight">Hotel PMS</p>
+            <p className="text-white font-semibold text-sm leading-tight">{nombreSistema}</p>
             <p className="text-gray-400 text-xs">Sistema de Gestión</p>
           </div>
         </div>
@@ -67,6 +80,14 @@ export default function Sidebar() {
         {esNivelAlto && <NavItem to="/configuracion" icon="⚙️" label="Configuración" />}
         {tienePermiso('locales.gestionar') && <NavItem to="/locales" icon="🏨" label="Gestión de locales" />}
         {tienePermiso('personal.gestionar') && <NavItem to="/personal" icon="👥" label="Personal" />}
+
+        {/* ─── Plataforma SaaS ────────────────────────────────────────── */}
+        {esSuperadminPlataforma && (
+          <>
+            <GroupLabel label="Plataforma" />
+            <NavItem to="/plataforma/empresas" icon="🏢" label="Empresas" highlight />
+          </>
+        )}
       </nav>
 
       <div className="px-3 py-4 border-t border-gray-700/50">

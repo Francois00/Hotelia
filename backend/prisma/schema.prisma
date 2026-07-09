@@ -211,6 +211,9 @@ model Personal {
   rol           RolPersonal
   /// Rol granular nuevo (roles.codigo). Reemplaza `rol` una vez completada la migración a permisos por local.
   rol_id        String?     @db.Uuid
+  empresa_id    String?     @db.Uuid
+  /// true = superadmin de la plataforma SaaS (dueño de Hotelia), no de una empresa cliente
+  es_superadmin_plataforma Boolean @default(false)
   activo        Boolean     @default(true)
   created_at    DateTime    @default(now()) @db.Timestamptz(3)
   updated_at    DateTime    @updatedAt @db.Timestamptz(3)
@@ -222,9 +225,11 @@ model Personal {
   turnos       Turno[]
   gastos_caja_registrados GastoCaja[] @relation("gastos_registrado_por")
   rol_nuevo       Rol?           @relation(fields: [rol_id], references: [id])
+  empresa         Empresa?       @relation(fields: [empresa_id], references: [id])
   usuario_locales UsuarioLocal[]
 
   @@index([rol_id])
+  @@index([empresa_id])
   @@map("personal")
 }
 
@@ -653,11 +658,68 @@ model AuditLog {
   @@map("audit_log")
 }
 
+// ─── SaaS: empresas (nivel superior sobre locales) y suscripciones ─────────────
+
+/// Empresa cliente del SaaS — dueña de uno o más locales, con su propio plan y branding.
+model Empresa {
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre_comercial      String   @db.VarChar(150)
+  razon_social          String?  @db.VarChar(200)
+  ruc                   String?  @db.VarChar(11)
+  email_contacto        String   @db.VarChar(150)
+  telefono_contacto     String?  @db.VarChar(20)
+  logo_url              String?  @db.Text
+  color_primario        String   @default("#1B3A6B") @db.VarChar(7)
+  subdominio            String   @unique @db.VarChar(50)
+  nombre_sistema        String   @default("Hotelia PMS") @db.VarChar(100)
+  plan                  String   @default("basico") @db.VarChar(20)
+  max_locales           Int      @default(1)
+  max_usuarios          Int      @default(3)
+  max_habitaciones_por_local Int @default(30)
+  precio_mensual        Decimal  @db.Decimal(10, 2)
+  estado                String   @default("activa") @db.VarChar(20)
+  fecha_inicio_contrato DateTime @default(now()) @db.Date
+  fecha_proximo_pago    DateTime @db.Date
+  dias_gracia           Int      @default(5)
+  ultima_suspension_at  DateTime? @db.Timestamptz(3)
+  motivo_suspension     String?  @db.Text
+  notas_internas        String?  @db.Text
+  created_at            DateTime @default(now()) @db.Timestamptz(3)
+  updated_at             DateTime @updatedAt @db.Timestamptz(3)
+
+  locales  Local[]
+  personal Personal[]
+  pagos    EmpresaPago[]
+
+  @@map("empresas")
+}
+
+/// Historial de pagos de suscripción de una empresa (registrados manualmente por el superadmin de plataforma)
+model EmpresaPago {
+  id                        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  empresa_id                String    @db.Uuid
+  monto                     Decimal   @db.Decimal(10, 2)
+  periodo                   String    @db.VarChar(7)
+  fecha_pago                DateTime? @db.Date
+  metodo                    String?   @db.VarChar(30)
+  referencia                String?   @db.VarChar(100)
+  estado                    String    @default("pendiente") @db.VarChar(20)
+  registrado_por_superadmin Boolean   @default(true)
+  notas                     String?   @db.Text
+  created_at                DateTime  @default(now()) @db.Timestamptz(3)
+
+  empresa Empresa @relation(fields: [empresa_id], references: [id], onDelete: Cascade)
+
+  @@index([empresa_id])
+  @@map("empresas_pagos")
+}
+
 // ─── Multi-local: locales, roles y permisos granulares ─────────────────────────
 
 /// Sede / local dentro de la cadena hotelera
 model Local {
   id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  empresa_id     String?  @db.Uuid
   codigo         String   @unique @db.VarChar(30)
   nombre         String   @db.VarChar(150)
   ruc            String?  @db.VarChar(11)
@@ -676,6 +738,7 @@ model Local {
   created_at     DateTime @default(now()) @db.Timestamptz(3)
   updated_at     DateTime @updatedAt @db.Timestamptz(3)
 
+  empresa                Empresa?      @relation(fields: [empresa_id], references: [id])
   usuario_locales       UsuarioLocal[]
   contabilidad_asientos ContabilidadAsiento[]
   contabilidad_config   ContabilidadConfig?
@@ -688,6 +751,7 @@ model Local {
   turnos                Turno[]
   audit_log             AuditLog[]
 
+  @@index([empresa_id])
   @@map("locales")
 }
 

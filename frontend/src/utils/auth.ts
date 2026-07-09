@@ -9,6 +9,11 @@ export interface TokenPayload {
   rolPrincipal: string
   esGlobal: boolean
   locales: LocalGrant[]
+  empresaId: string | null
+  esSuperadminPlataforma: boolean
+  empresaNombreSistema: string
+  empresaLogoUrl: string | null
+  empresaColorPrimario: string
   iat?: number
   exp?: number
 }

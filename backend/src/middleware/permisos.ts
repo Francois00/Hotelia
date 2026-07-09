@@ -1,8 +1,22 @@
 import { Request, Response, NextFunction } from 'express';
+import { prisma } from '../lib/prisma';
 import { asegurarCacheCargado, rolTienePermiso } from '../lib/rolePermissionCache';
-import type { AuthLocalGrant } from './auth';
+import type { AuthLocalGrant, AuthPayload } from './auth';
 
 // ─── Resolución del local activo ───────────────────────────────────────────────
+
+/**
+ * Un usuario de alcance global (esGlobal) solo bypassa el chequeo de permisos por
+ * local dentro de SU PROPIA empresa. Solo el superadmin de plataforma (sin empresa
+ * asignada) puede operar sobre locales de cualquier empresa. Sin este chequeo, el
+ * admin_empresa de una empresa vería/operaría los locales de otras empresas del SaaS.
+ */
+async function localPerteneceAEmpresaDelUsuario(user: AuthPayload, localId: string): Promise<boolean> {
+  if (user.esSuperadminPlataforma) return true;
+  if (!user.empresaId) return false;
+  const local = await prisma.local.findUnique({ where: { id: localId }, select: { empresa_id: true } });
+  return local?.empresa_id === user.empresaId;
+}
 
 function extraerLocalId(req: Request): string | undefined {
   const header = req.header('X-Local-Id');
@@ -24,7 +38,7 @@ function buscarGrant(locales: AuthLocalGrant[], localId: string): AuthLocalGrant
  * específico — para endpoints de solo lectura abiertos a cualquier miembro del local.
  * Debe usarse siempre después de `authenticate`.
  */
-export function resolverLocal(req: Request, res: Response, next: NextFunction): void {
+export async function resolverLocal(req: Request, res: Response, next: NextFunction): Promise<void> {
   if (!req.user) {
     res.status(401).json({ code: 'TOKEN_REQUERIDO', message: 'Autenticación requerida' });
     return;
@@ -33,6 +47,10 @@ export function resolverLocal(req: Request, res: Response, next: NextFunction): 
   const localId = extraerLocalId(req);
 
   if (req.user.esGlobal) {
+    if (localId && !(await localPerteneceAEmpresaDelUsuario(req.user, localId))) {
+      res.status(403).json({ code: 'LOCAL_NO_AUTORIZADO', message: 'No tiene acceso a este local' });
+      return;
+    }
     req.localId = localId ?? null;
     next();
     return;
@@ -69,6 +87,10 @@ export function requirePermiso(...codigos: string[]) {
     const localId = extraerLocalId(req);
 
     if (req.user.esGlobal) {
+      if (localId && !(await localPerteneceAEmpresaDelUsuario(req.user, localId))) {
+        res.status(403).json({ code: 'LOCAL_NO_AUTORIZADO', message: 'No tiene acceso a este local' });
+        return;
+      }
       req.localId = localId ?? null;
       next();
       return;
