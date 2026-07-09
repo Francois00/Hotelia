@@ -10,11 +10,12 @@ interface Solicitud { id: string; tipo: string; descripcion: string; habitacion_
 interface ReporteMensual { ingresos_totales: number; num_reservas: number; ocupacion_pct: number; adr: number; revpar: number; comparativa_mes_anterior?: { ingresos_delta: number; ocupacion_delta: number } }
 
 // ─── Colors ───────────────────────────────────────────────────────────────────
+// Paleta ligada a los theme tokens (theme.css) — cambia sola con [data-theme].
 const C = {
-  bg: '#090C11', surface: '#0E1117', surface2: '#12161E', surface3: '#1A1F2B',
-  border: 'rgba(255,255,255,0.06)', border2: 'rgba(255,255,255,0.1)',
-  gold: '#D4A853', green: '#22C55E', blue: '#3B82F6', red: '#EF4444', yellow: '#EAB308',
-  text: '#F1F5F9', text2: '#94A3B8', text3: '#64748B',
+  bg: 'var(--bg-primary)', surface: 'var(--bg-secondary)', surface2: 'var(--bg-card)', surface3: 'var(--bg-tertiary)',
+  border: 'var(--border-primary)', border2: 'var(--border-secondary)',
+  gold: 'var(--brand-accent)', green: 'var(--estado-disponible)', blue: 'var(--estado-ocupada)', red: 'var(--estado-mantenimiento)', yellow: 'var(--estado-limpieza)',
+  text: 'var(--text-primary)', text2: 'var(--text-secondary)', text3: 'var(--text-tertiary)',
 }
 
 const css = `

@@ -54,11 +54,11 @@ export default function ModalConfigCanal({ canal, onClose, onSuccess }: Props) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
+      <div className="relative bg-bg-card rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
         {/* Header */}
-        <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">Configurar {TITLES[canal]}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">
+        <div className="px-6 py-5 border-b border-border-primary flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-text-primary">Configurar {TITLES[canal]}</h2>
+          <button onClick={onClose} className="text-text-tertiary hover:text-text-secondary text-2xl leading-none">
             &times;
           </button>
         </div>
@@ -85,7 +85,7 @@ export default function ModalConfigCanal({ canal, onClose, onSuccess }: Props) {
 
           {canal === 'whatsapp' && (
             <div className="space-y-4">
-              <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-blue-700">
+              <div className="bg-info-bg border border-info rounded-xl px-4 py-3 text-sm text-info">
                 ℹ️ Si el Concierge IA ya está funcionando, el WhatsApp Business está configurado correctamente.
                 Estos campos solo son necesarios si quieres apuntar a un número distinto.
               </div>
@@ -96,12 +96,12 @@ export default function ModalConfigCanal({ canal, onClose, onSuccess }: Props) {
           )}
 
           {canal === 'web' && (
-            <div className="bg-gray-50 rounded-xl px-4 py-8 text-sm text-gray-600 text-center space-y-2">
+            <div className="bg-bg-secondary rounded-xl px-4 py-8 text-sm text-text-secondary text-center space-y-2">
               <p className="text-3xl">🌐</p>
               <p className="font-semibold text-gray-800">Motor de reservas propio</p>
               <p>Tu motor de reservas usa la misma API del PMS. No requiere configuración adicional.</p>
-              <p className="text-xs text-gray-400 mt-2">
-                Endpoint: <code className="bg-white px-1 py-0.5 rounded border">POST /api/v1/reservas</code>
+              <p className="text-xs text-text-tertiary mt-2">
+                Endpoint: <code className="bg-bg-card px-1 py-0.5 rounded border">POST /api/v1/reservas</code>
               </p>
             </div>
           )}
@@ -111,8 +111,8 @@ export default function ModalConfigCanal({ canal, onClose, onSuccess }: Props) {
               {testResult && (
                 <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border ${
                   testResult.ok
-                    ? 'bg-green-50 text-green-700 border-green-200'
-                    : 'bg-red-50 text-red-700 border-red-200'
+                    ? 'bg-success-bg text-success border-success'
+                    : 'bg-danger-bg text-danger border-danger'
                 }`}>
                   {testResult.ok ? '✅' : '❌'} {testResult.msg}
                 </div>
@@ -120,7 +120,7 @@ export default function ModalConfigCanal({ canal, onClose, onSuccess }: Props) {
               <button
                 onClick={() => void handleTest()}
                 disabled={testing}
-                className="w-full py-2 border border-gray-300 rounded-xl text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full py-2 border border-gray-300 rounded-xl text-sm text-gray-700 hover:bg-bg-secondary disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {testing && (
                   <span className="w-3 h-3 border border-gray-400 border-t-transparent rounded-full animate-spin" />
@@ -132,10 +132,10 @@ export default function ModalConfigCanal({ canal, onClose, onSuccess }: Props) {
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-100 flex gap-3 justify-end">
+        <div className="px-6 py-4 border-t border-border-primary flex gap-3 justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+            className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-bg-secondary"
           >
             Cancelar
           </button>
@@ -166,7 +166,7 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-xs font-semibold text-gray-600 mb-1">{label}</label>
+      <label className="block text-xs font-semibold text-text-secondary mb-1">{label}</label>
       <input
         type={type}
         value={value}

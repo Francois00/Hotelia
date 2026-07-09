@@ -78,11 +78,11 @@ function StepBar({ current }: { current: number }) {
           <div key={n} className="flex items-center flex-1 last:flex-none">
             <div className="flex items-center gap-2">
               <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                done ? 'bg-green-500 text-white' : active ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'
+                done ? 'bg-green-500 text-white' : active ? 'bg-blue-600 text-white' : 'bg-gray-200 text-text-secondary'
               }`}>
                 {done ? '✓' : n}
               </div>
-              <span className={`text-xs font-medium hidden sm:block ${active ? 'text-gray-900' : 'text-gray-400'}`}>
+              <span className={`text-xs font-medium hidden sm:block ${active ? 'text-text-primary' : 'text-text-tertiary'}`}>
                 {label}
               </span>
             </div>
@@ -242,7 +242,7 @@ export default function CheckoutPage() {
 
   if (!reserva) {
     return (
-      <div className="p-6 text-center text-gray-500">
+      <div className="p-6 text-center text-text-secondary">
         Reserva no encontrada.
         <button onClick={() => navigate('/reservas')} className="block mx-auto mt-3 text-blue-600 text-sm underline">
           Volver a reservas
@@ -256,7 +256,7 @@ export default function CheckoutPage() {
       <div className="p-6 max-w-md mx-auto text-center space-y-4">
         <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center mx-auto text-2xl">⚠️</div>
         <p className="text-gray-700 font-medium">Esta reserva no está en estado Check-in</p>
-        <p className="text-gray-500 text-sm">Estado actual: <strong>{reserva.estado}</strong></p>
+        <p className="text-text-secondary text-sm">Estado actual: <strong>{reserva.estado}</strong></p>
         <button onClick={() => navigate('/reservas')} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">
           Volver a reservas
         </button>
@@ -283,15 +283,15 @@ export default function CheckoutPage() {
   // ─── Reservation info card (persistent) ─────────────────────────────────
 
   const InfoCard = () => (
-    <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-      <span className="font-bold text-blue-900">Hab. {reserva.habitacion.numero}</span>
-      <span className="text-blue-700">{reserva.habitacion.tipo}</span>
+    <div className="bg-info-bg border border-info rounded-xl px-4 py-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+      <span className="font-bold text-info">Hab. {reserva.habitacion.numero}</span>
+      <span className="text-info">{reserva.habitacion.tipo}</span>
       <span className="text-blue-600">·</span>
-      <span className="font-medium text-blue-900">{reserva.huesped.nombre} {reserva.huesped.apellido}</span>
+      <span className="font-medium text-info">{reserva.huesped.nombre} {reserva.huesped.apellido}</span>
       <span className="text-blue-600">·</span>
-      <span className="text-blue-700">{noches} noches</span>
+      <span className="text-info">{noches} noches</span>
       <span className="text-blue-600">·</span>
-      <span className="text-blue-700">
+      <span className="text-info">
         {format(parseISO(reserva.fecha_entrada), 'dd/MM/yy')} → {format(parseISO(reserva.fecha_salida), 'dd/MM/yy')}
       </span>
     </div>
@@ -301,15 +301,15 @@ export default function CheckoutPage() {
     <div className="p-6 max-w-4xl mx-auto space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Checkout</h1>
-        <p className="text-sm text-gray-500 mt-0.5">{reserva.codigo}</p>
+        <h1 className="text-2xl font-bold text-text-primary">Checkout</h1>
+        <p className="text-sm text-text-secondary mt-0.5">{reserva.codigo}</p>
       </div>
 
       <StepBar current={step} />
       <InfoCard />
 
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
+        <div className="bg-danger-bg border border-danger rounded-xl px-4 py-3 text-sm text-danger">
           {error}
         </div>
       )}
@@ -318,19 +318,19 @@ export default function CheckoutPage() {
       {step === 1 && (
         <div className="space-y-5">
           {/* Folio items */}
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-            <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-gray-900">Cargos de la estancia</h2>
+          <div className="bg-bg-card rounded-2xl border border-border-primary shadow-sm overflow-hidden">
+            <div className="px-5 py-3 border-b border-border-primary flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-text-primary">Cargos de la estancia</h2>
               <button
                 onClick={() => setAddingCargo(v => !v)}
-                className="text-xs px-3 py-1.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                className="text-xs px-3 py-1.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-bg-secondary"
               >
                 + Agregar cargo
               </button>
             </div>
 
             {addingCargo && (
-              <div className="px-5 py-4 bg-blue-50 border-b border-blue-100 space-y-3">
+              <div className="px-5 py-4 bg-info-bg border-b border-info space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <input
                     type="text"
@@ -340,7 +340,7 @@ export default function CheckoutPage() {
                     className="sm:col-span-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">S/</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary text-xs">S/</span>
                     <input
                       type="number" step="0.01" min="0"
                       value={cargoForm.monto}
@@ -352,13 +352,13 @@ export default function CheckoutPage() {
                   <select
                     value={cargoForm.tipo}
                     onChange={e => setCargoForm(f => ({ ...f, tipo: e.target.value }))}
-                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-bg-card focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     {TIPOS_CARGO.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => setAddingCargo(false)} className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-white">
+                  <button onClick={() => setAddingCargo(false)} className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-bg-card">
                     Cancelar
                   </button>
                   <button
@@ -374,32 +374,32 @@ export default function CheckoutPage() {
 
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-xs">
+                <thead className="bg-bg-secondary text-xs">
                   <tr>
-                    <th className="px-4 py-2 text-left font-semibold text-gray-500">Descripción</th>
-                    <th className="px-4 py-2 text-left font-semibold text-gray-500">Tipo</th>
-                    <th className="px-4 py-2 text-right font-semibold text-gray-500">Monto</th>
+                    <th className="px-4 py-2 text-left font-semibold text-text-secondary">Descripción</th>
+                    <th className="px-4 py-2 text-left font-semibold text-text-secondary">Tipo</th>
+                    <th className="px-4 py-2 text-right font-semibold text-text-secondary">Monto</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {items.length === 0 ? (
-                    <tr><td colSpan={3} className="px-4 py-6 text-center text-gray-400">Sin cargos registrados</td></tr>
+                    <tr><td colSpan={3} className="px-4 py-6 text-center text-text-tertiary">Sin cargos registrados</td></tr>
                   ) : items.map(item => (
                     <tr key={item.id} className={item.anulado ? 'opacity-40' : ''}>
-                      <td className={`px-4 py-2.5 ${item.anulado ? 'line-through text-gray-400' : 'text-gray-800'}`}>
+                      <td className={`px-4 py-2.5 ${item.anulado ? 'line-through text-text-tertiary' : 'text-gray-800'}`}>
                         {getLabel(item)}
                       </td>
-                      <td className="px-4 py-2.5 text-gray-500 text-xs">{item.tipo ?? item.categoria ?? '—'}</td>
-                      <td className="px-4 py-2.5 text-right font-medium text-gray-900">
+                      <td className="px-4 py-2.5 text-text-secondary text-xs">{item.tipo ?? item.categoria ?? '—'}</td>
+                      <td className="px-4 py-2.5 text-right font-medium text-text-primary">
                         {formatCurrency(item.total ?? item.precio_unitario * item.cantidad)}
                       </td>
                     </tr>
                   ))}
                 </tbody>
-                <tfoot className="border-t border-gray-200 bg-gray-50">
+                <tfoot className="border-t border-border-primary bg-bg-secondary">
                   <tr>
                     <td colSpan={2} className="px-4 py-2.5 text-sm font-semibold text-gray-700">Subtotal cargos</td>
-                    <td className="px-4 py-2.5 text-right font-bold text-gray-900">{formatCurrency(totalCargos)}</td>
+                    <td className="px-4 py-2.5 text-right font-bold text-text-primary">{formatCurrency(totalCargos)}</td>
                   </tr>
                 </tfoot>
               </table>
@@ -407,34 +407,34 @@ export default function CheckoutPage() {
           </div>
 
           {/* Pagos ya registrados */}
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-            <div className="px-5 py-3 border-b border-gray-100">
-              <h2 className="text-sm font-semibold text-gray-900">Pagos registrados</h2>
+          <div className="bg-bg-card rounded-2xl border border-border-primary shadow-sm overflow-hidden">
+            <div className="px-5 py-3 border-b border-border-primary">
+              <h2 className="text-sm font-semibold text-text-primary">Pagos registrados</h2>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-xs">
+                <thead className="bg-bg-secondary text-xs">
                   <tr>
-                    <th className="px-4 py-2 text-left font-semibold text-gray-500">Método</th>
-                    <th className="px-4 py-2 text-left font-semibold text-gray-500">Referencia</th>
-                    <th className="px-4 py-2 text-right font-semibold text-gray-500">Monto</th>
+                    <th className="px-4 py-2 text-left font-semibold text-text-secondary">Método</th>
+                    <th className="px-4 py-2 text-left font-semibold text-text-secondary">Referencia</th>
+                    <th className="px-4 py-2 text-right font-semibold text-text-secondary">Monto</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {pagos.length === 0 ? (
-                    <tr><td colSpan={3} className="px-4 py-6 text-center text-gray-400">Sin pagos registrados</td></tr>
+                    <tr><td colSpan={3} className="px-4 py-6 text-center text-text-tertiary">Sin pagos registrados</td></tr>
                   ) : pagos.map(p => (
                     <tr key={p.id}>
                       <td className="px-4 py-2.5 text-gray-700">{p.metodo}</td>
-                      <td className="px-4 py-2.5 text-gray-500 text-xs">{p.referencia_externa ?? '—'}</td>
-                      <td className="px-4 py-2.5 text-right font-medium text-green-600">{formatCurrency(Number(p.monto))}</td>
+                      <td className="px-4 py-2.5 text-text-secondary text-xs">{p.referencia_externa ?? '—'}</td>
+                      <td className="px-4 py-2.5 text-right font-medium text-success">{formatCurrency(Number(p.monto))}</td>
                     </tr>
                   ))}
                 </tbody>
-                <tfoot className="border-t border-gray-200 bg-gray-50">
+                <tfoot className="border-t border-border-primary bg-bg-secondary">
                   <tr>
                     <td colSpan={2} className="px-4 py-2.5 text-sm font-semibold text-gray-700">Total pagado</td>
-                    <td className="px-4 py-2.5 text-right font-bold text-green-700">{formatCurrency(totalPagado)}</td>
+                    <td className="px-4 py-2.5 text-right font-bold text-success">{formatCurrency(totalPagado)}</td>
                   </tr>
                 </tfoot>
               </table>
@@ -443,21 +443,21 @@ export default function CheckoutPage() {
 
           {/* Saldo */}
           <div className={`rounded-xl border px-5 py-4 flex items-center justify-between ${
-            saldoPendiente > 0 ? 'border-red-200 bg-red-50' : 'border-green-200 bg-green-50'
+            saldoPendiente > 0 ? 'border-danger bg-danger-bg' : 'border-success bg-success-bg'
           }`}>
             <div>
               <p className="text-sm font-semibold text-gray-700">Saldo pendiente</p>
-              <p className="text-xs text-gray-500 mt-0.5">
+              <p className="text-xs text-text-secondary mt-0.5">
                 {saldoPendiente > 0 ? 'Debe cobrarse antes del checkout' : 'Todo pagado ✓'}
               </p>
             </div>
-            <p className={`text-xl font-bold ${saldoPendiente > 0 ? 'text-red-600' : 'text-green-600'}`}>
+            <p className={`text-xl font-bold ${saldoPendiente > 0 ? 'text-red-600' : 'text-success'}`}>
               {formatCurrency(saldoPendiente)}
             </p>
           </div>
 
           <div className="flex justify-between">
-            <button onClick={() => navigate('/reservas')} className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50">
+            <button onClick={() => navigate('/reservas')} className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-bg-secondary">
               ← Cancelar
             </button>
             <button
@@ -478,8 +478,8 @@ export default function CheckoutPage() {
             <p className="text-xl font-bold text-orange-700">{formatCurrency(saldoPendiente)}</p>
           </div>
 
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 space-y-4">
-            <h2 className="text-sm font-semibold text-gray-900">Métodos de pago</h2>
+          <div className="bg-bg-card rounded-2xl border border-border-primary shadow-sm p-5 space-y-4">
+            <h2 className="text-sm font-semibold text-text-primary">Métodos de pago</h2>
 
             <div className="space-y-3">
               {pagosNuevos.map((p, i) => (
@@ -487,12 +487,12 @@ export default function CheckoutPage() {
                   <select
                     value={p.metodo}
                     onChange={e => setPagosNuevos(prev => prev.map((x, j) => j === i ? { ...x, metodo: e.target.value } : x))}
-                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white w-44 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-bg-card w-44 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     {METODOS_PAGO.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
                   </select>
                   <div className="relative flex-1">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">S/</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary text-xs">S/</span>
                     <input
                       type="number" step="0.01" min="0"
                       value={p.monto}
@@ -511,7 +511,7 @@ export default function CheckoutPage() {
                   {pagosNuevos.length > 1 && (
                     <button
                       onClick={() => setPagosNuevos(prev => prev.filter((_, j) => j !== i))}
-                      className="mt-0.5 text-gray-400 hover:text-red-500 text-lg leading-none px-1"
+                      className="mt-0.5 text-text-tertiary hover:text-red-500 text-lg leading-none px-1"
                     >
                       ×
                     </button>
@@ -529,21 +529,21 @@ export default function CheckoutPage() {
 
             {/* Efectivo vuelto */}
             {pagosNuevos.some(p => p.metodo === 'EFECTIVO') && sumNuevosPagos > saldoPendiente && (
-              <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-3 flex justify-between text-sm">
-                <span className="text-green-700 font-medium">Vuelto a dar</span>
-                <span className="font-bold text-green-700">{formatCurrency(sumNuevosPagos - saldoPendiente)}</span>
+              <div className="bg-success-bg border border-success rounded-lg px-4 py-3 flex justify-between text-sm">
+                <span className="text-success font-medium">Vuelto a dar</span>
+                <span className="font-bold text-success">{formatCurrency(sumNuevosPagos - saldoPendiente)}</span>
               </div>
             )}
 
             {/* Totals summary */}
-            <div className="border-t border-gray-100 pt-3 space-y-1.5 text-sm">
-              <div className="flex justify-between text-gray-600">
+            <div className="border-t border-border-primary pt-3 space-y-1.5 text-sm">
+              <div className="flex justify-between text-text-secondary">
                 <span>Saldo pendiente</span>
                 <span>{formatCurrency(saldoPendiente)}</span>
               </div>
-              <div className="flex justify-between text-gray-600">
+              <div className="flex justify-between text-text-secondary">
                 <span>Total a cobrar ahora</span>
-                <span className={sumNuevosPagos >= saldoPendiente ? 'text-green-600 font-medium' : 'text-red-500 font-medium'}>
+                <span className={sumNuevosPagos >= saldoPendiente ? 'text-success font-medium' : 'text-red-500 font-medium'}>
                   {formatCurrency(sumNuevosPagos)}
                 </span>
               </div>
@@ -557,7 +557,7 @@ export default function CheckoutPage() {
           </div>
 
           <div className="flex justify-between">
-            <button onClick={() => setStep(1)} className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50">
+            <button onClick={() => setStep(1)} className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-bg-secondary">
               ← Volver
             </button>
             <button
@@ -575,42 +575,42 @@ export default function CheckoutPage() {
       {step === 3 && (
         <div className="space-y-5">
           {/* Resumen final */}
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+          <div className="bg-bg-card rounded-2xl border border-border-primary shadow-sm p-5">
             <h2 className="text-sm font-semibold text-gray-700 mb-4 uppercase tracking-wide">Resumen del checkout</h2>
             <div className="space-y-2.5 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-500">Habitación</span>
+                <span className="text-text-secondary">Habitación</span>
                 <span className="font-medium">Hab. {reserva.habitacion.numero} — {reserva.habitacion.tipo}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Huésped</span>
+                <span className="text-text-secondary">Huésped</span>
                 <span className="font-medium">{reserva.huesped.nombre} {reserva.huesped.apellido}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Tipo doc.</span>
+                <span className="text-text-secondary">Tipo doc.</span>
                 <span className="text-gray-700">{reserva.huesped.tipo_documento}: {reserva.huesped.numero_documento}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Entrada</span>
+                <span className="text-text-secondary">Entrada</span>
                 <span className="text-gray-700">{format(parseISO(reserva.fecha_entrada), 'dd/MM/yyyy')}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Salida</span>
+                <span className="text-text-secondary">Salida</span>
                 <span className="text-gray-700">{format(parseISO(reserva.fecha_salida), 'dd/MM/yyyy')}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Estadía</span>
+                <span className="text-text-secondary">Estadía</span>
                 <span className="text-gray-700">{noches} noches</span>
               </div>
-              <div className="border-t border-gray-100 pt-2.5 flex justify-between">
-                <span className="text-gray-500">Total cargos</span>
+              <div className="border-t border-border-primary pt-2.5 flex justify-between">
+                <span className="text-text-secondary">Total cargos</span>
                 <span className="font-semibold">{formatCurrency(totalCargos)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Total pagado</span>
-                <span className="font-semibold text-green-600">{formatCurrency(totalPagado)}</span>
+                <span className="text-text-secondary">Total pagado</span>
+                <span className="font-semibold text-success">{formatCurrency(totalPagado)}</span>
               </div>
-              <div className="flex justify-between text-green-600">
+              <div className="flex justify-between text-success">
                 <span className="font-medium">Saldo</span>
                 <span className="font-bold">S/ 0.00 ✅</span>
               </div>
@@ -618,21 +618,21 @@ export default function CheckoutPage() {
           </div>
 
           {/* Comprobante */}
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 space-y-4">
-            <h2 className="text-sm font-semibold text-gray-900">Tipo de comprobante</h2>
+          <div className="bg-bg-card rounded-2xl border border-border-primary shadow-sm p-5 space-y-4">
+            <h2 className="text-sm font-semibold text-text-primary">Tipo de comprobante</h2>
 
             <div className="flex gap-4">
               {(['BOLETA', 'FACTURA'] as const).map(tipo => (
                 <label key={tipo} className={`flex-1 flex items-center gap-3 px-4 py-3 rounded-xl border-2 cursor-pointer transition-colors ${
-                  tipoComprobante === tipo ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+                  tipoComprobante === tipo ? 'border-blue-500 bg-info-bg' : 'border-border-primary hover:border-gray-300'
                 }`}>
                   <input type="radio" name="tipo_comprobante" value={tipo}
                     checked={tipoComprobante === tipo}
                     onChange={() => setTipoComprobante(tipo)}
                     className="accent-blue-600" />
                   <div>
-                    <p className="text-sm font-medium text-gray-900">{tipo === 'BOLETA' ? 'Boleta de venta' : 'Factura electrónica'}</p>
-                    <p className="text-xs text-gray-500">{tipo === 'BOLETA' ? 'Para personas naturales' : 'Para empresas con RUC'}</p>
+                    <p className="text-sm font-medium text-text-primary">{tipo === 'BOLETA' ? 'Boleta de venta' : 'Factura electrónica'}</p>
+                    <p className="text-xs text-text-secondary">{tipo === 'BOLETA' ? 'Para personas naturales' : 'Para empresas con RUC'}</p>
                   </div>
                 </label>
               ))}
@@ -641,7 +641,7 @@ export default function CheckoutPage() {
             {tipoComprobante === 'FACTURA' && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">RUC</label>
+                  <label className="block text-xs font-medium text-text-secondary mb-1">RUC</label>
                   <input type="text" maxLength={11}
                     value={datosFacturacion.ruc}
                     onChange={e => setDatosFacturacion(f => ({ ...f, ruc: e.target.value }))}
@@ -650,7 +650,7 @@ export default function CheckoutPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Razón social</label>
+                  <label className="block text-xs font-medium text-text-secondary mb-1">Razón social</label>
                   <input type="text"
                     value={datosFacturacion.razon_social}
                     onChange={e => setDatosFacturacion(f => ({ ...f, razon_social: e.target.value }))}
@@ -659,7 +659,7 @@ export default function CheckoutPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Dirección fiscal</label>
+                  <label className="block text-xs font-medium text-text-secondary mb-1">Dirección fiscal</label>
                   <input type="text"
                     value={datosFacturacion.direccion}
                     onChange={e => setDatosFacturacion(f => ({ ...f, direccion: e.target.value }))}
@@ -668,7 +668,7 @@ export default function CheckoutPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Email empresa</label>
+                  <label className="block text-xs font-medium text-text-secondary mb-1">Email empresa</label>
                   <input type="email"
                     value={datosFacturacion.email}
                     onChange={e => setDatosFacturacion(f => ({ ...f, email: e.target.value }))}
@@ -683,7 +683,7 @@ export default function CheckoutPage() {
           <div className="flex justify-between">
             <button
               onClick={() => { setStep(saldoPendiente > 0 ? 2 : 1) }}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50"
+              className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-bg-secondary"
             >
               ← Volver
             </button>

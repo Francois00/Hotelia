@@ -1,5 +1,46 @@
 @import "tailwindcss";
 
+/* Tailwind v4 usa @theme (no hay tailwind.config.js) — cada token apunta a la
+   variable CSS de theme.css, que cambia sola según [data-theme]. Genera las
+   utilidades bg-bg-primary, text-text-secondary, border-border-primary,
+   bg-estado-disponible, etc. sin necesitar variantes dark: en cada página. */
+@theme {
+  --color-bg-primary: var(--bg-primary);
+  --color-bg-secondary: var(--bg-secondary);
+  --color-bg-tertiary: var(--bg-tertiary);
+  --color-bg-card: var(--bg-card);
+  --color-bg-sidebar: var(--bg-sidebar);
+  --color-bg-header: var(--bg-header);
+  --color-bg-hover: var(--bg-hover);
+
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+  --color-text-inverse: var(--text-inverse);
+
+  --color-border-primary: var(--border-primary);
+  --color-border-secondary: var(--border-secondary);
+
+  --color-brand-primary: var(--brand-primary);
+  --color-brand-secondary: var(--brand-secondary);
+  --color-brand-accent: var(--brand-accent);
+
+  --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
+  --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
+  --color-danger: var(--danger);
+  --color-danger-bg: var(--danger-bg);
+  --color-info: var(--info);
+  --color-info-bg: var(--info-bg);
+
+  --color-estado-disponible: var(--estado-disponible);
+  --color-estado-ocupada: var(--estado-ocupada);
+  --color-estado-limpieza: var(--estado-limpieza);
+  --color-estado-mantenimiento: var(--estado-mantenimiento);
+  --color-estado-fuera-servicio: var(--estado-fuera-servicio);
+}
+
 @layer base {
   body {
     margin: 0;

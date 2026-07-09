@@ -66,10 +66,10 @@ export default function CerrarTurnoModal({ turnoId, turnoTipo, resumen, onClose,
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center">
         <div className="absolute inset-0 bg-black/50" />
-        <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-8 text-center space-y-5">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto text-3xl">✅</div>
-          <h2 className="text-xl font-bold text-gray-900">Turno cerrado correctamente</h2>
-          <div className="text-sm text-gray-600 space-y-1">
+        <div className="relative bg-bg-card rounded-2xl shadow-2xl w-full max-w-sm p-8 text-center space-y-5">
+          <div className="w-16 h-16 bg-success-bg rounded-full flex items-center justify-center mx-auto text-3xl">✅</div>
+          <h2 className="text-xl font-bold text-text-primary">Turno cerrado correctamente</h2>
+          <div className="text-sm text-text-secondary space-y-1">
             <p><b>Hora de cierre:</b> {new Date(closedData.hora_cierre).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}</p>
             <p><b>Total del turno:</b> {formatCurrency(resumen.total_general)}</p>
           </div>
@@ -92,21 +92,21 @@ export default function CerrarTurnoModal({ turnoId, turnoTipo, resumen, onClose,
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5">
-        <h2 className="text-lg font-semibold text-gray-900 text-center">Cerrar turno {turnoTipo}</h2>
+      <div className="relative bg-bg-card rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5">
+        <h2 className="text-lg font-semibold text-text-primary text-center">Cerrar turno {turnoTipo}</h2>
 
-        <div className="border border-gray-200 rounded-xl p-4 space-y-2">
-          <h3 className="text-xs font-semibold text-gray-500 uppercase">Resumen del turno</h3>
+        <div className="border border-border-primary rounded-xl p-4 space-y-2">
+          <h3 className="text-xs font-semibold text-text-secondary uppercase">Resumen del turno</h3>
           {[
             { label: 'Check-ins realizados', val: resumen.total_checkins },
             { label: 'Check-outs realizados', val: resumen.total_checkouts },
           ].map(r => (
             <div key={r.label} className="flex justify-between text-sm">
-              <span className="text-gray-600">{r.label}</span>
+              <span className="text-text-secondary">{r.label}</span>
               <span className="font-medium">{r.val}</span>
             </div>
           ))}
-          <hr className="border-gray-100" />
+          <hr className="border-border-primary" />
           {[
             { label: 'Total efectivo', val: resumen.total_efectivo },
             { label: 'Total Yape/Plin', val: resumen.total_yape + resumen.total_plin },
@@ -114,18 +114,18 @@ export default function CerrarTurnoModal({ turnoId, turnoTipo, resumen, onClose,
             { label: 'Gastos de caja', val: -resumen.total_gastos_caja, neg: true },
           ].map(r => (
             <div key={r.label} className="flex justify-between text-sm">
-              <span className="text-gray-600">{r.label}</span>
+              <span className="text-text-secondary">{r.label}</span>
               <span className={`font-medium ${r.neg ? 'text-red-500' : ''}`}>
                 {r.neg ? '- ' : ''}{formatCurrency(Math.abs(r.val))}
               </span>
             </div>
           ))}
-          <hr className="border-gray-200" />
+          <hr className="border-border-primary" />
           <div className="flex justify-between text-sm font-bold">
             <span>TOTAL TURNO</span>
             <span>{formatCurrency(resumen.total_general)}</span>
           </div>
-          <div className="flex justify-between text-sm font-bold text-blue-700">
+          <div className="flex justify-between text-sm font-bold text-info">
             <span>SALDO FINAL CAJA</span>
             <span>{formatCurrency(resumen.saldo_final_proyectado)}</span>
           </div>
@@ -146,7 +146,7 @@ export default function CerrarTurnoModal({ turnoId, turnoTipo, resumen, onClose,
         {error && <p className="text-sm text-red-500 text-center">{error}</p>}
 
         <div className="flex gap-3">
-          <button onClick={onClose} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50">
+          <button onClick={onClose} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-bg-secondary">
             Cancelar
           </button>
           <button onClick={() => void handleCerrar()} disabled={saving}

@@ -76,7 +76,7 @@ export default function TurnoWidget() {
         ) : (
           <>
             <span className="w-2 h-2 rounded-full bg-red-400 shrink-0" />
-            <span className="text-gray-400 whitespace-nowrap">Sin turno activo</span>
+            <span className="text-text-tertiary whitespace-nowrap">Sin turno activo</span>
             <button
               onClick={() => setShowModal(true)}
               className="px-3 py-1 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 whitespace-nowrap"

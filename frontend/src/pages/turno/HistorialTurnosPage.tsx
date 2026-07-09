@@ -52,8 +52,8 @@ export default function HistorialTurnosPage() {
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Historial de Turnos</h1>
-        <p className="text-gray-500 text-sm mt-0.5">Consulta y descarga reportes de turnos anteriores</p>
+        <h1 className="text-2xl font-bold text-text-primary">Historial de Turnos</h1>
+        <p className="text-text-secondary text-sm mt-0.5">Consulta y descarga reportes de turnos anteriores</p>
       </div>
 
       {/* Filtros */}
@@ -75,52 +75,52 @@ export default function HistorialTurnosPage() {
         </select>
         <button
           onClick={() => setFiltros({ fecha: '', tipo: '', page: 1 })}
-          className="px-3 py-2 text-sm text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg"
+          className="px-3 py-2 text-sm text-text-secondary hover:text-gray-700 border border-border-primary rounded-lg"
         >
           Limpiar
         </button>
-        <span className="text-xs text-gray-400 ml-auto">{total} registros</span>
+        <span className="text-xs text-text-tertiary ml-auto">{total} registros</span>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="bg-bg-card rounded-2xl border border-border-primary shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="bg-bg-secondary border-b border-border-primary">
               <tr>
                 {['Fecha', 'Tipo', 'Recepcionista', 'Apertura', 'Cierre', 'Trans.', 'Saldo ini.', 'Acciones'].map(h => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{h}</th>
+                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-text-secondary uppercase">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {turnos.length === 0 && (
-                <tr><td colSpan={8} className="px-4 py-8 text-center text-sm text-gray-400">Sin resultados</td></tr>
+                <tr><td colSpan={8} className="px-4 py-8 text-center text-sm text-text-tertiary">Sin resultados</td></tr>
               )}
               {turnos.map(t => (
-                <tr key={t.id} className="hover:bg-gray-50">
+                <tr key={t.id} className="hover:bg-bg-secondary">
                   <td className="px-4 py-3 text-sm text-gray-700">
                     {format(new Date(t.hora_apertura), 'dd/MM/yyyy')}
                   </td>
                   <td className="px-4 py-3">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${t.tipo === 'DIA' ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'}`}>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${t.tipo === 'DIA' ? 'bg-warning-bg text-warning' : 'bg-info-bg text-info'}`}>
                       {t.tipo}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-700">{t.recepcionista.nombre} {t.recepcionista.apellido}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">
+                  <td className="px-4 py-3 text-sm text-text-secondary">
                     {new Date(t.hora_apertura).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-600">
+                  <td className="px-4 py-3 text-sm text-text-secondary">
                     {t.hora_cierre
                       ? new Date(t.hora_cierre).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })
-                      : <span className="text-green-600 font-medium">Abierto</span>}
+                      : <span className="text-success font-medium">Abierto</span>}
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{t._count?.pagos ?? '—'}</td>
+                  <td className="px-4 py-3 text-sm text-text-secondary">{t._count?.pagos ?? '—'}</td>
                   <td className="px-4 py-3 text-sm text-gray-700 font-medium">{formatCurrency(t.saldo_inicial)}</td>
                   <td className="px-4 py-3">
                     {t.estado === 'CERRADO' && (
                       <button onClick={() => void downloadPdf(t.id)}
-                        className="px-3 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                        className="px-3 py-1.5 text-xs font-medium text-blue-600 hover:bg-info-bg rounded-lg transition-colors">
                         Ver PDF
                       </button>
                     )}
@@ -133,19 +133,19 @@ export default function HistorialTurnosPage() {
 
         {/* Paginación */}
         {pages > 1 && (
-          <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between">
+          <div className="px-5 py-3 border-t border-border-primary flex items-center justify-between">
             <button
               disabled={filtros.page <= 1}
               onClick={() => setFiltros(f => ({ ...f, page: f.page - 1 }))}
-              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg disabled:opacity-50 hover:bg-gray-50"
+              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg disabled:opacity-50 hover:bg-bg-secondary"
             >
               ← Anterior
             </button>
-            <span className="text-sm text-gray-500">Página {filtros.page} de {pages}</span>
+            <span className="text-sm text-text-secondary">Página {filtros.page} de {pages}</span>
             <button
               disabled={filtros.page >= pages}
               onClick={() => setFiltros(f => ({ ...f, page: f.page + 1 }))}
-              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg disabled:opacity-50 hover:bg-gray-50"
+              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg disabled:opacity-50 hover:bg-bg-secondary"
             >
               Siguiente →
             </button>

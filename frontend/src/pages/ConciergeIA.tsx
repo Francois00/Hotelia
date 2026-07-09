@@ -179,24 +179,24 @@ export default function ConciergeIA() {
   }
 
   return (
-    <div className="flex h-full overflow-hidden bg-white">
+    <div className="flex h-full overflow-hidden bg-bg-card">
       {/* LEFT COLUMN */}
-      <div className="w-72 border-r border-gray-200 flex flex-col bg-white shrink-0">
-        <div className="px-4 py-4 border-b border-gray-200">
+      <div className="w-72 border-r border-border-primary flex flex-col bg-bg-card shrink-0">
+        <div className="px-4 py-4 border-b border-border-primary">
           <div className="flex items-center gap-2">
-            <h1 className="text-base font-bold text-gray-900">Concierge IA</h1>
+            <h1 className="text-base font-bold text-text-primary">Concierge IA</h1>
             <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" title="En vivo" />
           </div>
           <div className="flex gap-1 mt-3">
             <button
               onClick={() => setFilter('todos')}
-              className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors ${filter === 'todos' ? 'bg-blue-100 text-blue-700' : 'text-gray-500 hover:bg-gray-100'}`}
+              className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors ${filter === 'todos' ? 'bg-info-bg text-info' : 'text-text-secondary hover:bg-bg-tertiary'}`}
             >
               Todos
             </button>
             <button
               onClick={() => setFilter('escalados')}
-              className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center justify-center gap-1.5 ${filter === 'escalados' ? 'bg-red-100 text-red-700' : 'text-gray-500 hover:bg-gray-100'}`}
+              className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center justify-center gap-1.5 ${filter === 'escalados' ? 'bg-danger-bg text-danger' : 'text-text-secondary hover:bg-bg-tertiary'}`}
             >
               Escalados
               {escaladosCount > 0 && (
@@ -208,7 +208,7 @@ export default function ConciergeIA() {
 
         <div className="flex-1 overflow-y-auto">
           {filtered.length === 0 && (
-            <div className="flex flex-col items-center justify-center h-40 text-gray-400 text-sm">
+            <div className="flex flex-col items-center justify-center h-40 text-text-tertiary text-sm">
               <p>Sin conversaciones</p>
             </div>
           )}
@@ -217,7 +217,7 @@ export default function ConciergeIA() {
               key={conv.id}
               type="button"
               onClick={() => setSelected(conv)}
-              className={`w-full px-4 py-3 flex items-start gap-3 border-b border-gray-100 text-left hover:bg-gray-50 transition-colors ${selected?.id === conv.id ? 'bg-blue-50 border-l-2 border-l-blue-500' : ''}`}
+              className={`w-full px-4 py-3 flex items-start gap-3 border-b border-border-primary text-left hover:bg-bg-secondary transition-colors ${selected?.id === conv.id ? 'bg-info-bg border-l-2 border-l-blue-500' : ''}`}
             >
               <div className="relative shrink-0">
                 <Avatar name={conv.huesped_nombre} size={40} />
@@ -227,15 +227,15 @@ export default function ConciergeIA() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold text-gray-900 truncate">{conv.huesped_nombre}</p>
-                  <span className="text-xs text-gray-400 shrink-0 ml-1">{formatRelative(conv.updated_at)}</span>
+                  <p className="text-sm font-semibold text-text-primary truncate">{conv.huesped_nombre}</p>
+                  <span className="text-xs text-text-tertiary shrink-0 ml-1">{formatRelative(conv.updated_at)}</span>
                 </div>
                 <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">HAB-{conv.habitacion_numero}</span>
+                  <span className="text-xs text-text-tertiary bg-bg-tertiary px-1.5 py-0.5 rounded">HAB-{conv.habitacion_numero}</span>
                 </div>
-                <p className="text-xs text-gray-500 mt-0.5 truncate w-full">{conv.ultimo_mensaje}</p>
+                <p className="text-xs text-text-secondary mt-0.5 truncate w-full">{conv.ultimo_mensaje}</p>
                 {conv.escalado && (
-                  <span className="inline-flex items-center mt-1 px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">
+                  <span className="inline-flex items-center mt-1 px-1.5 py-0.5 rounded text-xs font-medium bg-danger-bg text-danger">
                     escalado
                   </span>
                 )}
@@ -248,20 +248,20 @@ export default function ConciergeIA() {
       {/* CENTER COLUMN */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {!selected ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-gray-400 gap-3">
+          <div className="flex-1 flex flex-col items-center justify-center text-text-tertiary gap-3">
             <span className="text-5xl">💬</span>
             <p className="text-sm">Selecciona una conversación</p>
           </div>
         ) : (
           <>
             {/* Chat header */}
-            <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between bg-white shrink-0">
+            <div className="px-4 py-3 border-b border-border-primary flex items-center justify-between bg-bg-card shrink-0">
               <div className="flex items-center gap-3">
                 <Avatar name={selected.huesped_nombre} size={36} />
                 <div>
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-semibold text-gray-900">{selected.huesped_nombre}</p>
-                    <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">HAB-{selected.habitacion_numero}</span>
+                    <p className="text-sm font-semibold text-text-primary">{selected.huesped_nombre}</p>
+                    <span className="text-xs bg-bg-tertiary text-text-secondary px-1.5 py-0.5 rounded">HAB-{selected.habitacion_numero}</span>
                     {selected.huesped?.segmento_crm && (
                       <span className="text-xs px-1.5 py-0.5 rounded-full text-white font-semibold"
                         style={{ background: '#F59E0B' }}>
@@ -269,7 +269,7 @@ export default function ConciergeIA() {
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-text-secondary">
                     {selected.fecha_entrada && selected.fecha_salida
                       ? `${format(parseISO(selected.fecha_entrada), 'dd/MM')} → ${format(parseISO(selected.fecha_salida), 'dd/MM')}`
                       : selected.reserva_codigo ?? ''}
@@ -278,16 +278,16 @@ export default function ConciergeIA() {
               </div>
               <button
                 onClick={() => setTomaControl(v => !v)}
-                className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-colors ${tomaControl ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-colors ${tomaControl ? 'bg-blue-600 text-white' : 'bg-bg-tertiary text-text-secondary hover:bg-gray-200'}`}
               >
                 {tomaControl ? '⚡ Recepción activa' : '🤖 Aria responde'}
               </button>
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto px-4 py-4 bg-gray-50 space-y-3">
+            <div className="flex-1 overflow-y-auto px-4 py-4 bg-bg-secondary space-y-3">
               {mensajes.length === 0 && (
-                <div className="text-center py-8 text-gray-400 text-sm">Sin mensajes</div>
+                <div className="text-center py-8 text-text-tertiary text-sm">Sin mensajes</div>
               )}
               {mensajes.map(msg => {
                 const isHuesped = msg.tipo === 'huesped'
@@ -302,15 +302,15 @@ export default function ConciergeIA() {
                         </div>
                       )}
                       <div className={`px-3 py-2 rounded-lg text-sm ${
-                        isHuesped ? 'bg-white border border-gray-200 text-gray-800 rounded-tl-none shadow-sm'
+                        isHuesped ? 'bg-bg-card border border-border-primary text-gray-800 rounded-tl-none shadow-sm'
                         : isAria ? 'bg-blue-600 text-white rounded-tr-none'
                         : 'bg-blue-800 text-white rounded-tr-none'
                       }`}>
                         {msg.contenido}
                       </div>
                       <div className={`flex items-center gap-1 mt-0.5 ${isHuesped ? 'justify-start' : 'justify-end'}`}>
-                        {!isHuesped && <span className="text-xs text-gray-400">{isAria ? 'Aria' : 'Recepción'}</span>}
-                        <span className="text-xs text-gray-400">{format(new Date(msg.created_at), 'HH:mm')}</span>
+                        {!isHuesped && <span className="text-xs text-text-tertiary">{isAria ? 'Aria' : 'Recepción'}</span>}
+                        <span className="text-xs text-text-tertiary">{format(new Date(msg.created_at), 'HH:mm')}</span>
                       </div>
                     </div>
                     {!isHuesped && (
@@ -325,9 +325,9 @@ export default function ConciergeIA() {
             </div>
 
             {/* Input */}
-            <div className="px-4 py-3 border-t border-gray-200 bg-white shrink-0">
+            <div className="px-4 py-3 border-t border-border-primary bg-bg-card shrink-0">
               {!tomaControl ? (
-                <div className="w-full px-4 py-3 rounded-xl bg-gray-100 text-gray-400 text-sm">
+                <div className="w-full px-4 py-3 rounded-xl bg-bg-tertiary text-text-tertiary text-sm">
                   🤖 Aria está respondiendo automáticamente
                 </div>
               ) : (
@@ -361,16 +361,16 @@ export default function ConciergeIA() {
       </div>
 
       {/* RIGHT COLUMN */}
-      <div className="w-64 border-l border-gray-200 overflow-y-auto p-4 bg-white shrink-0">
-        <h2 className="text-sm font-semibold text-gray-900 mb-4">Perfil del huésped</h2>
+      <div className="w-64 border-l border-border-primary overflow-y-auto p-4 bg-bg-card shrink-0">
+        <h2 className="text-sm font-semibold text-text-primary mb-4">Perfil del huésped</h2>
 
         {!selected ? (
-          <p className="text-sm text-gray-400 text-center py-8">Selecciona una conversación</p>
+          <p className="text-sm text-text-tertiary text-center py-8">Selecciona una conversación</p>
         ) : (
           <>
             <div className="text-center mb-4">
               <Avatar name={selected.huesped_nombre} size={60} />
-              <p className="font-semibold text-gray-900 mt-2">{selected.huesped_nombre}</p>
+              <p className="font-semibold text-text-primary mt-2">{selected.huesped_nombre}</p>
               {selected.huesped?.segmento_crm && (
                 <span className="inline-block mt-1 text-xs px-2 py-0.5 rounded-full text-white font-medium"
                   style={{ background: '#F59E0B' }}>
@@ -380,58 +380,58 @@ export default function ConciergeIA() {
             </div>
 
             <div className="space-y-2 text-sm mb-5">
-              <div className="flex items-center gap-2 text-gray-600">
+              <div className="flex items-center gap-2 text-text-secondary">
                 <span>🛏</span>
                 <span>Habitación: <strong>HAB-{selected.habitacion_numero}</strong></span>
               </div>
               {selected.fecha_entrada && (
-                <div className="flex items-center gap-2 text-gray-600">
+                <div className="flex items-center gap-2 text-text-secondary">
                   <span>📅</span>
                   <span>Check-in: <strong>{format(parseISO(selected.fecha_entrada), 'dd/MM/yyyy')}</strong></span>
                 </div>
               )}
               {selected.fecha_salida && (
-                <div className="flex items-center gap-2 text-gray-600">
+                <div className="flex items-center gap-2 text-text-secondary">
                   <span>📅</span>
                   <span>Check-out: <strong>{format(parseISO(selected.fecha_salida), 'dd/MM/yyyy')}</strong></span>
                 </div>
               )}
               {selected.huesped?.idioma_preferido && (
-                <div className="flex items-center gap-2 text-gray-600">
+                <div className="flex items-center gap-2 text-text-secondary">
                   <span>🌍</span>
                   <span>Idioma: <strong>{selected.huesped.idioma_preferido.toUpperCase()}</strong></span>
                 </div>
               )}
             </div>
 
-            <hr className="border-gray-200 mb-4" />
+            <hr className="border-border-primary mb-4" />
 
             <div className="mb-5">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Preferencias</p>
+              <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2">Preferencias</p>
               {selected.huesped?.preferencias && Object.keys(selected.huesped.preferencias).length > 0 ? (
                 <div className="flex flex-wrap gap-1.5">
                   {Object.entries(selected.huesped.preferencias).map(([k, v]) => (
-                    <span key={k} className="px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded-full border border-blue-200">
+                    <span key={k} className="px-2 py-0.5 bg-info-bg text-info text-xs rounded-full border border-info">
                       {v || k}
                     </span>
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-gray-400">Sin preferencias registradas</p>
+                <p className="text-xs text-text-tertiary">Sin preferencias registradas</p>
               )}
             </div>
 
-            <hr className="border-gray-200 mb-4" />
+            <hr className="border-border-primary mb-4" />
 
             <div className="mb-5">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Alertas activas</p>
+              <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2">Alertas activas</p>
               {alertas.length === 0 ? (
-                <p className="text-xs text-green-600 font-medium">✓ Sin alertas</p>
+                <p className="text-xs text-success font-medium">✓ Sin alertas</p>
               ) : (
                 <div className="space-y-2">
                   {alertas.map(a => (
-                    <div key={a.id} className="bg-red-50 border border-red-200 rounded-lg p-2">
-                      <p className="text-xs font-semibold text-red-700">{a.tipo}</p>
+                    <div key={a.id} className="bg-danger-bg border border-danger rounded-lg p-2">
+                      <p className="text-xs font-semibold text-danger">{a.tipo}</p>
                       <p className="text-xs text-red-600 mt-0.5">{a.descripcion ?? a.mensaje}</p>
                       {a.nivel && <span className="text-xs text-red-500">{a.nivel}</span>}
                     </div>
@@ -443,7 +443,7 @@ export default function ConciergeIA() {
             {selected.reserva_codigo && (
               <button
                 onClick={() => navigate(`/reservas?q=${selected.reserva_codigo}`)}
-                className="w-full text-left text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
+                className="w-full text-left text-sm text-blue-600 hover:text-info font-medium flex items-center gap-1"
               >
                 Ver reserva completa <span>→</span>
               </button>

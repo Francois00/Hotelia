@@ -65,24 +65,24 @@ export default function TiposHabitacionPage() {
   return (
     <div className="p-6 space-y-6 max-w-4xl">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Tipos de Habitación</h1>
-        <p className="text-gray-500 text-sm mt-0.5">Gestiona los tipos personalizados de habitación</p>
+        <h1 className="text-2xl font-bold text-text-primary">Tipos de Habitación</h1>
+        <p className="text-text-secondary text-sm mt-0.5">Gestiona los tipos personalizados de habitación</p>
       </div>
 
       {/* Tabla */}
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="bg-bg-card rounded-2xl border border-border-primary shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="bg-bg-secondary border-b border-border-primary">
               <tr>
                 {['Nombre', 'Descripción', 'Color', 'Activo', 'Acciones'].map(h => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-text-secondary uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {tiposCompletos.map(t => (
-                <tr key={t.id} className="hover:bg-gray-50">
+                <tr key={t.id} className="hover:bg-bg-secondary">
                   <td className="px-4 py-3">
                     {editId === t.id ? (
                       <input
@@ -92,10 +92,10 @@ export default function TiposHabitacionPage() {
                         className="px-2 py-1 border border-gray-300 rounded text-sm"
                       />
                     ) : (
-                      <span className="text-sm font-medium text-gray-900">{t.nombre}</span>
+                      <span className="text-sm font-medium text-text-primary">{t.nombre}</span>
                     )}
                     {t.predefinido && (
-                      <span className="ml-2 px-1.5 py-0.5 bg-gray-100 text-gray-500 text-xs rounded">predefinido</span>
+                      <span className="ml-2 px-1.5 py-0.5 bg-bg-tertiary text-text-secondary text-xs rounded">predefinido</span>
                     )}
                   </td>
                   <td className="px-4 py-3">
@@ -107,7 +107,7 @@ export default function TiposHabitacionPage() {
                         className="px-2 py-1 border border-gray-300 rounded text-sm w-full"
                       />
                     ) : (
-                      <span className="text-sm text-gray-500">{t.descripcion ?? '—'}</span>
+                      <span className="text-sm text-text-secondary">{t.descripcion ?? '—'}</span>
                     )}
                   </td>
                   <td className="px-4 py-3">
@@ -119,7 +119,7 @@ export default function TiposHabitacionPage() {
                         className="w-10 h-8 rounded cursor-pointer border border-gray-300"
                       />
                     ) : (
-                      <div className="w-5 h-5 rounded border border-gray-200" style={{ backgroundColor: t.color_mapa ?? '#3b82f6' }} />
+                      <div className="w-5 h-5 rounded border border-border-primary" style={{ backgroundColor: t.color_mapa ?? '#3b82f6' }} />
                     )}
                   </td>
                   <td className="px-4 py-3">
@@ -128,10 +128,10 @@ export default function TiposHabitacionPage() {
                         onClick={() => void handleToggle(t.id, !(t.activo ?? true))}
                         className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${(t.activo ?? true) ? 'bg-blue-600' : 'bg-gray-300'}`}
                       >
-                        <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${(t.activo ?? true) ? 'translate-x-4' : 'translate-x-1'}`} />
+                        <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-bg-card transition-transform ${(t.activo ?? true) ? 'translate-x-4' : 'translate-x-1'}`} />
                       </button>
                     ) : (
-                      <span className="text-xs text-gray-400">—</span>
+                      <span className="text-xs text-text-tertiary">—</span>
                     )}
                   </td>
                   <td className="px-4 py-3">
@@ -139,7 +139,7 @@ export default function TiposHabitacionPage() {
                       editId === t.id ? (
                         <div className="flex gap-2">
                           <button onClick={() => void handleSaveEdit(t.id)} className="text-xs text-blue-600 font-medium hover:underline">Guardar</button>
-                          <button onClick={() => setEditId(null)} className="text-xs text-gray-500 hover:underline">Cancelar</button>
+                          <button onClick={() => setEditId(null)} className="text-xs text-text-secondary hover:underline">Cancelar</button>
                         </div>
                       ) : (
                         <button
@@ -159,11 +159,11 @@ export default function TiposHabitacionPage() {
       </div>
 
       {/* Formulario nuevo tipo */}
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
-        <h2 className="text-sm font-semibold text-gray-900 mb-4">Nuevo tipo</h2>
+      <div className="bg-bg-card rounded-2xl border border-border-primary shadow-sm p-5">
+        <h2 className="text-sm font-semibold text-text-primary mb-4">Nuevo tipo</h2>
         <div className="flex items-end gap-3 flex-wrap">
           <div className="flex-1 min-w-40">
-            <label className="block text-xs font-medium text-gray-600 mb-1">Nombre *</label>
+            <label className="block text-xs font-medium text-text-secondary mb-1">Nombre *</label>
             <input
               type="text"
               value={form.nombre}
@@ -173,7 +173,7 @@ export default function TiposHabitacionPage() {
             />
           </div>
           <div className="flex-1 min-w-40">
-            <label className="block text-xs font-medium text-gray-600 mb-1">Descripción</label>
+            <label className="block text-xs font-medium text-text-secondary mb-1">Descripción</label>
             <input
               type="text"
               value={form.descripcion}
@@ -183,7 +183,7 @@ export default function TiposHabitacionPage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Color</label>
+            <label className="block text-xs font-medium text-text-secondary mb-1">Color</label>
             <input
               type="color"
               value={form.color_mapa}

@@ -37,12 +37,12 @@ const CANALES: CanalInfo[] = [
 
 function getEstado(canal: CanalNombre, logs: SyncLogEntry[]) {
   const propios = logs.filter(l => l.canal === canal)
-  if (propios.length === 0) return { dot: '⚪', label: 'NO CONFIGURADO', cls: 'bg-gray-100 text-gray-500' }
+  if (propios.length === 0) return { dot: '⚪', label: 'NO CONFIGURADO', cls: 'bg-bg-tertiary text-text-secondary' }
   const errores = propios.slice(0, 3).filter(l => !l.exito).length
-  if (errores >= 3) return { dot: '🔴', label: 'ERROR', cls: 'bg-red-100 text-red-700' }
+  if (errores >= 3) return { dot: '🔴', label: 'ERROR', cls: 'bg-danger-bg text-danger' }
   const diffMs = Date.now() - new Date(propios[0].created_at).getTime()
   if (diffMs > 3_600_000) return { dot: '🟠', label: 'ADVERTENCIA', cls: 'bg-orange-100 text-orange-700' }
-  return { dot: '🟢', label: 'CONECTADO', cls: 'bg-green-100 text-green-700' }
+  return { dot: '🟢', label: 'CONECTADO', cls: 'bg-success-bg text-success' }
 }
 
 export default function ChannelManagerPage() {
@@ -80,12 +80,12 @@ export default function ChannelManagerPage() {
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Channel Manager</h1>
-        <p className="text-gray-500 text-sm mt-0.5">Gestión de canales de distribución OTA</p>
+        <h1 className="text-2xl font-bold text-text-primary">Channel Manager</h1>
+        <p className="text-text-secondary text-sm mt-0.5">Gestión de canales de distribución OTA</p>
       </div>
 
       {banner && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-blue-700">
+        <div className="bg-info-bg border border-info rounded-xl px-4 py-3 text-sm text-info">
           {banner}
         </div>
       )}
@@ -99,18 +99,18 @@ export default function ChannelManagerPage() {
             const ultimoLog = syncLog.find(l => l.canal === canal.id)
             const syncing  = syncingCanal === canal.id
             return (
-              <div key={canal.id} className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 space-y-3">
+              <div key={canal.id} className="bg-bg-card rounded-2xl border border-border-primary shadow-sm p-4 space-y-3">
                 <div className="flex items-start gap-2">
                   <span className="text-2xl shrink-0">{canal.icono}</span>
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 truncate">{canal.nombre}</p>
-                    <p className="text-xs text-gray-400">{canal.descripcion}</p>
+                    <p className="text-sm font-semibold text-text-primary truncate">{canal.nombre}</p>
+                    <p className="text-xs text-text-tertiary">{canal.descripcion}</p>
                   </div>
                 </div>
                 <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${estado.cls}`}>
                   {estado.dot} {estado.label}
                 </span>
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-text-tertiary">
                   {ultimoLog
                     ? `Última sync: ${format(parseISO(ultimoLog.created_at), 'dd/MM/yy HH:mm')}`
                     : 'Sin sincronizaciones registradas'}
@@ -118,7 +118,7 @@ export default function ChannelManagerPage() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => setConfigCanal(canal.id)}
-                    className="flex-1 text-xs px-2 py-1.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                    className="flex-1 text-xs px-2 py-1.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-bg-secondary transition-colors"
                   >
                     Configurar
                   </button>
@@ -142,13 +142,13 @@ export default function ChannelManagerPage() {
       </section>
 
       {/* ── Sección B — Calendario de disponibilidad ──────────────────── */}
-      <section className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
-        <h2 className="text-sm font-semibold text-gray-900 mb-4">Calendario de disponibilidad por canal</h2>
+      <section className="bg-bg-card rounded-2xl border border-border-primary shadow-sm p-5">
+        <h2 className="text-sm font-semibold text-text-primary mb-4">Calendario de disponibilidad por canal</h2>
         <div className="flex flex-col items-center justify-center py-14 gap-4 text-center">
           <span className="text-5xl">📅</span>
           <div>
             <p className="text-gray-700 font-semibold">Integración con OTAs pendiente de configuración</p>
-            <p className="text-sm text-gray-400 mt-1 max-w-sm">
+            <p className="text-sm text-text-tertiary mt-1 max-w-sm">
               Configura las credenciales de Booking.com y Expedia para sincronizar y visualizar la disponibilidad por canal.
             </p>
           </div>
@@ -164,8 +164,8 @@ export default function ChannelManagerPage() {
       {/* ── Sección C — Acciones rápidas + Log ───────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Acciones rápidas */}
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
-          <h2 className="text-sm font-semibold text-gray-900 mb-4">Acciones rápidas</h2>
+        <div className="bg-bg-card rounded-2xl border border-border-primary shadow-sm p-5">
+          <h2 className="text-sm font-semibold text-text-primary mb-4">Acciones rápidas</h2>
           <div className="space-y-2">
             <ActionBtn
               icon="🟢"
@@ -183,41 +183,41 @@ export default function ChannelManagerPage() {
         </div>
 
         {/* Log de sincronización */}
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-100">
-            <h2 className="text-sm font-semibold text-gray-900">Log de sincronización</h2>
+        <div className="bg-bg-card rounded-2xl border border-border-primary shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-border-primary">
+            <h2 className="text-sm font-semibold text-text-primary">Log de sincronización</h2>
           </div>
           {logLoading ? (
             <div className="flex items-center justify-center py-10">
               <span className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
             </div>
           ) : syncLog.length === 0 ? (
-            <p className="px-5 py-8 text-center text-gray-400 text-sm">
+            <p className="px-5 py-8 text-center text-text-tertiary text-sm">
               No hay sincronizaciones registradas
             </p>
           ) : (
             <div className="overflow-y-auto" style={{ maxHeight: 280 }}>
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 sticky top-0">
+                <thead className="bg-bg-secondary sticky top-0">
                   <tr>
                     {['Fecha', 'Canal', 'Evento', 'Estado'].map(h => (
-                      <th key={h} className="px-3 py-2.5 text-left text-xs font-semibold text-gray-500">{h}</th>
+                      <th key={h} className="px-3 py-2.5 text-left text-xs font-semibold text-text-secondary">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {syncLog.map(entry => (
-                    <tr key={entry.id} className="hover:bg-gray-50">
-                      <td className="px-3 py-2 text-xs text-gray-500">
+                    <tr key={entry.id} className="hover:bg-bg-secondary">
+                      <td className="px-3 py-2 text-xs text-text-secondary">
                         {format(parseISO(entry.created_at), 'dd/MM/yy HH:mm')}
                       </td>
                       <td className="px-3 py-2 text-xs font-medium text-gray-700 capitalize">
                         {entry.canal}
                       </td>
-                      <td className="px-3 py-2 text-xs text-gray-600">{entry.evento}</td>
+                      <td className="px-3 py-2 text-xs text-text-secondary">{entry.evento}</td>
                       <td className="px-3 py-2">
                         <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${
-                          entry.exito ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                          entry.exito ? 'bg-success-bg text-success' : 'bg-danger-bg text-danger'
                         }`}>
                           {entry.exito ? '✅ OK' : '❌ Error'}
                         </span>
@@ -248,12 +248,12 @@ function ActionBtn({ icon, title, desc, onClick }: {
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-3 px-4 py-3 border border-gray-200 rounded-xl text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left"
+      className="w-full flex items-center gap-3 px-4 py-3 border border-border-primary rounded-xl text-sm text-gray-700 hover:bg-bg-secondary transition-colors text-left"
     >
       <span className="text-xl shrink-0">{icon}</span>
       <div>
         <p className="font-medium">{title}</p>
-        <p className="text-xs text-gray-400">{desc}</p>
+        <p className="text-xs text-text-tertiary">{desc}</p>
       </div>
     </button>
   )

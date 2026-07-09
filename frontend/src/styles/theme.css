@@ -1,0 +1,90 @@
+:root {
+  /* ── MODO CLARO (default) ── */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f9fb;
+  --bg-tertiary: #f1f3f6;
+  --bg-card: #ffffff;
+  --bg-sidebar: #ffffff;
+  --bg-header: #ffffff;
+  --bg-hover: #f3f4f6;
+  --bg-overlay: rgba(0,0,0,0.4);
+
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --text-tertiary: #9ca3af;
+  --text-inverse: #ffffff;
+
+  --border-primary: #e5e7eb;
+  --border-secondary: #f3f4f6;
+
+  --brand-primary: #1B3A6B;
+  --brand-secondary: #2E75B6;
+  --brand-accent: #f59e0b;
+
+  --success: #22c55e;
+  --success-bg: #dcfce7;
+  --warning: #f59e0b;
+  --warning-bg: #fef3c7;
+  --danger: #ef4444;
+  --danger-bg: #fee2e2;
+  --info: #3b82f6;
+  --info-bg: #dbeafe;
+
+  /* Estados de habitación (mantener siempre reconocibles en ambos modos) */
+  --estado-disponible: #22c55e;
+  --estado-ocupada: #3b82f6;
+  --estado-limpieza: #eab308;
+  --estado-mantenimiento: #ef4444;
+  --estado-fuera-servicio: #6b7280;
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
+  --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
+}
+
+[data-theme="dark"] {
+  --bg-primary: #0f1420;
+  --bg-secondary: #161b28;
+  --bg-tertiary: #1e2536;
+  --bg-card: #1a2030;
+  --bg-sidebar: #0d111c;
+  --bg-header: #161b28;
+  --bg-hover: #232a3d;
+  --bg-overlay: rgba(0,0,0,0.7);
+
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-tertiary: #64748b;
+  --text-inverse: #0f1420;
+
+  --border-primary: #2a3244;
+  --border-secondary: #1e2536;
+
+  --brand-primary: #3b6bc4;
+  --brand-secondary: #4a90d9;
+  --brand-accent: #fbbf24;
+
+  --success: #34d399;
+  --success-bg: rgba(52,211,153,0.15);
+  --warning: #fbbf24;
+  --warning-bg: rgba(251,191,36,0.15);
+  --danger: #f87171;
+  --danger-bg: rgba(248,113,113,0.15);
+  --info: #60a5fa;
+  --info-bg: rgba(96,165,250,0.15);
+
+  --estado-disponible: #34d399;
+  --estado-ocupada: #60a5fa;
+  --estado-limpieza: #fbbf24;
+  --estado-mantenimiento: #f87171;
+  --estado-fuera-servicio: #94a3b8;
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.4);
+  --shadow-lg: 0 10px 15px rgba(0,0,0,0.5);
+}
+
+/* Transición suave al cambiar de tema */
+* {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}

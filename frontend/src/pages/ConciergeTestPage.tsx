@@ -111,8 +111,8 @@ export default function ConciergeTestPage() {
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-purple-600 flex items-center justify-center text-white text-lg">🤖</div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Concierge IA</h1>
-            <p className="text-xs text-gray-500">
+            <h1 className="text-xl font-bold text-text-primary">Concierge IA</h1>
+            <p className="text-xs text-text-secondary">
               vía n8n → Llama3 → BD · session:{' '}
               <code className="font-mono">{sessionId}</code>
             </p>
@@ -124,7 +124,7 @@ export default function ConciergeTestPage() {
             </span>
             <button
               onClick={handleNuevaSesion}
-              className="px-3 py-1.5 text-xs font-medium border border-gray-300 text-gray-600 rounded-full hover:bg-gray-50 transition-colors"
+              className="px-3 py-1.5 text-xs font-medium border border-gray-300 text-text-secondary rounded-full hover:bg-bg-secondary transition-colors"
             >
               Nueva sesión
             </button>
@@ -147,7 +147,7 @@ export default function ConciergeTestPage() {
       </div>
 
       {/* Chat */}
-      <div className="flex-1 overflow-y-auto bg-white rounded-2xl border border-gray-200 shadow-sm p-4 space-y-3 min-h-0">
+      <div className="flex-1 overflow-y-auto bg-bg-card rounded-2xl border border-border-primary shadow-sm p-4 space-y-3 min-h-0">
         {messages.map((m, i) => (
           <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             {m.role === 'bot' && (
@@ -158,13 +158,13 @@ export default function ConciergeTestPage() {
                 className={`px-4 py-2.5 rounded-2xl text-sm whitespace-pre-wrap ${
                   m.role === 'user'
                     ? 'bg-blue-600 text-white rounded-br-sm'
-                    : 'bg-gray-100 text-gray-800 rounded-bl-sm'
+                    : 'bg-bg-tertiary text-gray-800 rounded-bl-sm'
                 }`}
               >
                 {m.text}
               </div>
               {m.role === 'bot' && m.tiempo_ms !== undefined && (
-                <p className="text-xs text-gray-400 mt-1 px-1">
+                <p className="text-xs text-text-tertiary mt-1 px-1">
                   {m.tiempo_ms.toLocaleString()} ms · llama3
                   {m.paso && <span className="ml-2 text-purple-400">· {m.paso}</span>}
                 </p>
@@ -179,7 +179,7 @@ export default function ConciergeTestPage() {
         {loading && (
           <div className="flex justify-start">
             <div className="w-7 h-7 rounded-full bg-purple-100 flex items-center justify-center text-sm mr-2 shrink-0">🤖</div>
-            <div className="bg-gray-100 rounded-2xl rounded-bl-sm px-4 py-3">
+            <div className="bg-bg-tertiary rounded-2xl rounded-bl-sm px-4 py-3">
               <div className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '0ms' }} />
                 <span className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '150ms' }} />

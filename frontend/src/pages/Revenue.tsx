@@ -81,11 +81,11 @@ function KpiCard({
   isPercent?: boolean
 }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
-      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{label}</p>
-      <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
+    <div className="bg-bg-card rounded-2xl border border-border-primary p-5 shadow-sm">
+      <p className="text-xs font-semibold text-text-tertiary uppercase tracking-wide">{label}</p>
+      <p className="text-2xl font-bold text-text-primary mt-1">{value}</p>
       {delta !== undefined && (
-        <p className={`text-xs font-medium mt-1 flex items-center gap-1 ${delta >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+        <p className={`text-xs font-medium mt-1 flex items-center gap-1 ${delta >= 0 ? 'text-success' : 'text-red-500'}`}>
           {delta >= 0 ? '▲' : '▼'} {Math.abs(delta).toFixed(1)}{isPercent ? 'pp' : '%'} vs mes anterior
         </p>
       )}
@@ -98,14 +98,14 @@ function FactorBar({ label, value }: { label: string; value: number }) {
   const positive = value >= 1
   return (
     <div className="flex items-center gap-2 text-xs">
-      <span className="w-32 text-gray-500 truncate">{label}</span>
-      <div className="flex-1 bg-gray-100 rounded-full h-1.5 overflow-hidden">
+      <span className="w-32 text-text-secondary truncate">{label}</span>
+      <div className="flex-1 bg-bg-tertiary rounded-full h-1.5 overflow-hidden">
         <div
           className={`h-full rounded-full ${positive ? 'bg-green-500' : 'bg-red-400'}`}
           style={{ width: `${pct}%` }}
         />
       </div>
-      <span className={`w-12 text-right font-mono font-medium ${positive ? 'text-green-700' : 'text-red-600'}`}>
+      <span className={`w-12 text-right font-mono font-medium ${positive ? 'text-success' : 'text-red-600'}`}>
         {(value ?? 0).toFixed(2)}x
       </span>
     </div>
@@ -197,18 +197,18 @@ export default function Revenue() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Revenue & Pricing</h1>
-          <p className="text-gray-500 text-sm mt-0.5">Análisis de ingresos y tarifas dinámicas</p>
+          <h1 className="text-2xl font-bold text-text-primary">Revenue & Pricing</h1>
+          <p className="text-text-secondary text-sm mt-0.5">Análisis de ingresos y tarifas dinámicas</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-500">Período:</span>
+          <span className="text-sm text-text-secondary">Período:</span>
           <input
             type="date"
             value={desde}
             onChange={e => setDesde(e.target.value)}
             className="px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-          <span className="text-gray-400 text-sm">—</span>
+          <span className="text-text-tertiary text-sm">—</span>
           <input
             type="date"
             value={hasta}
@@ -243,23 +243,23 @@ export default function Revenue() {
       </div>
 
       {/* Forecast chart */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
-        <h2 className="text-sm font-semibold text-gray-900 mb-4">Forecast de Ocupación (90 días)</h2>
+      <div className="bg-bg-card rounded-2xl border border-border-primary p-5 shadow-sm">
+        <h2 className="text-sm font-semibold text-text-primary mb-4">Forecast de Ocupación (90 días)</h2>
         <ResponsiveContainer width="100%" height={260}>
           <ComposedChart data={forecastData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border-secondary)" />
             <XAxis
               dataKey="fecha"
               ticks={forecastFiltered.map(d => d.fecha)}
               tickFormatter={d => format(parseISO(d), 'dd/MM')}
-              tick={{ fontSize: 10, fill: '#9ca3af' }}
+              tick={{ fontSize: 10, fill: 'var(--text-tertiary)' }}
               axisLine={false}
               tickLine={false}
             />
             <YAxis
               domain={[0, 100]}
               tickFormatter={v => `${v}%`}
-              tick={{ fontSize: 10, fill: '#9ca3af' }}
+              tick={{ fontSize: 10, fill: 'var(--text-tertiary)' }}
               axisLine={false}
               tickLine={false}
             />
@@ -306,26 +306,26 @@ export default function Revenue() {
       {/* Pricing table + Canal chart */}
       <div className="grid grid-cols-3 gap-4">
         {/* Pricing table */}
-        <div className="col-span-2 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-900">Tarifas Recomendadas por IA</h2>
+        <div className="col-span-2 bg-bg-card rounded-2xl border border-border-primary shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-border-primary flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-text-primary">Tarifas Recomendadas por IA</h2>
             {!recomendaciones.length && (
               <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">IA no disponible</span>
             )}
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-bg-secondary border-b border-border-primary">
                 <tr>
                   {['Habitación', 'Tipo', 'Base', 'Recomendada', 'Variación'].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-text-secondary uppercase tracking-wide">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {recomendaciones.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-gray-400 text-sm">
+                    <td colSpan={5} className="px-4 py-8 text-center text-text-tertiary text-sm">
                       {pricingData ? 'Sin datos de pricing' : 'Cargando recomendaciones...'}
                     </td>
                   </tr>
@@ -338,28 +338,28 @@ export default function Revenue() {
                       <tr
                         key={r.habitacion_id}
                         onClick={() => setExpandedPricing(isExpanded ? null : r.habitacion_id)}
-                        className="hover:bg-gray-50 cursor-pointer transition-colors"
+                        className="hover:bg-bg-secondary cursor-pointer transition-colors"
                       >
-                        <td className="px-4 py-3 font-semibold text-gray-900">Hab. {r.numero}</td>
-                        <td className="px-4 py-3 text-gray-600">{r.tipo}</td>
-                        <td className="px-4 py-3 text-gray-600">{formatCurrency(r.tarifa_base)}</td>
-                        <td className="px-4 py-3 font-semibold text-gray-900">{formatCurrency(r.tarifa_recomendada)}</td>
+                        <td className="px-4 py-3 font-semibold text-text-primary">Hab. {r.numero}</td>
+                        <td className="px-4 py-3 text-text-secondary">{r.tipo}</td>
+                        <td className="px-4 py-3 text-text-secondary">{formatCurrency(r.tarifa_base)}</td>
+                        <td className="px-4 py-3 font-semibold text-text-primary">{formatCurrency(r.tarifa_recomendada)}</td>
                         <td className="px-4 py-3">
-                          <span className={`font-semibold text-sm ${variacion >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                          <span className={`font-semibold text-sm ${variacion >= 0 ? 'text-success' : 'text-red-500'}`}>
                             {variacion >= 0 ? '+' : ''}{variacion.toFixed(1)}%
                           </span>
                         </td>
                       </tr>
                       {isExpanded && (
                         <tr key={`${r.habitacion_id}-expanded`}>
-                          <td colSpan={5} className="px-4 py-4 bg-gray-50 border-b border-gray-200">
+                          <td colSpan={5} className="px-4 py-4 bg-bg-secondary border-b border-border-primary">
                             <div className="space-y-2">
-                              <p className="text-xs font-semibold text-gray-600 mb-3">Factores de ajuste</p>
+                              <p className="text-xs font-semibold text-text-secondary mb-3">Factores de ajuste</p>
                               <FactorBar label="Ocupación" value={r.factores.ocupacion_factor} />
                               <FactorBar label="Lead time" value={r.factores.lead_time_factor} />
                               <FactorBar label="Estacionalidad" value={r.factores.seasonality_factor} />
                               <FactorBar label="Canal" value={r.factores.canal_factor} />
-                              <div className="pt-2 border-t border-gray-200">
+                              <div className="pt-2 border-t border-border-primary">
                                 <FactorBar label="Multiplicador total" value={r.factores.multiplicador_total} />
                               </div>
                             </div>
@@ -375,10 +375,10 @@ export default function Revenue() {
         </div>
 
         {/* Canal breakdown */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
-          <h2 className="text-sm font-semibold text-gray-900 mb-4">Revenue por Canal</h2>
+        <div className="bg-bg-card rounded-2xl border border-border-primary p-5 shadow-sm">
+          <h2 className="text-sm font-semibold text-text-primary mb-4">Revenue por Canal</h2>
           {canalBreakdown.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-8">Sin datos</p>
+            <p className="text-sm text-text-tertiary text-center py-8">Sin datos</p>
           ) : (
             <ResponsiveContainer width="100%" height={200}>
               <BarChart
@@ -386,9 +386,9 @@ export default function Revenue() {
                 layout="vertical"
                 margin={{ top: 0, right: 10, left: 0, bottom: 0 }}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" horizontal={false} />
-                <XAxis type="number" tickFormatter={v => formatCurrency(v)} tick={{ fontSize: 9, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-                <YAxis type="category" dataKey="canal" tick={{ fontSize: 10, fill: '#6b7280' }} axisLine={false} tickLine={false} width={80} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-secondary)" horizontal={false} />
+                <XAxis type="number" tickFormatter={v => formatCurrency(v)} tick={{ fontSize: 9, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} />
+                <YAxis type="category" dataKey="canal" tick={{ fontSize: 10, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} width={80} />
                 <Tooltip formatter={(v) => [formatCurrency(Number(v)), 'Revenue']} />
                 <Bar dataKey="total" radius={[0, 4, 4, 0]}>
                   {canalBreakdown.map(entry => (
@@ -404,9 +404,9 @@ export default function Revenue() {
               <div key={entry.canal} className="flex items-center justify-between text-xs">
                 <div className="flex items-center gap-1.5">
                   <div className="w-2.5 h-2.5 rounded-full" style={{ background: CANAL_COLORS[entry.canal] ?? '#6b7280' }} />
-                  <span className="text-gray-600">{entry.canal}</span>
+                  <span className="text-text-secondary">{entry.canal}</span>
                 </div>
-                <span className="font-semibold text-gray-900">{formatCurrency(entry.total)}</span>
+                <span className="font-semibold text-text-primary">{formatCurrency(entry.total)}</span>
               </div>
             ))}
           </div>

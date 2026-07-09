@@ -7,8 +7,11 @@ export default function Sidebar() {
   const { esGlobal, esNivelAlto, tienePermiso } = useRol()
   const { nombreSistema, logoUrl, colorPrimario, esSuperadminPlataforma } = useEmpresa()
 
+  // Sobreescribe el token de marca del theme system con el color de la empresa (SaaS
+  // white label) — al ser un inline style en <html>, gana sobre :root/[data-theme] en
+  // ambos modos claro y oscuro.
   useEffect(() => {
-    document.documentElement.style.setProperty('--color-primario', colorPrimario)
+    document.documentElement.style.setProperty('--brand-primary', colorPrimario)
   }, [colorPrimario])
 
   const handleLogout = () => {
@@ -17,19 +20,19 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="w-60 bg-gray-900 flex flex-col shrink-0">
-      <div className="px-6 py-5 border-b border-gray-700/50">
+    <aside className="w-60 bg-bg-sidebar flex flex-col shrink-0">
+      <div className="px-6 py-5 border-b border-border-primary">
         <div className="flex items-center gap-2">
           {logoUrl ? (
             <img src={logoUrl} alt={nombreSistema} className="w-8 h-8 rounded-lg object-cover" />
           ) : (
-            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm">
+            <div className="w-8 h-8 rounded-lg bg-brand-primary flex items-center justify-center text-white font-bold text-sm">
               {nombreSistema.charAt(0).toUpperCase()}
             </div>
           )}
           <div>
-            <p className="text-white font-semibold text-sm leading-tight">{nombreSistema}</p>
-            <p className="text-gray-400 text-xs">Sistema de Gestión</p>
+            <p className="text-text-primary font-semibold text-sm leading-tight">{nombreSistema}</p>
+            <p className="text-text-tertiary text-xs">Sistema de Gestión</p>
           </div>
         </div>
       </div>
@@ -90,10 +93,10 @@ export default function Sidebar() {
         )}
       </nav>
 
-      <div className="px-3 py-4 border-t border-gray-700/50">
+      <div className="px-3 py-4 border-t border-border-primary">
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-text-secondary hover:bg-bg-hover hover:text-text-primary transition-colors"
         >
           <span className="text-base">↩</span>
           Cerrar sesión
@@ -106,7 +109,7 @@ export default function Sidebar() {
 function GroupLabel({ label }: { label: string }) {
   return (
     <div className="pt-3 pb-1">
-      <p className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">{label}</p>
+      <p className="px-3 text-xs font-semibold text-text-tertiary uppercase tracking-wider">{label}</p>
     </div>
   )
 }
@@ -119,10 +122,10 @@ function NavItem({ to, icon, label, highlight }: { to: string; icon: string; lab
       className={({ isActive }) =>
         `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
           isActive
-            ? 'bg-blue-600 text-white'
+            ? 'bg-brand-primary text-white'
             : highlight
-            ? 'text-blue-400 hover:bg-gray-800 hover:text-blue-300'
-            : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+            ? 'text-blue-400 hover:bg-bg-hover hover:text-blue-300'
+            : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'
         }`
       }
     >
@@ -138,7 +141,7 @@ function SubItem({ to, label }: { to: string; label: string }) {
       to={to}
       className={({ isActive }) =>
         `flex items-center gap-2 pl-8 pr-3 py-2 rounded-lg text-xs font-medium transition-colors ${
-          isActive ? 'bg-blue-600/20 text-blue-400' : 'text-gray-500 hover:bg-gray-800 hover:text-gray-300'
+          isActive ? 'bg-brand-primary/20 text-brand-primary' : 'text-text-tertiary hover:bg-bg-hover hover:text-text-secondary'
         }`
       }
     >

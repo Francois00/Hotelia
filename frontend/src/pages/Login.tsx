@@ -54,7 +54,7 @@ export default function Login() {
             <span className="text-white text-2xl font-bold">H</span>
           </div>
           <h1 className="text-2xl font-bold text-white">Hotel PMS</h1>
-          <p className="text-gray-400 text-sm mt-1">Inicia sesión para continuar</p>
+          <p className="text-text-tertiary text-sm mt-1">Inicia sesión para continuar</p>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-gray-800 rounded-2xl p-8 space-y-5 shadow-xl">

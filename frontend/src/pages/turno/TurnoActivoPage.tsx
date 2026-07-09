@@ -114,14 +114,14 @@ export default function TurnoActivoPage() {
             }}
           />
         )}
-        <p className="text-gray-500 text-sm">No hay un turno abierto.</p>
+        <p className="text-text-secondary text-sm">No hay un turno abierto.</p>
         <button
           onClick={() => setShowAbrir(true)}
           className="px-5 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
         >
           Abrir turno
         </button>
-        <button onClick={() => navigate('/dashboard')} className="text-sm text-gray-400 hover:underline">
+        <button onClick={() => navigate('/dashboard')} className="text-sm text-text-tertiary hover:underline">
           Ir al Dashboard
         </button>
       </div>
@@ -148,12 +148,12 @@ export default function TurnoActivoPage() {
       )}
 
       {/* Header */}
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm px-5 py-4 flex items-center justify-between flex-wrap gap-3">
+      <div className="bg-bg-card rounded-2xl border border-border-primary shadow-sm px-5 py-4 flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
           <span className="w-3 h-3 rounded-full bg-green-400 animate-pulse" />
           <div>
-            <h1 className="text-lg font-bold text-gray-900">TURNO {turno.tipo}</h1>
-            <p className="text-sm text-gray-500">
+            <h1 className="text-lg font-bold text-text-primary">TURNO {turno.tipo}</h1>
+            <p className="text-sm text-text-secondary">
               Apertura: {new Date(turno.hora_apertura).toLocaleDateString('es-PE')} {hora(turno.hora_apertura)} · {turno.recepcionista.nombre} {turno.recepcionista.apellido}
             </p>
           </div>
@@ -166,32 +166,32 @@ export default function TurnoActivoPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Transacciones */}
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="px-5 py-3 border-b border-gray-100">
-            <h2 className="text-sm font-semibold text-gray-900">Movimientos del turno</h2>
+        <div className="bg-bg-card rounded-2xl border border-border-primary shadow-sm overflow-hidden">
+          <div className="px-5 py-3 border-b border-border-primary">
+            <h2 className="text-sm font-semibold text-text-primary">Movimientos del turno</h2>
           </div>
           <div className="overflow-y-auto max-h-96">
             {transacciones.length === 0 ? (
-              <p className="text-center text-sm text-gray-400 py-8">Sin movimientos aún</p>
+              <p className="text-center text-sm text-text-tertiary py-8">Sin movimientos aún</p>
             ) : (
               <table className="w-full">
-                <thead className="bg-gray-50">
+                <thead className="bg-bg-secondary">
                   <tr>
                     {['Hora', 'Cliente', 'Hab.', 'Método', 'Monto'].map(h => (
-                      <th key={h} className="px-3 py-2 text-left text-xs font-semibold text-gray-500">{h}</th>
+                      <th key={h} className="px-3 py-2 text-left text-xs font-semibold text-text-secondary">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {transacciones.map(t => (
-                    <tr key={t.id} className="hover:bg-gray-50">
-                      <td className="px-3 py-2 text-xs text-gray-500">{hora(t.created_at)}</td>
+                    <tr key={t.id} className="hover:bg-bg-secondary">
+                      <td className="px-3 py-2 text-xs text-text-secondary">{hora(t.created_at)}</td>
                       <td className="px-3 py-2 text-xs text-gray-700 max-w-20 truncate">
                         {t.huesped ? `${t.huesped.nombre} ${t.huesped.apellido[0]}.` : '—'}
                       </td>
                       <td className="px-3 py-2 text-xs text-gray-700">{t.habitacion?.numero ?? '—'}</td>
-                      <td className="px-3 py-2 text-xs text-gray-600">{t.metodo}</td>
-                      <td className="px-3 py-2 text-xs font-medium text-gray-900">{formatCurrency(t.monto)}</td>
+                      <td className="px-3 py-2 text-xs text-text-secondary">{t.metodo}</td>
+                      <td className="px-3 py-2 text-xs font-medium text-text-primary">{formatCurrency(t.monto)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -201,9 +201,9 @@ export default function TurnoActivoPage() {
         </div>
 
         {/* Gastos */}
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="px-5 py-3 border-b border-gray-100">
-            <h2 className="text-sm font-semibold text-gray-900">Gastos de caja</h2>
+        <div className="bg-bg-card rounded-2xl border border-border-primary shadow-sm overflow-hidden">
+          <div className="px-5 py-3 border-b border-border-primary">
+            <h2 className="text-sm font-semibold text-text-primary">Gastos de caja</h2>
           </div>
           <div className="p-4 space-y-3">
             <div className="space-y-2">
@@ -211,7 +211,7 @@ export default function TurnoActivoPage() {
                 placeholder="Concepto (ej: Compra de papel)"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">S/</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary text-xs">S/</span>
                 <input type="number" step="0.01" min={0} value={gastoForm.monto} onChange={e => setGastoForm(f => ({ ...f, monto: e.target.value }))}
                   placeholder="0.00"
                   className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
@@ -229,12 +229,12 @@ export default function TurnoActivoPage() {
                 <div key={g.id} className="py-2 flex items-start justify-between gap-2">
                   <div>
                     <p className="text-xs font-medium text-gray-800">{g.concepto}</p>
-                    <p className="text-xs text-gray-400">{hora(g.created_at)}{g.comprobante_proveedor ? ` · ${g.comprobante_proveedor}` : ''}</p>
+                    <p className="text-xs text-text-tertiary">{hora(g.created_at)}{g.comprobante_proveedor ? ` · ${g.comprobante_proveedor}` : ''}</p>
                   </div>
                   <span className="text-xs font-semibold text-red-500 whitespace-nowrap">{formatCurrency(g.monto)}</span>
                 </div>
               ))}
-              {gastos.length === 0 && <p className="text-xs text-gray-400 text-center py-4">Sin gastos registrados</p>}
+              {gastos.length === 0 && <p className="text-xs text-text-tertiary text-center py-4">Sin gastos registrados</p>}
             </div>
             <div className="border-t pt-2 flex justify-between text-sm font-semibold">
               <span className="text-gray-700">Total gastos</span>
@@ -251,18 +251,18 @@ export default function TurnoActivoPage() {
             { icon: '💳', label: 'Tarjetas', val: resumen.total_tarjetas },
             { icon: '🏦', label: 'Transferencias', val: resumen.total_transferencias },
           ].map(c => (
-            <div key={c.label} className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex items-center justify-between">
-              <span className="text-sm text-gray-600">{c.icon} {c.label}</span>
-              <span className="text-sm font-bold text-gray-900">{formatCurrency(c.val)}</span>
+            <div key={c.label} className="bg-bg-card rounded-xl border border-border-primary px-4 py-3 flex items-center justify-between">
+              <span className="text-sm text-text-secondary">{c.icon} {c.label}</span>
+              <span className="text-sm font-bold text-text-primary">{formatCurrency(c.val)}</span>
             </div>
           ))}
-          <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-2">
-            <div className="flex justify-between text-sm font-bold text-gray-900">
+          <div className="bg-bg-card rounded-xl border border-border-primary p-4 space-y-2">
+            <div className="flex justify-between text-sm font-bold text-text-primary">
               <span>TOTAL TURNO</span>
               <span>{formatCurrency(resumen.total_general)}</span>
             </div>
-            <hr className="border-gray-100" />
-            <div className="flex justify-between text-xs text-gray-500">
+            <hr className="border-border-primary" />
+            <div className="flex justify-between text-xs text-text-secondary">
               <span>Saldo inicial</span>
               <span>{formatCurrency(turno.saldo_inicial)}</span>
             </div>
@@ -274,13 +274,13 @@ export default function TurnoActivoPage() {
               <span>Efectivo neto</span>
               <span>{formatCurrency(resumen.efectivo_neto)}</span>
             </div>
-            <hr className="border-gray-200" />
-            <div className="flex justify-between text-sm font-bold text-blue-700">
+            <hr className="border-border-primary" />
+            <div className="flex justify-between text-sm font-bold text-info">
               <span>SALDO FINAL CAJA</span>
               <span>{formatCurrency(resumen.saldo_final_proyectado)}</span>
             </div>
           </div>
-          <div className="text-center text-xs text-gray-500">
+          <div className="text-center text-xs text-text-secondary">
             Check-ins: {resumen.total_checkins} · Check-outs: {resumen.total_checkouts}
           </div>
         </div>

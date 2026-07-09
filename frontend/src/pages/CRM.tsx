@@ -139,38 +139,38 @@ export default function CRM() {
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">CRM</h1>
-        <p className="text-gray-500 text-sm mt-0.5">Gestión de relación con huéspedes</p>
+        <h1 className="text-2xl font-bold text-text-primary">CRM</h1>
+        <p className="text-text-secondary text-sm mt-0.5">Gestión de relación con huéspedes</p>
       </div>
 
       {/* Section 1 — KPI cards */}
       <div className="grid grid-cols-4 gap-4">
-        <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm flex items-center gap-4">
-          <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-lg">👥</div>
+        <div className="bg-bg-card rounded-2xl border border-border-primary p-5 shadow-sm flex items-center gap-4">
+          <div className="w-10 h-10 rounded-xl bg-info-bg flex items-center justify-center text-lg">👥</div>
           <div>
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Total huéspedes</p>
-            <p className="text-2xl font-bold text-gray-900">{allLoading ? '—' : totalHuespedes.toLocaleString()}</p>
+            <p className="text-xs font-semibold text-text-tertiary uppercase tracking-wide">Total huéspedes</p>
+            <p className="text-2xl font-bold text-text-primary">{allLoading ? '—' : totalHuespedes.toLocaleString()}</p>
           </div>
         </div>
-        <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm flex items-center gap-4">
+        <div className="bg-bg-card rounded-2xl border border-border-primary p-5 shadow-sm flex items-center gap-4">
           <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-lg">⭐</div>
           <div>
             <p className="text-xs font-semibold text-amber-600 uppercase tracking-wide">VIP</p>
             <p className="text-2xl font-bold text-amber-600">{allLoading ? '—' : totalVip.toLocaleString()}</p>
           </div>
         </div>
-        <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm flex items-center gap-4">
-          <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-lg">🔄</div>
+        <div className="bg-bg-card rounded-2xl border border-border-primary p-5 shadow-sm flex items-center gap-4">
+          <div className="w-10 h-10 rounded-xl bg-info-bg flex items-center justify-center text-lg">🔄</div>
           <div>
             <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide">Recurrentes</p>
             <p className="text-2xl font-bold text-blue-600">{allLoading ? '—' : totalRecurrentes.toLocaleString()}</p>
           </div>
         </div>
-        <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm flex items-center gap-4">
-          <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-lg">💤</div>
+        <div className="bg-bg-card rounded-2xl border border-border-primary p-5 shadow-sm flex items-center gap-4">
+          <div className="w-10 h-10 rounded-xl bg-bg-tertiary flex items-center justify-center text-lg">💤</div>
           <div>
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Inactivos</p>
-            <p className="text-2xl font-bold text-gray-600">{allLoading ? '—' : totalInactivos.toLocaleString()}</p>
+            <p className="text-xs font-semibold text-text-tertiary uppercase tracking-wide">Inactivos</p>
+            <p className="text-2xl font-bold text-text-secondary">{allLoading ? '—' : totalInactivos.toLocaleString()}</p>
           </div>
         </div>
       </div>
@@ -178,8 +178,8 @@ export default function CRM() {
       {/* Section 2 — Donut + VIP table */}
       <div className="grid grid-cols-2 gap-4">
         {/* Donut chart */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
-          <h2 className="text-sm font-semibold text-gray-900 mb-4">Distribución por segmento</h2>
+        <div className="bg-bg-card rounded-2xl border border-border-primary p-5 shadow-sm">
+          <h2 className="text-sm font-semibold text-text-primary mb-4">Distribución por segmento</h2>
           <div className="relative">
             <ResponsiveContainer width="100%" height={220}>
               <PieChart>
@@ -201,8 +201,8 @@ export default function CRM() {
             </ResponsiveContainer>
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="text-center">
-                <p className="text-3xl font-bold text-gray-900">{totalHuespedes.toLocaleString()}</p>
-                <p className="text-xs text-gray-500">huéspedes</p>
+                <p className="text-3xl font-bold text-text-primary">{totalHuespedes.toLocaleString()}</p>
+                <p className="text-xs text-text-secondary">huéspedes</p>
               </div>
             </div>
           </div>
@@ -214,8 +214,8 @@ export default function CRM() {
                   <span className="text-gray-700 font-medium">{entry.name}</span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-gray-500">{entry.value.toLocaleString()}</span>
-                  <span className="text-gray-400 text-xs w-10 text-right">
+                  <span className="text-text-secondary">{entry.value.toLocaleString()}</span>
+                  <span className="text-text-tertiary text-xs w-10 text-right">
                     {totalHuespedes > 0 ? `${((entry.value / totalHuespedes) * 100).toFixed(1)}%` : '0%'}
                   </span>
                 </div>
@@ -225,30 +225,30 @@ export default function CRM() {
         </div>
 
         {/* VIP + CORPORATIVO table */}
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
-            <h2 className="text-sm font-semibold text-gray-900">Top Huéspedes</h2>
+        <div className="bg-bg-card rounded-2xl border border-border-primary shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-border-primary flex items-center gap-2">
+            <h2 className="text-sm font-semibold text-text-primary">Top Huéspedes</h2>
             <span>👑</span>
-            <span className="ml-auto text-xs text-gray-400">por LTV</span>
+            <span className="ml-auto text-xs text-text-tertiary">por LTV</span>
           </div>
           <div className="overflow-y-auto" style={{ maxHeight: 400 }}>
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 sticky top-0 border-b border-gray-200">
+              <thead className="bg-bg-secondary sticky top-0 border-b border-border-primary">
                 <tr>
                   {['Huésped', 'LTV', 'Estadías', 'Segmento'].map(h => (
-                    <th key={h} className="px-3 py-2.5 text-left text-xs font-semibold text-gray-500">{h}</th>
+                    <th key={h} className="px-3 py-2.5 text-left text-xs font-semibold text-text-secondary">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {allLoading && (
                   <tr>
-                    <td colSpan={4} className="px-4 py-8 text-center text-gray-400 text-sm">Cargando...</td>
+                    <td colSpan={4} className="px-4 py-8 text-center text-text-tertiary text-sm">Cargando...</td>
                   </tr>
                 )}
                 {!allLoading && topVips.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="px-4 py-8 text-center text-gray-400 text-sm">Sin huéspedes VIP</td>
+                    <td colSpan={4} className="px-4 py-8 text-center text-text-tertiary text-sm">Sin huéspedes VIP</td>
                   </tr>
                 )}
                 {topVips.map(h => (
@@ -259,7 +259,7 @@ export default function CRM() {
                     <td className="px-3 py-2.5">
                       <div className="flex items-center gap-2">
                         <Avatar nombre={h.nombre} apellido={h.apellido} size={28} />
-                        <span className="font-medium text-gray-900 truncate max-w-28">
+                        <span className="font-medium text-text-primary truncate max-w-28">
                           {h.apellido ? `${h.apellido}, ${h.nombre}` : h.nombre}
                         </span>
                       </div>
@@ -267,11 +267,11 @@ export default function CRM() {
                     <td className="px-3 py-2.5 font-semibold text-amber-600">
                       {h.ltv_calculado != null ? formatCurrency(h.ltv_calculado) : '—'}
                     </td>
-                    <td className="px-3 py-2.5 text-gray-500 text-xs">
+                    <td className="px-3 py-2.5 text-text-secondary text-xs">
                       {h.total_estancias ?? '—'}
                     </td>
                     <td className="px-3 py-2.5">
-                      {h.segmento_crm ? <SegmentBadge segmento={h.segmento_crm} /> : <span className="text-gray-400">—</span>}
+                      {h.segmento_crm ? <SegmentBadge segmento={h.segmento_crm} /> : <span className="text-text-tertiary">—</span>}
                     </td>
                   </tr>
                 ))}
@@ -282,11 +282,11 @@ export default function CRM() {
       </div>
 
       {/* Section 3 — Guest search */}
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
-        <h2 className="text-sm font-semibold text-gray-900 mb-4">Buscar huésped</h2>
+      <div className="bg-bg-card rounded-2xl border border-border-primary shadow-sm p-5">
+        <h2 className="text-sm font-semibold text-text-primary mb-4">Buscar huésped</h2>
         <div className="relative">
           <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary text-sm">🔍</span>
             <input
               type="text"
               value={huespedSearch}
@@ -301,7 +301,7 @@ export default function CRM() {
           </div>
 
           {showDropdown && searchResults.length > 0 && (
-            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+            <div className="absolute z-10 w-full mt-1 bg-bg-card border border-border-primary rounded-xl shadow-lg overflow-hidden">
               {searchResults.map(h => (
                 <button
                   key={h.id}
@@ -311,14 +311,14 @@ export default function CRM() {
                     setHuespedSearch(`${h.nombre} ${h.apellido ?? ''}`.trim())
                     setShowDropdown(false)
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-0 text-left"
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-bg-secondary border-b border-border-primary last:border-0 text-left"
                 >
                   <Avatar nombre={h.nombre} apellido={h.apellido} size={36} />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 truncate">
+                    <p className="text-sm font-semibold text-text-primary truncate">
                       {h.apellido ? `${h.apellido}, ${h.nombre}` : h.nombre}
                     </p>
-                    <p className="text-xs text-gray-500 truncate">{h.email}</p>
+                    <p className="text-xs text-text-secondary truncate">{h.email}</p>
                   </div>
                   {h.segmento_crm && <SegmentBadge segmento={h.segmento_crm} />}
                 </button>
@@ -327,7 +327,7 @@ export default function CRM() {
           )}
 
           {!searching && searched && huespedSearch.trim() && searchResults.length === 0 && (
-            <p className="mt-2 text-sm text-gray-400 px-1">No se encontraron huéspedes con ese criterio</p>
+            <p className="mt-2 text-sm text-text-tertiary px-1">No se encontraron huéspedes con ese criterio</p>
           )}
         </div>
 
@@ -340,51 +340,51 @@ export default function CRM() {
       </div>
 
       {/* Section 4 — All guests table */}
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-gray-900">Todos los huéspedes</h2>
-          <span className="text-xs text-gray-400">
+      <div className="bg-bg-card rounded-2xl border border-border-primary shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-border-primary flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-text-primary">Todos los huéspedes</h2>
+          <span className="text-xs text-text-tertiary">
             {allLoading ? 'Cargando...' : `${allHuespedesResp?.meta?.total ?? totalHuespedes} registros`}
           </span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-200 sticky top-0">
+            <thead className="bg-bg-secondary border-b border-border-primary sticky top-0">
               <tr>
                 {['Huésped', 'Email', 'Teléfono', 'Estancias', 'LTV', 'Segmento'].map(h => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-text-secondary uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {allLoading && (
-                <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">Cargando huéspedes...</td></tr>
+                <tr><td colSpan={6} className="px-4 py-8 text-center text-text-tertiary">Cargando huéspedes...</td></tr>
               )}
               {!allLoading && allHuespedes.length === 0 && (
-                <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">Sin huéspedes registrados</td></tr>
+                <tr><td colSpan={6} className="px-4 py-8 text-center text-text-tertiary">Sin huéspedes registrados</td></tr>
               )}
               {allHuespedes.map(h => (
                 <tr
                   key={h.id}
-                  className="hover:bg-blue-50/40 transition-colors cursor-pointer"
+                  className="hover:bg-info-bg/40 transition-colors cursor-pointer"
                   onClick={() => { setSelectedHuesped(h); setHuespedSearch(`${h.nombre} ${h.apellido ?? ''}`.trim()) }}
                 >
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <Avatar nombre={h.nombre} apellido={h.apellido} size={28} />
-                      <span className="font-medium text-gray-900">
+                      <span className="font-medium text-text-primary">
                         {h.apellido ? `${h.apellido}, ${h.nombre}` : h.nombre}
                       </span>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-gray-500">{h.email || '—'}</td>
-                  <td className="px-4 py-3 text-gray-500">{h.telefono || '—'}</td>
-                  <td className="px-4 py-3 text-gray-500 text-center">{h.total_estancias ?? '—'}</td>
+                  <td className="px-4 py-3 text-text-secondary">{h.email || '—'}</td>
+                  <td className="px-4 py-3 text-text-secondary">{h.telefono || '—'}</td>
+                  <td className="px-4 py-3 text-text-secondary text-center">{h.total_estancias ?? '—'}</td>
                   <td className="px-4 py-3 font-medium text-gray-700">
                     {h.ltv_calculado != null && h.ltv_calculado > 0 ? formatCurrency(h.ltv_calculado) : '—'}
                   </td>
                   <td className="px-4 py-3">
-                    {h.segmento_crm ? <SegmentBadge segmento={h.segmento_crm} /> : <span className="text-gray-400">—</span>}
+                    {h.segmento_crm ? <SegmentBadge segmento={h.segmento_crm} /> : <span className="text-text-tertiary">—</span>}
                   </td>
                 </tr>
               ))}

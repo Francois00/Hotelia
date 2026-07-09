@@ -73,7 +73,7 @@ export default function SolicitudesWidget() {
   if (solicitudes.length === 0) return null
 
   return (
-    <div className="bg-white rounded-xl border border-amber-200 shadow-sm overflow-hidden">
+    <div className="bg-bg-card rounded-xl border border-amber-200 shadow-sm overflow-hidden">
       <div className="px-4 py-3 bg-amber-50 border-b border-amber-100 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="relative flex h-2.5 w-2.5">
@@ -88,22 +88,22 @@ export default function SolicitudesWidget() {
       </div>
       <div className="divide-y divide-gray-50 max-h-72 overflow-y-auto">
         {solicitudes.map(s => (
-          <div key={s.id} className="px-4 py-3 flex items-start gap-3 hover:bg-gray-50 transition-colors">
+          <div key={s.id} className="px-4 py-3 flex items-start gap-3 hover:bg-bg-secondary transition-colors">
             <span className="text-xl mt-0.5">{TIPO_ICONO[s.tipo] ?? '📋'}</span>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-gray-800 bg-gray-100 px-1.5 py-0.5 rounded">
+                <span className="text-xs font-bold text-gray-800 bg-bg-tertiary px-1.5 py-0.5 rounded">
                   Hab. {s.habitacion_numero}
                 </span>
-                <span className="text-xs text-gray-500 capitalize">{s.tipo.replace('_', ' ')}</span>
-                <span className="text-xs text-gray-400 ml-auto shrink-0">{tiempoTranscurrido(s.created_at)}</span>
+                <span className="text-xs text-text-secondary capitalize">{s.tipo.replace('_', ' ')}</span>
+                <span className="text-xs text-text-tertiary ml-auto shrink-0">{tiempoTranscurrido(s.created_at)}</span>
               </div>
               <p className="text-sm text-gray-700 mt-0.5 truncate">{s.descripcion}</p>
             </div>
             <button
               onClick={() => atender.mutate({ id: s.id, estado: 'atendiendo' })}
               disabled={atender.isPending}
-              className="shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium bg-green-100 text-green-700 hover:bg-green-200 disabled:opacity-50 transition-colors"
+              className="shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium bg-success-bg text-success hover:bg-success-bg disabled:opacity-50 transition-colors"
             >
               ✓ Atender
             </button>

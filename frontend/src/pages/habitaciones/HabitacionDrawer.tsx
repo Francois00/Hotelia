@@ -33,17 +33,17 @@ const TIPO_OPTS = [
 ]
 
 const PRIORIDAD_BADGE: Record<string, string> = {
-  urgente: 'bg-red-100 text-red-700 border-red-200',
+  urgente: 'bg-danger-bg text-danger border-danger',
   alta:    'bg-orange-100 text-orange-700 border-orange-200',
-  media:   'bg-blue-100 text-blue-700 border-blue-200',
-  baja:    'bg-gray-100 text-gray-600 border-gray-200',
+  media:   'bg-info-bg text-info border-info',
+  baja:    'bg-bg-tertiary text-text-secondary border-border-primary',
 }
 
 const ESTADO_BADGE: Record<string, string> = {
-  pendiente:  'bg-yellow-100 text-yellow-700',
-  en_proceso: 'bg-blue-100 text-blue-700',
-  resuelto:   'bg-green-100 text-green-700',
-  cancelado:  'bg-gray-100 text-gray-500',
+  pendiente:  'bg-warning-bg text-warning',
+  en_proceso: 'bg-info-bg text-info',
+  resuelto:   'bg-success-bg text-success',
+  cancelado:  'bg-bg-tertiary text-text-secondary',
 }
 
 const fmt = (n: string | number | null | undefined) =>
@@ -70,24 +70,24 @@ function TabInfo({ room }: { room: Habitacion }) {
           ['Capacidad',  `${room.capacidad_adultos ?? room.capacidad} adultos`],
           ['Tarifa base', fmt(room.tarifa_base)],
         ].map(([k, v]) => (
-          <div key={String(k)} className="bg-gray-50 rounded-lg px-3 py-2">
-            <p className="text-xs text-gray-400 font-medium">{k}</p>
-            <p className="text-gray-900 font-semibold mt-0.5">{v}</p>
+          <div key={String(k)} className="bg-bg-secondary rounded-lg px-3 py-2">
+            <p className="text-xs text-text-tertiary font-medium">{k}</p>
+            <p className="text-text-primary font-semibold mt-0.5">{v}</p>
           </div>
         ))}
       </div>
       {room.descripcion && (
-        <div className="bg-gray-50 rounded-lg px-3 py-2 text-sm">
-          <p className="text-xs text-gray-400 font-medium mb-1">Descripción</p>
+        <div className="bg-bg-secondary rounded-lg px-3 py-2 text-sm">
+          <p className="text-xs text-text-tertiary font-medium mb-1">Descripción</p>
           <p className="text-gray-700">{room.descripcion}</p>
         </div>
       )}
       {room.amenidades && room.amenidades.length > 0 && (
         <div>
-          <p className="text-xs text-gray-400 font-medium mb-2">Amenidades</p>
+          <p className="text-xs text-text-tertiary font-medium mb-2">Amenidades</p>
           <div className="flex flex-wrap gap-1.5">
             {room.amenidades.map(a => (
-              <span key={a} className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full text-xs font-medium">{a}</span>
+              <span key={a} className="px-2 py-0.5 bg-info-bg text-info rounded-full text-xs font-medium">{a}</span>
             ))}
           </div>
         </div>
@@ -156,9 +156,9 @@ function TabMantenimiento({ room, onEstadoChanged }: { room: Habitacion; onEstad
           { label: 'En proceso', value: stats.enProceso },
           { label: 'Costo total', value: fmt(stats.costo) },
         ].map(s => (
-          <div key={s.label} className="bg-gray-50 rounded-lg px-2 py-2 text-center">
-            <p className="text-lg font-bold text-gray-900">{s.value}</p>
-            <p className="text-xs text-gray-400">{s.label}</p>
+          <div key={s.label} className="bg-bg-secondary rounded-lg px-2 py-2 text-center">
+            <p className="text-lg font-bold text-text-primary">{s.value}</p>
+            <p className="text-xs text-text-tertiary">{s.label}</p>
           </div>
         ))}
       </div>
@@ -177,28 +177,28 @@ function TabMantenimiento({ room, onEstadoChanged }: { room: Habitacion; onEstad
         <div className="mx-5 mb-3 p-4 bg-orange-50 border border-orange-200 rounded-xl space-y-3">
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="text-xs font-medium text-gray-600 block mb-1">Tipo</label>
+              <label className="text-xs font-medium text-text-secondary block mb-1">Tipo</label>
               <select
                 value={form.tipo_problema}
                 onChange={e => setForm(f => ({ ...f, tipo_problema: e.target.value }))}
-                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-orange-400"
+                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg bg-bg-card focus:outline-none focus:ring-2 focus:ring-orange-400"
               >
                 {TIPO_OPTS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-600 block mb-1">Prioridad</label>
+              <label className="text-xs font-medium text-text-secondary block mb-1">Prioridad</label>
               <select
                 value={form.prioridad}
                 onChange={e => setForm(f => ({ ...f, prioridad: e.target.value }))}
-                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-orange-400"
+                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg bg-bg-card focus:outline-none focus:ring-2 focus:ring-orange-400"
               >
                 {['baja','media','alta','urgente'].map(p => <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
               </select>
             </div>
           </div>
           <div>
-            <label className="text-xs font-medium text-gray-600 block mb-1">Descripción *</label>
+            <label className="text-xs font-medium text-text-secondary block mb-1">Descripción *</label>
             <textarea
               value={form.descripcion}
               onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))}
@@ -209,7 +209,7 @@ function TabMantenimiento({ room, onEstadoChanged }: { room: Habitacion; onEstad
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="text-xs font-medium text-gray-600 block mb-1">Técnico (opc.)</label>
+              <label className="text-xs font-medium text-text-secondary block mb-1">Técnico (opc.)</label>
               <input
                 type="text"
                 value={form.tecnico_nombre}
@@ -219,7 +219,7 @@ function TabMantenimiento({ room, onEstadoChanged }: { room: Habitacion; onEstad
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-600 block mb-1">Costo est. S/ (opc.)</label>
+              <label className="text-xs font-medium text-text-secondary block mb-1">Costo est. S/ (opc.)</label>
               <input
                 type="number" step="0.01" min="0"
                 value={form.costo_estimado}
@@ -244,24 +244,24 @@ function TabMantenimiento({ room, onEstadoChanged }: { room: Habitacion; onEstad
 
       {/* List */}
       <div className="flex-1 overflow-y-auto px-5 pb-5 space-y-3">
-        {isLoading && <p className="text-sm text-gray-400 text-center pt-4">Cargando...</p>}
+        {isLoading && <p className="text-sm text-text-tertiary text-center pt-4">Cargando...</p>}
         {!isLoading && registros.length === 0 && (
-          <p className="text-sm text-gray-400 text-center pt-8">Sin órdenes de mantenimiento</p>
+          <p className="text-sm text-text-tertiary text-center pt-8">Sin órdenes de mantenimiento</p>
         )}
         {registros.map(r => (
-          <div key={r.id} className="border border-gray-200 rounded-xl overflow-hidden">
+          <div key={r.id} className="border border-border-primary rounded-xl overflow-hidden">
             <div className="px-4 py-3 flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap mb-1">
                   <span className={`px-2 py-0.5 rounded-full text-xs font-bold border ${PRIORIDAD_BADGE[r.prioridad] ?? ''}`}>
                     {r.prioridad.toUpperCase()}
                   </span>
-                  <span className="text-xs font-medium text-gray-600 capitalize">
+                  <span className="text-xs font-medium text-text-secondary capitalize">
                     {TIPO_OPTS.find(o => o.value === r.tipo_problema)?.label ?? r.tipo_problema}
                   </span>
                 </div>
                 <p className="text-sm text-gray-800 mb-1">{r.descripcion}</p>
-                <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-gray-400">
+                <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-text-tertiary">
                   {r.tecnico_nombre && <span>Técnico: {r.tecnico_nombre}</span>}
                   {r.costo_estimado && <span>S/ {parseFloat(r.costo_estimado).toFixed(2)} est.</span>}
                   <span>{fmtDate(r.created_at)}</span>
@@ -293,7 +293,7 @@ function TabMantenimiento({ room, onEstadoChanged }: { room: Habitacion; onEstad
                 <button
                   onClick={() => updateMut.mutate({ id: r.id, estado: 'cancelado' })}
                   disabled={updateMut.isPending}
-                  className="px-3 py-1 text-xs font-medium border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                  className="px-3 py-1 text-xs font-medium border border-gray-300 text-text-secondary rounded-lg hover:bg-bg-secondary disabled:opacity-50"
                 >
                   Cancelar
                 </button>
@@ -301,7 +301,7 @@ function TabMantenimiento({ room, onEstadoChanged }: { room: Habitacion; onEstad
             )}
 
             {closingId === r.id && (
-              <div className="px-4 pb-3 space-y-2 border-t border-gray-100 pt-3">
+              <div className="px-4 pb-3 space-y-2 border-t border-border-primary pt-3">
                 <textarea
                   value={notasCierre}
                   onChange={e => setNotasCierre(e.target.value)}
@@ -311,7 +311,7 @@ function TabMantenimiento({ room, onEstadoChanged }: { room: Habitacion; onEstad
                 />
                 <div className="flex gap-2">
                   <button onClick={() => { setClosingId(null); setNotasCierre('') }}
-                    className="px-3 py-1 text-xs border border-gray-300 rounded-lg text-gray-600">
+                    className="px-3 py-1 text-xs border border-gray-300 rounded-lg text-text-secondary">
                     Cancelar
                   </button>
                   <button
@@ -326,9 +326,9 @@ function TabMantenimiento({ room, onEstadoChanged }: { room: Habitacion; onEstad
             )}
 
             {r.estado === 'resuelto' && r.notas_cierre && (
-              <div className="px-4 pb-3 border-t border-gray-100 pt-2">
-                <p className="text-xs text-gray-500 italic">Cierre: {r.notas_cierre}</p>
-                {r.fecha_fin && <p className="text-xs text-gray-400">{fmtDate(r.fecha_fin)}</p>}
+              <div className="px-4 pb-3 border-t border-border-primary pt-2">
+                <p className="text-xs text-text-secondary italic">Cierre: {r.notas_cierre}</p>
+                {r.fecha_fin && <p className="text-xs text-text-tertiary">{fmtDate(r.fecha_fin)}</p>}
               </div>
             )}
           </div>
@@ -350,17 +350,17 @@ function TabHistorial({ room }: { room: Habitacion }) {
 
   return (
     <div className="p-5 space-y-3">
-      {isLoading && <p className="text-sm text-gray-400">Cargando...</p>}
+      {isLoading && <p className="text-sm text-text-tertiary">Cargando...</p>}
       {!isLoading && resueltos.length === 0 && (
-        <p className="text-sm text-gray-400 text-center pt-8">Sin historial de órdenes cerradas</p>
+        <p className="text-sm text-text-tertiary text-center pt-8">Sin historial de órdenes cerradas</p>
       )}
       {resueltos.map(r => (
-        <div key={r.id} className="border border-gray-100 rounded-xl px-4 py-3 space-y-1">
+        <div key={r.id} className="border border-border-primary rounded-xl px-4 py-3 space-y-1">
           <div className="flex items-center gap-2">
             <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${ESTADO_BADGE[r.estado] ?? ''}`}>
               {r.estado}
             </span>
-            <span className="text-xs text-gray-500 capitalize">
+            <span className="text-xs text-text-secondary capitalize">
               {TIPO_OPTS.find(o => o.value === r.tipo_problema)?.label ?? r.tipo_problema}
             </span>
             <span className={`ml-auto px-1.5 py-0.5 rounded text-xs border ${PRIORIDAD_BADGE[r.prioridad] ?? ''}`}>
@@ -368,8 +368,8 @@ function TabHistorial({ room }: { room: Habitacion }) {
             </span>
           </div>
           <p className="text-sm text-gray-700">{r.descripcion}</p>
-          {r.notas_cierre && <p className="text-xs text-gray-500 italic">{r.notas_cierre}</p>}
-          <div className="flex gap-3 text-xs text-gray-400">
+          {r.notas_cierre && <p className="text-xs text-text-secondary italic">{r.notas_cierre}</p>}
+          <div className="flex gap-3 text-xs text-text-tertiary">
             <span>Inicio: {fmtDate(r.created_at)}</span>
             {r.fecha_fin && <span>Fin: {fmtDate(r.fecha_fin)}</span>}
             {r.costo_estimado && <span>S/ {parseFloat(r.costo_estimado).toFixed(2)}</span>}
@@ -396,18 +396,18 @@ export default function HabitacionDrawer({ room, onClose, onEstadoChanged }: Pro
   return (
     <div className="fixed inset-0 z-40 flex justify-end">
       <div className="absolute inset-0 bg-black/30" onClick={onClose} />
-      <div className="relative w-full max-w-md bg-white h-full shadow-2xl flex flex-col">
+      <div className="relative w-full max-w-md bg-bg-card h-full shadow-2xl flex flex-col">
         {/* Header */}
-        <div className="px-5 py-4 border-b border-gray-200 flex items-start justify-between shrink-0">
+        <div className="px-5 py-4 border-b border-border-primary flex items-start justify-between shrink-0">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">Hab. {room.numero}</h2>
-            <p className="text-sm text-gray-500">{room.tipo} · Piso {room.piso}</p>
+            <h2 className="text-lg font-bold text-text-primary">Hab. {room.numero}</h2>
+            <p className="text-sm text-text-secondary">{room.tipo} · Piso {room.piso}</p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none mt-0.5">&times;</button>
+          <button onClick={onClose} className="text-text-tertiary hover:text-text-secondary text-2xl leading-none mt-0.5">&times;</button>
         </div>
 
         {/* Tab bar */}
-        <div className="flex border-b border-gray-200 shrink-0">
+        <div className="flex border-b border-border-primary shrink-0">
           {tabs.map(t => (
             <button
               key={t.key}
@@ -415,7 +415,7 @@ export default function HabitacionDrawer({ room, onClose, onEstadoChanged }: Pro
               className={`flex-1 py-2.5 text-sm font-medium transition-colors ${
                 tab === t.key
                   ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-gray-500 hover:text-gray-700'
+                  : 'text-text-secondary hover:text-gray-700'
               }`}
             >
               {t.label}

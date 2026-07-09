@@ -51,17 +51,17 @@ type Tab = 'resumen' | 'historial' | 'notas'
 
 const SEGMENT_CONFIG: Record<string, { icon: string; cls: string }> = {
   VIP:        { icon: '⭐', cls: 'bg-amber-100 text-amber-700' },
-  RECURRENTE: { icon: '🔄', cls: 'bg-blue-100 text-blue-700' },
+  RECURRENTE: { icon: '🔄', cls: 'bg-info-bg text-info' },
   OCASIONAL:  { icon: '',   cls: 'bg-purple-100 text-purple-700' },
-  NUEVO:      { icon: '',   cls: 'bg-green-100 text-green-700' },
-  INACTIVO:   { icon: '',   cls: 'bg-gray-100 text-gray-500' },
+  NUEVO:      { icon: '',   cls: 'bg-success-bg text-success' },
+  INACTIVO:   { icon: '',   cls: 'bg-bg-tertiary text-text-secondary' },
 }
 
 const estadoBadgeCls: Record<string, string> = {
-  CONFIRMADA:        'bg-blue-100 text-blue-700',
-  CHECKIN_REALIZADO: 'bg-green-100 text-green-700',
-  CHECKOUT_REALIZADO:'bg-gray-100 text-gray-600',
-  CANCELADA:         'bg-red-100 text-red-700',
+  CONFIRMADA:        'bg-info-bg text-info',
+  CHECKIN_REALIZADO: 'bg-success-bg text-success',
+  CHECKOUT_REALIZADO:'bg-bg-tertiary text-text-secondary',
+  CANCELADA:         'bg-danger-bg text-danger',
   NO_SHOW:           'bg-orange-100 text-orange-700',
 }
 
@@ -116,7 +116,7 @@ export default function HuespedDrawer({ huesped, onClose }: Props) {
   }, [huesped.id])
 
   const segmento   = getSegmento(huesped, historial)
-  const segCfg     = SEGMENT_CONFIG[segmento] ?? { icon: '', cls: 'bg-gray-100 text-gray-600' }
+  const segCfg     = SEGMENT_CONFIG[segmento] ?? { icon: '', cls: 'bg-bg-tertiary text-text-secondary' }
   const reservas   = historial?.reservas ?? []
   const sorted     = [...reservas].sort(
     (a, b) => new Date(b.fecha_entrada).getTime() - new Date(a.fecha_entrada).getTime(),
@@ -134,9 +134,9 @@ export default function HuespedDrawer({ huesped, onClose }: Props) {
       <div className="fixed inset-0 z-40 bg-black/30" onClick={onClose} />
 
       {/* Drawer */}
-      <div className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-lg bg-white shadow-2xl flex flex-col overflow-hidden">
+      <div className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-lg bg-bg-card shadow-2xl flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="px-6 py-5 border-b border-gray-100 bg-gray-50 flex items-center gap-4 shrink-0">
+        <div className="px-6 py-5 border-b border-border-primary bg-bg-secondary flex items-center gap-4 shrink-0">
           <div
             className="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-lg shrink-0"
             style={{ background: getAvatarColor(huesped.nombre) }}
@@ -145,28 +145,28 @@ export default function HuespedDrawer({ huesped, onClose }: Props) {
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-base font-bold text-gray-900 truncate">{huesped.nombre}</h2>
+              <h2 className="text-base font-bold text-text-primary truncate">{huesped.nombre}</h2>
               <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${segCfg.cls}`}>
                 {segCfg.icon} {segmento}
               </span>
             </div>
             {(huesped.documento_tipo || huesped.documento_numero) && (
-              <p className="text-xs text-gray-500 mt-0.5">
+              <p className="text-xs text-text-secondary mt-0.5">
                 {huesped.documento_tipo} {huesped.documento_numero}
               </p>
             )}
-            <p className="text-xs text-gray-400">{huesped.email}</p>
+            <p className="text-xs text-text-tertiary">{huesped.email}</p>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-2xl leading-none shrink-0"
+            className="text-text-tertiary hover:text-text-secondary text-2xl leading-none shrink-0"
           >
             &times;
           </button>
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-gray-200 shrink-0 bg-white">
+        <div className="flex border-b border-border-primary shrink-0 bg-bg-card">
           {([
             ['resumen',   'Resumen'],
             ['historial', 'Historial'],
@@ -178,7 +178,7 @@ export default function HuespedDrawer({ huesped, onClose }: Props) {
               className={`flex-1 py-3 text-sm font-medium transition-colors border-b-2 ${
                 tab === t
                   ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                  : 'border-transparent text-text-secondary hover:text-gray-700'
               }`}
             >
               {label}
@@ -226,29 +226,29 @@ export default function HuespedDrawer({ huesped, onClose }: Props) {
                     />
                   </div>
                   {ltv && (
-                    <div className="bg-blue-50 rounded-xl p-4 space-y-1">
+                    <div className="bg-info-bg rounded-xl p-4 space-y-1">
                       <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide">Lifetime Value</p>
                       <div className="flex gap-6 text-sm">
                         <div>
-                          <p className="text-xs text-gray-500">Histórico</p>
-                          <p className="font-bold text-blue-700">{formatCurrency(ltv.historico)}</p>
+                          <p className="text-xs text-text-secondary">Histórico</p>
+                          <p className="font-bold text-info">{formatCurrency(ltv.historico)}</p>
                         </div>
                         <div>
-                          <p className="text-xs text-gray-500">Proyectado</p>
+                          <p className="text-xs text-text-secondary">Proyectado</p>
                           <p className="font-bold text-blue-400">{formatCurrency(ltv.proyectado)}</p>
                         </div>
                         {ltv.ltv_calculado != null && (
                           <div>
-                            <p className="text-xs text-gray-500">LTV calculado</p>
-                            <p className="font-bold text-green-600">{formatCurrency(ltv.ltv_calculado)}</p>
+                            <p className="text-xs text-text-secondary">LTV calculado</p>
+                            <p className="font-bold text-success">{formatCurrency(ltv.ltv_calculado)}</p>
                           </div>
                         )}
                       </div>
                     </div>
                   )}
                   {huesped.notas_internas && (
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 text-sm text-gray-700">
-                      <p className="text-xs font-semibold text-yellow-700 mb-1">Notas internas</p>
+                    <div className="bg-warning-bg border border-warning rounded-xl px-4 py-3 text-sm text-gray-700">
+                      <p className="text-xs font-semibold text-warning mb-1">Notas internas</p>
                       {huesped.notas_internas}
                     </div>
                   )}
@@ -265,15 +265,15 @@ export default function HuespedDrawer({ huesped, onClose }: Props) {
                   <span className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
                 </div>
               ) : sorted.length === 0 ? (
-                <p className="text-center text-gray-400 py-12 text-sm">Sin estancias registradas</p>
+                <p className="text-center text-text-tertiary py-12 text-sm">Sin estancias registradas</p>
               ) : (
-                <div className="rounded-xl border border-gray-200 overflow-hidden">
+                <div className="rounded-xl border border-border-primary overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
-                      <thead className="bg-gray-50">
+                      <thead className="bg-bg-secondary">
                         <tr>
                           {['Entrada', 'Salida', 'Hab.', 'Noches', 'Total', 'Estado'].map(h => (
-                            <th key={h} className="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 whitespace-nowrap">
+                            <th key={h} className="px-3 py-2.5 text-left text-xs font-semibold text-text-secondary whitespace-nowrap">
                               {h}
                             </th>
                           ))}
@@ -281,21 +281,21 @@ export default function HuespedDrawer({ huesped, onClose }: Props) {
                       </thead>
                       <tbody className="divide-y divide-gray-100">
                         {sorted.map(r => (
-                          <tr key={r.id} className="hover:bg-gray-50">
-                            <td className="px-3 py-2 text-xs text-gray-600 whitespace-nowrap">
+                          <tr key={r.id} className="hover:bg-bg-secondary">
+                            <td className="px-3 py-2 text-xs text-text-secondary whitespace-nowrap">
                               {format(parseISO(r.fecha_entrada), 'dd/MM/yy')}
                             </td>
-                            <td className="px-3 py-2 text-xs text-gray-600 whitespace-nowrap">
+                            <td className="px-3 py-2 text-xs text-text-secondary whitespace-nowrap">
                               {format(parseISO(r.fecha_salida), 'dd/MM/yy')}
                             </td>
                             <td className="px-3 py-2 text-gray-700 font-medium">{r.habitacion.numero}</td>
-                            <td className="px-3 py-2 text-center text-gray-600">{r.num_noches}</td>
-                            <td className="px-3 py-2 font-medium text-gray-900 whitespace-nowrap">
+                            <td className="px-3 py-2 text-center text-text-secondary">{r.num_noches}</td>
+                            <td className="px-3 py-2 font-medium text-text-primary whitespace-nowrap">
                               {formatCurrency(r.tarifa_acordada)}
                             </td>
                             <td className="px-3 py-2">
                               <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${
-                                estadoBadgeCls[r.estado] ?? 'bg-gray-100 text-gray-600'
+                                estadoBadgeCls[r.estado] ?? 'bg-bg-tertiary text-text-secondary'
                               }`}>
                                 {r.estado.replace('_', ' ')}
                               </span>
@@ -315,7 +315,7 @@ export default function HuespedDrawer({ huesped, onClose }: Props) {
             <div className="p-6 space-y-4">
               {/* Form nueva nota */}
               <div className="space-y-2">
-                <label className="block text-xs font-semibold text-gray-600">Agregar nota del personal</label>
+                <label className="block text-xs font-semibold text-text-secondary">Agregar nota del personal</label>
                 <textarea
                   value={nota}
                   onChange={e => setNota(e.target.value)}
@@ -334,7 +334,7 @@ export default function HuespedDrawer({ huesped, onClose }: Props) {
 
               {/* Lista de notas */}
               {notas.length === 0 && !huesped.notas_internas ? (
-                <p className="text-center text-gray-400 py-6 text-sm">
+                <p className="text-center text-text-tertiary py-6 text-sm">
                   No hay notas registradas para este huésped
                 </p>
               ) : (
@@ -357,20 +357,20 @@ export default function HuespedDrawer({ huesped, onClose }: Props) {
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-gray-50 rounded-xl px-4 py-3">
-      <p className="text-xs text-gray-400 font-medium">{label}</p>
-      <p className="text-base font-bold text-gray-900 mt-0.5">{value}</p>
+    <div className="bg-bg-secondary rounded-xl px-4 py-3">
+      <p className="text-xs text-text-tertiary font-medium">{label}</p>
+      <p className="text-base font-bold text-text-primary mt-0.5">{value}</p>
     </div>
   )
 }
 
 function NoteCard({ texto, fecha, autor }: { texto: string; fecha: string; autor: string }) {
   return (
-    <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 text-sm">
+    <div className="bg-warning-bg border border-warning rounded-xl px-4 py-3 text-sm">
       <div className="flex items-center justify-between mb-1">
-        <span className="text-xs font-semibold text-yellow-700">{autor}</span>
+        <span className="text-xs font-semibold text-warning">{autor}</span>
         {fecha && (
-          <span className="text-xs text-gray-400">
+          <span className="text-xs text-text-tertiary">
             {format(parseISO(fecha), 'dd/MM/yy HH:mm')}
           </span>
         )}

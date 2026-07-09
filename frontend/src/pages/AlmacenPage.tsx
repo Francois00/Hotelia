@@ -12,12 +12,13 @@ interface Producto {
 }
 interface Movimiento { id: string; producto_id: string; tipo: 'entrada' | 'salida'; cantidad: number; fecha: string; motivo?: string; usuario_nombre?: string }
 
+// Paleta ligada a los theme tokens (theme.css) — cambia sola con [data-theme].
 const C = {
-  bg: '#070A10', surface: '#0D1017', surface2: '#12171F', surface3: '#1B2131',
-  border: 'rgba(255,255,255,0.06)', border2: 'rgba(255,255,255,0.1)',
-  text: '#F0F4F8', text2: '#8A9AB5', text3: '#556070',
-  green: '#22C55E', blue: '#4D96FF', yellow: '#EAB308', red: '#EF4444',
-  gold: '#D4A853',
+  bg: 'var(--bg-primary)', surface: 'var(--bg-secondary)', surface2: 'var(--bg-card)', surface3: 'var(--bg-tertiary)',
+  border: 'var(--border-primary)', border2: 'var(--border-secondary)',
+  text: 'var(--text-primary)', text2: 'var(--text-secondary)', text3: 'var(--text-tertiary)',
+  green: 'var(--estado-disponible)', blue: 'var(--estado-ocupada)', yellow: 'var(--estado-limpieza)', red: 'var(--estado-mantenimiento)',
+  gold: 'var(--brand-accent)',
 }
 
 const css = `

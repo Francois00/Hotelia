@@ -78,10 +78,10 @@ interface AuditEntry {
 }
 
 const estadoBadgeClass: Record<string, string> = {
-  CONFIRMADA: 'bg-blue-100 text-blue-700',
-  CHECKIN_REALIZADO: 'bg-green-100 text-green-700',
-  CHECKOUT_REALIZADO: 'bg-gray-100 text-gray-600',
-  CANCELADA: 'bg-red-100 text-red-700',
+  CONFIRMADA: 'bg-info-bg text-info',
+  CHECKIN_REALIZADO: 'bg-success-bg text-success',
+  CHECKOUT_REALIZADO: 'bg-bg-tertiary text-text-secondary',
+  CANCELADA: 'bg-danger-bg text-danger',
   NO_SHOW: 'bg-orange-100 text-orange-700',
 }
 
@@ -137,17 +137,17 @@ function ModalModificarRegistro({ reserva, onClose, onSuccess }: {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-[520px] max-h-[90vh] overflow-y-auto">
-        <div className="px-6 py-5 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
+      <div className="relative bg-bg-card rounded-2xl shadow-2xl w-[520px] max-h-[90vh] overflow-y-auto">
+        <div className="px-6 py-5 border-b border-border-primary flex items-center justify-between sticky top-0 bg-bg-card">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">Modificar reserva</h2>
-            <p className="text-sm text-gray-500">{reserva.codigo} · {reserva.huesped_nombre}</p>
+            <h2 className="text-lg font-semibold text-text-primary">Modificar reserva</h2>
+            <p className="text-sm text-text-secondary">{reserva.codigo} · {reserva.huesped_nombre}</p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+          <button onClick={onClose} className="text-text-tertiary hover:text-text-secondary text-2xl leading-none">&times;</button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {error && (
-            <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>
+            <p className="text-sm text-red-600 bg-danger-bg rounded-lg px-3 py-2">{error}</p>
           )}
 
           <div className="grid grid-cols-2 gap-3">
@@ -177,12 +177,12 @@ function ModalModificarRegistro({ reserva, onClose, onSuccess }: {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Tarifa acordada (PEN)
-                {!gerente && <span className="text-xs text-gray-400 ml-1">(solo gerente)</span>}
+                {!gerente && <span className="text-xs text-text-tertiary ml-1">(solo gerente)</span>}
               </label>
               <input type="number" value={form.tarifa_acordada}
                 onChange={e => setForm(f => ({ ...f, tarifa_acordada: Number(e.target.value) }))}
                 disabled={!gerente}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-400" />
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-bg-secondary disabled:text-text-tertiary" />
             </div>
           </div>
 
@@ -206,7 +206,7 @@ function ModalModificarRegistro({ reserva, onClose, onSuccess }: {
 
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose} disabled={saving}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-bg-secondary disabled:opacity-50">
               Cancelar
             </button>
             <button type="submit" disabled={saving}
@@ -255,17 +255,17 @@ function ModalAnularRegistro({ reserva, onClose, onSuccess }: {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-[460px]">
-        <div className="px-6 py-5 border-b border-gray-200 flex items-center justify-between">
+      <div className="relative bg-bg-card rounded-2xl shadow-2xl w-[460px]">
+        <div className="px-6 py-5 border-b border-border-primary flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">Anular reserva</h2>
-            <p className="text-sm text-gray-500">{reserva.codigo} · {reserva.huesped_nombre}</p>
+            <h2 className="text-lg font-semibold text-text-primary">Anular reserva</h2>
+            <p className="text-sm text-text-secondary">{reserva.codigo} · {reserva.huesped_nombre}</p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+          <button onClick={onClose} className="text-text-tertiary hover:text-text-secondary text-2xl leading-none">&times;</button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {error && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
-          <p className="text-sm text-gray-600">
+          {error && <p className="text-sm text-red-600 bg-danger-bg rounded-lg px-3 py-2">{error}</p>}
+          <p className="text-sm text-text-secondary">
             Esta acción cambiará el estado de la reserva a <strong>CANCELADA</strong> y liberará la habitación. No se puede deshacer.
           </p>
           <div>
@@ -279,7 +279,7 @@ function ModalAnularRegistro({ reserva, onClose, onSuccess }: {
           </div>
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose} disabled={saving}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-bg-secondary disabled:opacity-50">
               Cancelar
             </button>
             <button type="submit" disabled={saving}
@@ -338,10 +338,10 @@ function NuevaReservaModal({ onClose, onSuccess }: { onClose: () => void; onSucc
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-[520px] max-h-[90vh] overflow-y-auto">
-        <div className="px-6 py-5 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
-          <h2 className="text-lg font-semibold text-gray-900">Nueva reserva</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+      <div className="relative bg-bg-card rounded-2xl shadow-2xl w-[520px] max-h-[90vh] overflow-y-auto">
+        <div className="px-6 py-5 border-b border-border-primary flex items-center justify-between sticky top-0 bg-bg-card">
+          <h2 className="text-lg font-semibold text-text-primary">Nueva reserva</h2>
+          <button onClick={onClose} className="text-text-tertiary hover:text-text-secondary text-2xl leading-none">&times;</button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
@@ -354,16 +354,16 @@ function NuevaReservaModal({ onClose, onSuccess }: { onClose: () => void; onSucc
               placeholder="Buscar por nombre..."
             />
             {huespedes.length > 0 && (
-              <div className="border border-gray-200 rounded-lg mt-1 shadow-sm max-h-40 overflow-y-auto">
+              <div className="border border-border-primary rounded-lg mt-1 shadow-sm max-h-40 overflow-y-auto">
                 {huespedes.map(h => (
                   <button
                     key={h.id}
                     type="button"
                     onClick={() => { setForm(f => ({ ...f, huesped_id: h.id })); setHuespedQ(h.nombre); setHuespedes([]) }}
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 border-b border-gray-100 last:border-0"
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-bg-secondary border-b border-border-primary last:border-0"
                   >
                     <span className="font-medium">{h.nombre}</span>
-                    <span className="text-gray-400 ml-2">{h.email}</span>
+                    <span className="text-text-tertiary ml-2">{h.email}</span>
                   </button>
                 ))}
               </div>
@@ -424,7 +424,7 @@ function NuevaReservaModal({ onClose, onSuccess }: { onClose: () => void; onSucc
 
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50">
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-bg-secondary">
               Cancelar
             </button>
             <button type="submit" disabled={saving}
@@ -506,22 +506,22 @@ function ReservaDrawer({ reserva, onClose }: { reserva: Reserva; onClose: () => 
   return (
     <div className="fixed inset-0 z-40 flex justify-end">
       <div className="absolute inset-0 bg-black/30" onClick={onClose} />
-      <div className="relative w-[480px] bg-white h-full shadow-2xl flex flex-col overflow-hidden">
-        <div className="px-6 py-5 border-b border-gray-200 flex items-center justify-between shrink-0">
+      <div className="relative w-[480px] bg-bg-card h-full shadow-2xl flex flex-col overflow-hidden">
+        <div className="px-6 py-5 border-b border-border-primary flex items-center justify-between shrink-0">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">{reserva.codigo}</h2>
-            <p className="text-sm text-gray-500">{reserva.huesped_nombre} · Hab. {reserva.habitacion_numero}</p>
+            <h2 className="text-lg font-semibold text-text-primary">{reserva.codigo}</h2>
+            <p className="text-sm text-text-secondary">{reserva.huesped_nombre} · Hab. {reserva.habitacion_numero}</p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+          <button onClick={onClose} className="text-text-tertiary hover:text-text-secondary text-2xl leading-none">&times;</button>
         </div>
 
         {/* Drawer tabs */}
         {gerente && (
-          <div className="flex border-b border-gray-200 shrink-0">
+          <div className="flex border-b border-border-primary shrink-0">
             {(['folio', 'bitacora'] as const).map(t => (
               <button key={t} onClick={() => setDrawerTab(t)}
                 className={`px-5 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors capitalize ${
-                  drawerTab === t ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+                  drawerTab === t ? 'border-blue-600 text-blue-600' : 'border-transparent text-text-secondary hover:text-gray-700'
                 }`}>
                 {t === 'folio' ? 'Folio' : 'Bitácora'}
               </button>
@@ -534,43 +534,43 @@ function ReservaDrawer({ reserva, onClose }: { reserva: Reserva; onClose: () => 
           {drawerTab === 'folio' && (
             <div className="p-6 space-y-5">
               <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="bg-gray-50 rounded-xl p-3">
-                  <p className="text-xs text-gray-400 mb-1">Entrada</p>
-                  <p className="font-semibold text-gray-900">{format(parseISO(reserva.fecha_entrada), 'dd/MM/yyyy')}</p>
+                <div className="bg-bg-secondary rounded-xl p-3">
+                  <p className="text-xs text-text-tertiary mb-1">Entrada</p>
+                  <p className="font-semibold text-text-primary">{format(parseISO(reserva.fecha_entrada), 'dd/MM/yyyy')}</p>
                 </div>
-                <div className="bg-gray-50 rounded-xl p-3">
-                  <p className="text-xs text-gray-400 mb-1">Salida</p>
-                  <p className="font-semibold text-gray-900">{format(parseISO(reserva.fecha_salida), 'dd/MM/yyyy')}</p>
+                <div className="bg-bg-secondary rounded-xl p-3">
+                  <p className="text-xs text-text-tertiary mb-1">Salida</p>
+                  <p className="font-semibold text-text-primary">{format(parseISO(reserva.fecha_salida), 'dd/MM/yyyy')}</p>
                 </div>
-                <div className="bg-gray-50 rounded-xl p-3">
-                  <p className="text-xs text-gray-400 mb-1">Canal</p>
-                  <p className="font-semibold text-gray-900">{reserva.canal_origen}</p>
+                <div className="bg-bg-secondary rounded-xl p-3">
+                  <p className="text-xs text-text-tertiary mb-1">Canal</p>
+                  <p className="font-semibold text-text-primary">{reserva.canal_origen}</p>
                 </div>
-                <div className="bg-gray-50 rounded-xl p-3">
-                  <p className="text-xs text-gray-400 mb-1">Estado</p>
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${estadoBadgeClass[reserva.estado] ?? 'bg-gray-100 text-gray-600'}`}>
+                <div className="bg-bg-secondary rounded-xl p-3">
+                  <p className="text-xs text-text-tertiary mb-1">Estado</p>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${estadoBadgeClass[reserva.estado] ?? 'bg-bg-tertiary text-text-secondary'}`}>
                     {reserva.estado}
                   </span>
                 </div>
               </div>
 
               {folioResumen && (
-                <div className="rounded-xl border border-gray-200 overflow-hidden">
-                  <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+                <div className="rounded-xl border border-border-primary overflow-hidden">
+                  <div className="px-4 py-3 bg-bg-secondary border-b border-border-primary">
                     <h3 className="text-sm font-semibold text-gray-700">Resumen de folio</h3>
                   </div>
                   <div className="p-4 space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-gray-500">Total cargos</span>
+                      <span className="text-text-secondary">Total cargos</span>
                       <span className="font-medium">{formatCurrency(folioResumen.total_cargos)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-500">Total pagado</span>
-                      <span className="font-medium text-green-600">{formatCurrency(folioResumen.total_pagado)}</span>
+                      <span className="text-text-secondary">Total pagado</span>
+                      <span className="font-medium text-success">{formatCurrency(folioResumen.total_pagado)}</span>
                     </div>
-                    <div className="flex justify-between border-t border-gray-100 pt-2 font-semibold">
-                      <span className="text-gray-900">Saldo</span>
-                      <span className={folioResumen.saldo > 0 ? 'text-red-600' : 'text-green-600'}>
+                    <div className="flex justify-between border-t border-border-primary pt-2 font-semibold">
+                      <span className="text-text-primary">Saldo</span>
+                      <span className={folioResumen.saldo > 0 ? 'text-red-600' : 'text-success'}>
                         {formatCurrency(folioResumen.saldo)}
                       </span>
                     </div>
@@ -581,9 +581,9 @@ function ReservaDrawer({ reserva, onClose }: { reserva: Reserva; onClose: () => 
               {folioData && (
                 <div>
                   <h3 className="text-sm font-semibold text-gray-700 mb-2">Items del folio</h3>
-                  <div className="rounded-xl border border-gray-200 overflow-hidden">
+                  <div className="rounded-xl border border-border-primary overflow-hidden">
                     <table className="w-full text-sm">
-                      <thead className="bg-gray-50 text-xs text-gray-500">
+                      <thead className="bg-bg-secondary text-xs text-text-secondary">
                         <tr>
                           <th className="px-3 py-2 text-left font-medium">Concepto</th>
                           <th className="px-3 py-2 text-right font-medium">Total</th>
@@ -592,11 +592,11 @@ function ReservaDrawer({ reserva, onClose }: { reserva: Reserva; onClose: () => 
                       <tbody className="divide-y divide-gray-100">
                         {folioData.items.map(item => (
                           <tr key={item.id} className={item.anulado ? 'opacity-40' : ''}>
-                            <td className={`px-3 py-2 ${item.anulado ? 'line-through text-gray-400' : 'text-gray-700'}`}>
+                            <td className={`px-3 py-2 ${item.anulado ? 'line-through text-text-tertiary' : 'text-gray-700'}`}>
                               {item.concepto}
-                              <span className="text-gray-400 text-xs ml-1">{item.cantidad}x {formatCurrency(item.precio_unitario)}</span>
+                              <span className="text-text-tertiary text-xs ml-1">{item.cantidad}x {formatCurrency(item.precio_unitario)}</span>
                             </td>
-                            <td className="px-3 py-2 text-right font-medium text-gray-900">
+                            <td className="px-3 py-2 text-right font-medium text-text-primary">
                               {formatCurrency(item.total)}
                             </td>
                           </tr>
@@ -608,8 +608,8 @@ function ReservaDrawer({ reserva, onClose }: { reserva: Reserva; onClose: () => 
               )}
 
               {addCargo && (
-                <form onSubmit={handleAddCargo} className="rounded-xl border border-blue-200 bg-blue-50 p-4 space-y-3">
-                  <h4 className="text-sm font-semibold text-blue-800">Agregar cargo</h4>
+                <form onSubmit={handleAddCargo} className="rounded-xl border border-info bg-info-bg p-4 space-y-3">
+                  <h4 className="text-sm font-semibold text-info">Agregar cargo</h4>
                   <input placeholder="Concepto" value={cargoForm.concepto}
                     onChange={e => setCargoForm(f => ({ ...f, concepto: e.target.value }))}
                     className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm" required />
@@ -629,8 +629,8 @@ function ReservaDrawer({ reserva, onClose }: { reserva: Reserva; onClose: () => 
               )}
 
               {addPago && (
-                <form onSubmit={handleAddPago} className="rounded-xl border border-green-200 bg-green-50 p-4 space-y-3">
-                  <h4 className="text-sm font-semibold text-green-800">Registrar pago</h4>
+                <form onSubmit={handleAddPago} className="rounded-xl border border-success bg-success-bg p-4 space-y-3">
+                  <h4 className="text-sm font-semibold text-success">Registrar pago</h4>
                   <div className="grid grid-cols-2 gap-2">
                     <input type="number" placeholder="Monto" value={pagoForm.monto}
                       onChange={e => setPagoForm(f => ({ ...f, monto: Number(e.target.value) }))}
@@ -650,19 +650,19 @@ function ReservaDrawer({ reserva, onClose }: { reserva: Reserva; onClose: () => 
 
               {qrImg && (
                 <div className="text-center">
-                  <img src={`data:image/png;base64,${qrImg}`} alt="QR check-in" className="mx-auto w-32 h-32 rounded-xl border border-gray-200" />
-                  <p className="text-xs text-gray-500 mt-1">QR de check-in</p>
+                  <img src={`data:image/png;base64,${qrImg}`} alt="QR check-in" className="mx-auto w-32 h-32 rounded-xl border border-border-primary" />
+                  <p className="text-xs text-text-secondary mt-1">QR de check-in</p>
                 </div>
               )}
 
               <div className="flex flex-wrap gap-2">
-                <button onClick={() => setAddCargo(v => !v)} className="px-3 py-1.5 text-xs font-medium border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+                <button onClick={() => setAddCargo(v => !v)} className="px-3 py-1.5 text-xs font-medium border border-gray-300 rounded-lg text-gray-700 hover:bg-bg-secondary">
                   + Agregar cargo
                 </button>
-                <button onClick={() => setAddPago(v => !v)} className="px-3 py-1.5 text-xs font-medium border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+                <button onClick={() => setAddPago(v => !v)} className="px-3 py-1.5 text-xs font-medium border border-gray-300 rounded-lg text-gray-700 hover:bg-bg-secondary">
                   + Registrar pago
                 </button>
-                <button onClick={() => void handleVerQR()} className="px-3 py-1.5 text-xs font-medium border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+                <button onClick={() => void handleVerQR()} className="px-3 py-1.5 text-xs font-medium border border-gray-300 rounded-lg text-gray-700 hover:bg-bg-secondary">
                   Ver QR
                 </button>
                 <button onClick={() => void handleEmitirComprobante()} className="px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700">
@@ -675,21 +675,21 @@ function ReservaDrawer({ reserva, onClose }: { reserva: Reserva; onClose: () => 
           {/* ── Bitácora tab (gerente only) ── */}
           {drawerTab === 'bitacora' && gerente && (
             <div className="p-6 space-y-3">
-              <p className="text-xs text-gray-400">Registro de cambios de esta reserva</p>
+              <p className="text-xs text-text-tertiary">Registro de cambios de esta reserva</p>
               {!auditLog && (
-                <p className="text-sm text-gray-400">Cargando...</p>
+                <p className="text-sm text-text-tertiary">Cargando...</p>
               )}
               {auditLog && auditLog.length === 0 && (
-                <p className="text-sm text-gray-400">Sin cambios registrados</p>
+                <p className="text-sm text-text-tertiary">Sin cambios registrados</p>
               )}
               {auditLog && auditLog.map(entry => (
-                <div key={entry.id} className="rounded-xl border border-gray-200 p-4 space-y-2">
+                <div key={entry.id} className="rounded-xl border border-border-primary p-4 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">{entry.accion}</span>
-                    <span className="text-xs text-gray-400">{format(parseISO(entry.created_at), 'dd/MM/yy HH:mm')}</span>
+                    <span className="text-xs text-text-tertiary">{format(parseISO(entry.created_at), 'dd/MM/yy HH:mm')}</span>
                   </div>
                   {entry.actor_email && (
-                    <p className="text-xs text-gray-500">Por: {entry.actor_email}</p>
+                    <p className="text-xs text-text-secondary">Por: {entry.actor_email}</p>
                   )}
                   {entry.motivo && (
                     <p className="text-sm text-gray-700 italic">"{entry.motivo}"</p>
@@ -697,7 +697,7 @@ function ReservaDrawer({ reserva, onClose }: { reserva: Reserva; onClose: () => 
                   {entry.campos_modificados && entry.campos_modificados.length > 0 && (
                     <table className="w-full text-xs mt-1">
                       <thead>
-                        <tr className="text-gray-400">
+                        <tr className="text-text-tertiary">
                           <th className="text-left font-medium pb-1">Campo</th>
                           <th className="text-left font-medium pb-1">Anterior</th>
                           <th className="text-left font-medium pb-1">Nuevo</th>
@@ -706,9 +706,9 @@ function ReservaDrawer({ reserva, onClose }: { reserva: Reserva; onClose: () => 
                       <tbody className="divide-y divide-gray-100">
                         {entry.campos_modificados.map((c, i) => (
                           <tr key={i}>
-                            <td className="py-1 text-gray-600 font-medium">{c.campo}</td>
+                            <td className="py-1 text-text-secondary font-medium">{c.campo}</td>
                             <td className="py-1 text-red-500 line-through">{c.anterior}</td>
-                            <td className="py-1 text-green-600">{c.nuevo}</td>
+                            <td className="py-1 text-success">{c.nuevo}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -875,12 +875,12 @@ export default function Reservas() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Reservas</h1>
-          <p className="text-gray-500 text-sm mt-0.5">{meta?.total ?? 0} reservas encontradas</p>
+          <h1 className="text-2xl font-bold text-text-primary">Reservas</h1>
+          <p className="text-text-secondary text-sm mt-0.5">{meta?.total ?? 0} reservas encontradas</p>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={() => void handleExportCSV()}
-            className="px-4 py-2 text-sm border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 font-medium">
+            className="px-4 py-2 text-sm border border-gray-300 rounded-xl text-gray-700 hover:bg-bg-secondary font-medium">
             Exportar CSV
           </button>
           {puedeCheckin && (
@@ -893,11 +893,11 @@ export default function Reservas() {
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-gray-200">
+      <div className="flex border-b border-border-primary">
         {TABS.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
             className={`px-5 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px ${
-              tab === t.id ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+              tab === t.id ? 'border-blue-600 text-blue-600' : 'border-transparent text-text-secondary hover:text-gray-700'
             }`}>
             {t.label}
           </button>
@@ -905,7 +905,7 @@ export default function Reservas() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-4 flex flex-wrap gap-3">
+      <div className="bg-bg-card rounded-2xl border border-border-primary p-4 flex flex-wrap gap-3">
         <input
           type="text"
           defaultValue={q}
@@ -914,12 +914,12 @@ export default function Reservas() {
           className="flex-1 min-w-48 px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <select value={estado} onChange={e => updateParam('estado', e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-xl text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+          className="px-3 py-2 border border-gray-300 rounded-xl text-sm bg-bg-card text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
           <option value="">Todos los estados</option>
           {ESTADOS.map(e => <option key={e} value={e}>{e}</option>)}
         </select>
         <select value={canal_origen} onChange={e => updateParam('canal_origen', e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-xl text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+          className="px-3 py-2 border border-gray-300 rounded-xl text-sm bg-bg-card text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
           <option value="">Todos los canales</option>
           {['DIRECTO', 'BOOKING_COM', 'EXPEDIA', 'AIRBNB', 'WHATSAPP'].map(c => <option key={c} value={c}>{c}</option>)}
         </select>
@@ -932,36 +932,36 @@ export default function Reservas() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="bg-bg-card rounded-2xl border border-border-primary shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="bg-bg-secondary border-b border-border-primary">
               <tr>
                 {['Código', 'Huésped', 'Habitación', 'Entrada', 'Salida', 'Noches', 'Canal', 'Total', 'Estado', 'Acciones'].map(h => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-text-secondary uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {reservas.length === 0 && (
-                <tr><td colSpan={10} className="px-4 py-10 text-center text-gray-400 text-sm">Sin reservas</td></tr>
+                <tr><td colSpan={10} className="px-4 py-10 text-center text-text-tertiary text-sm">Sin reservas</td></tr>
               )}
               {reservas.map(r => (
                 <tr
                   key={r.id}
                   onClick={() => setSelectedReserva(r)}
-                  className="hover:bg-gray-50 cursor-pointer transition-colors"
+                  className="hover:bg-bg-secondary cursor-pointer transition-colors"
                 >
                   <td className="px-4 py-3 font-mono text-xs text-gray-700">{r.codigo}</td>
-                  <td className="px-4 py-3 font-medium text-gray-900">{r.huesped_nombre}</td>
-                  <td className="px-4 py-3 text-gray-600">{r.habitacion_numero}</td>
-                  <td className="px-4 py-3 text-gray-600">{format(parseISO(r.fecha_entrada), 'dd/MM/yy')}</td>
-                  <td className="px-4 py-3 text-gray-600">{format(parseISO(r.fecha_salida), 'dd/MM/yy')}</td>
-                  <td className="px-4 py-3 text-gray-600 text-center">{r.num_noches}</td>
-                  <td className="px-4 py-3 text-gray-600">{r.canal_origen}</td>
-                  <td className="px-4 py-3 font-semibold text-gray-900">{formatCurrency(r.tarifa_acordada)}</td>
+                  <td className="px-4 py-3 font-medium text-text-primary">{r.huesped_nombre}</td>
+                  <td className="px-4 py-3 text-text-secondary">{r.habitacion_numero}</td>
+                  <td className="px-4 py-3 text-text-secondary">{format(parseISO(r.fecha_entrada), 'dd/MM/yy')}</td>
+                  <td className="px-4 py-3 text-text-secondary">{format(parseISO(r.fecha_salida), 'dd/MM/yy')}</td>
+                  <td className="px-4 py-3 text-text-secondary text-center">{r.num_noches}</td>
+                  <td className="px-4 py-3 text-text-secondary">{r.canal_origen}</td>
+                  <td className="px-4 py-3 font-semibold text-text-primary">{formatCurrency(r.tarifa_acordada)}</td>
                   <td className="px-4 py-3">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${estadoBadgeClass[r.estado] ?? 'bg-gray-100 text-gray-600'}`}>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${estadoBadgeClass[r.estado] ?? 'bg-bg-tertiary text-text-secondary'}`}>
                       {r.estado}
                     </span>
                   </td>
@@ -978,7 +978,7 @@ export default function Reservas() {
                       {r.estado === 'CONFIRMADA' && puedeCheckin && (
                         <button
                           onClick={() => setModificarReserva(r)}
-                          className="px-2.5 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          className="px-2.5 py-1 text-xs font-medium text-blue-600 hover:bg-info-bg rounded-lg transition-colors"
                         >
                           Modificar
                         </button>
@@ -986,7 +986,7 @@ export default function Reservas() {
                       {r.estado === 'CONFIRMADA' && gerente && (
                         <button
                           onClick={() => setAnularReserva(r)}
-                          className="px-2.5 py-1 text-xs font-medium text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                          className="px-2.5 py-1 text-xs font-medium text-red-500 hover:bg-danger-bg rounded-lg transition-colors"
                         >
                           Anular
                         </button>
@@ -1000,23 +1000,23 @@ export default function Reservas() {
         </div>
 
         {meta && meta.totalPages > 1 && (
-          <div className="px-4 py-4 border-t border-gray-100 flex items-center justify-between">
-            <p className="text-xs text-gray-500">
+          <div className="px-4 py-4 border-t border-border-primary flex items-center justify-between">
+            <p className="text-xs text-text-secondary">
               Mostrando {(meta.page - 1) * meta.limit + 1}–{Math.min(meta.page * meta.limit, meta.total)} de {meta.total}
             </p>
             <div className="flex items-center gap-1">
               <button
                 disabled={meta.page <= 1}
                 onClick={() => setPage(meta.page - 1)}
-                className="px-3 py-1.5 text-xs border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+                className="px-3 py-1.5 text-xs border border-gray-300 rounded-lg text-gray-700 hover:bg-bg-secondary disabled:opacity-40"
               >
                 ← Anterior
               </button>
-              <span className="px-3 py-1.5 text-xs text-gray-500">Pág. {meta.page} / {meta.totalPages}</span>
+              <span className="px-3 py-1.5 text-xs text-text-secondary">Pág. {meta.page} / {meta.totalPages}</span>
               <button
                 disabled={meta.page >= meta.totalPages}
                 onClick={() => setPage(meta.page + 1)}
-                className="px-3 py-1.5 text-xs border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+                className="px-3 py-1.5 text-xs border border-gray-300 rounded-lg text-gray-700 hover:bg-bg-secondary disabled:opacity-40"
               >
                 Siguiente →
               </button>

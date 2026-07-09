@@ -211,17 +211,17 @@ export default function HabitacionForm({ habitacion, onClose, onSuccess }: Props
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+      <div className="relative bg-bg-card rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">
+        <div className="px-6 py-4 border-b border-border-primary flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-text-primary">
             {isEdit ? `Editar Hab. ${habitacion!.numero}` : 'Nueva habitación'}
           </h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+          <button onClick={onClose} className="text-text-tertiary hover:text-text-secondary text-2xl leading-none">&times;</button>
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-gray-200 px-6">
+        <div className="flex border-b border-border-primary px-6">
           {tabs.map(t => (
             <button
               key={t.id}
@@ -229,7 +229,7 @@ export default function HabitacionForm({ habitacion, onClose, onSuccess }: Props
               className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors -mb-px ${
                 tab === t.id
                   ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                  : 'border-transparent text-text-secondary hover:text-gray-700'
               }`}
             >
               {t.label}
@@ -360,7 +360,7 @@ export default function HabitacionForm({ habitacion, onClose, onSuccess }: Props
                     value={form.tarifa_minima}
                     onChange={e => set('tarifa_minima', e.target.value)}
                     className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      tarifaErrors.minima ? 'border-red-400' : 'border-gray-300'
+                      tarifaErrors.minima ? 'border-danger' : 'border-gray-300'
                     }`}
                     placeholder="ej: 80"
                   />
@@ -393,7 +393,7 @@ export default function HabitacionForm({ habitacion, onClose, onSuccess }: Props
                     value={form.tarifa_maxima}
                     onChange={e => set('tarifa_maxima', e.target.value)}
                     className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      tarifaErrors.maxima ? 'border-red-400' : 'border-gray-300'
+                      tarifaErrors.maxima ? 'border-danger' : 'border-gray-300'
                     }`}
                     placeholder="ej: 200"
                   />
@@ -406,7 +406,7 @@ export default function HabitacionForm({ habitacion, onClose, onSuccess }: Props
               {/* Visual bar */}
               {!isNaN(min) && !isNaN(base) && !isNaN(max) && max > min && (
                 <div className="mt-4">
-                  <div className="flex justify-between text-xs text-gray-500 mb-1">
+                  <div className="flex justify-between text-xs text-text-secondary mb-1">
                     <span>{form.moneda} {min}</span>
                     <span>{form.moneda} {max}</span>
                   </div>
@@ -421,7 +421,7 @@ export default function HabitacionForm({ habitacion, onClose, onSuccess }: Props
                       title={`Base: ${form.moneda} ${base}`}
                     />
                   </div>
-                  <p className="text-xs text-gray-500 mt-1 text-center">Base: {form.moneda} {base}</p>
+                  <p className="text-xs text-text-secondary mt-1 text-center">Base: {form.moneda} {base}</p>
                 </div>
               )}
             </div>
@@ -464,7 +464,7 @@ export default function HabitacionForm({ habitacion, onClose, onSuccess }: Props
                   {form.amenidades
                     .filter(a => !AMENITIES_PREDEFINIDOS.includes(a))
                     .map(a => (
-                      <span key={a} className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                      <span key={a} className="inline-flex items-center gap-1 px-3 py-1 bg-info-bg text-info rounded-full text-xs font-medium">
                         {a}
                         <button onClick={() => toggleAmenidad(a)} className="ml-1 hover:text-red-600">&times;</button>
                       </span>
@@ -483,13 +483,13 @@ export default function HabitacionForm({ habitacion, onClose, onSuccess }: Props
                 onDrop={handleFileDrop}
                 onClick={() => fileInputRef.current?.click()}
                 className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
-                  dragOverFoto ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'
+                  dragOverFoto ? 'border-blue-500 bg-info-bg' : 'border-gray-300 hover:border-gray-400'
                 }`}
               >
                 <p className="text-2xl mb-2">📷</p>
-                <p className="text-sm text-gray-600 font-medium">Arrastra fotos aquí o haz clic para seleccionar</p>
-                <p className="text-xs text-gray-400 mt-1">JPG, JPEG, PNG, WEBP · Máx 5 MB por foto</p>
-                <p className="text-xs text-gray-500 mt-2">{fotos.length} / 10 fotos</p>
+                <p className="text-sm text-text-secondary font-medium">Arrastra fotos aquí o haz clic para seleccionar</p>
+                <p className="text-xs text-text-tertiary mt-1">JPG, JPEG, PNG, WEBP · Máx 5 MB por foto</p>
+                <p className="text-xs text-text-secondary mt-2">{fotos.length} / 10 fotos</p>
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -506,7 +506,7 @@ export default function HabitacionForm({ habitacion, onClose, onSuccess }: Props
                       <img
                         src={f.url}
                         alt={`foto-${i}`}
-                        className="w-full h-24 object-cover rounded-lg border border-gray-200"
+                        className="w-full h-24 object-cover rounded-lg border border-border-primary"
                       />
                       {i === 0 && (
                         <span className="absolute top-1 left-1 text-yellow-400 text-lg leading-none">★</span>
@@ -526,13 +526,13 @@ export default function HabitacionForm({ habitacion, onClose, onSuccess }: Props
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+        <div className="px-6 py-4 border-t border-border-primary flex items-center justify-between">
           {error && <p className="text-sm text-red-500">{error}</p>}
           {!error && <span />}
           <div className="flex gap-3">
             <button
               onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50"
+              className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-bg-secondary"
             >
               Cancelar
             </button>
