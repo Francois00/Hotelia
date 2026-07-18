@@ -108,7 +108,8 @@ services:
       WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN:-}
       WHATSAPP_PHONE_NUMBER_ID: ${WHATSAPP_PHONE_NUMBER_ID:-}
       WHATSAPP_VERIFY_TOKEN: ${WHATSAPP_VERIFY_TOKEN:-hotelia_webhook_2025}
-      OLLAMA_URL: http://host.docker.internal:11434
+      # OLLAMA_URL: http://host.docker.internal:11434  # Ya no se usa — Concierge IA migrado a OpenAI GPT-4o-mini
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       N8N_SECRET_TOKEN: ${N8N_SECRET_TOKEN:-n8n_hotelia_2025}
       HOTEL_YAPE: ${HOTEL_YAPE:-987654321}
       HOTEL_PLIN: ${HOTEL_PLIN:-987654321}

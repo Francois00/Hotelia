@@ -2,6 +2,7 @@ import cron from 'node-cron';
 import { prisma } from '../lib/prisma';
 import { EstadoReserva, EstadoHabitacion, SegmentoHuesped } from '@prisma/client';
 import './verificarSuscripciones';
+import './syncIcal';
 
 // ─── JOB 1: NO-SHOW — cada día a las 02:00 ────────────────────────────────────
 // Marca como NO_SHOW las reservas CONFIRMADAS cuya fecha_entrada fue ayer
@@ -178,6 +179,6 @@ cron.schedule('0 8 * * *', async () => {
   }
 });
 
-console.log('[CRON] Jobs programados: NO-SHOW(02:00) | Sync-habs(*/15min) | CRM(dom 03:00) | Alertas(08:00) | Suscripciones(06:00)');
+console.log('[CRON] Jobs programados: NO-SHOW(02:00) | Sync-habs(*/15min) | CRM(dom 03:00) | Alertas(08:00) | Suscripciones(06:00) | Sync-iCal(*/15min)');
 
 export default {};

@@ -37,6 +37,10 @@ import contabilidadRouter    from './routes/contabilidad';
 import localesRouter         from './routes/locales';
 import rolesRouter           from './routes/roles';
 import plataformaRouter      from './routes/plataforma';
+import icalRouter            from './routes/ical';
+import channelManagerRouter  from './routes/channel-manager';
+import empresaRouter         from './routes/empresa';
+import plataformaCrmRouter   from './routes/plataforma-crm';
 import { health } from './controllers/health.controller';
 import './jobs/scheduler';
 import { errorHandler } from './middleware/error-handler';
@@ -75,6 +79,15 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 app.get('/health', health);
 
 app.use('/api/v1/auth',              authRouter);
+// Montados temprano a propósito: varios routers de abajo (mantenimiento, almacen,
+// contabilidad, plataforma, etc.) usan `router.use(authenticate, ...)` SIN prefijo de
+// path, lo que intercepta *cualquier* request que llegue a `/api/v1/*` antes de que
+// Express intente matchear rutas dentro de ellos. Si estos 4 se montan después,
+// quedan bloqueados (401/403) por esos gates aunque la ruta no tenga nada que ver.
+app.use('/api/v1',                   icalRouter);
+app.use('/api/v1',                   channelManagerRouter);
+app.use('/api/v1',                   empresaRouter);
+app.use('/api/v1',                   plataformaCrmRouter);
 app.use('/api/v1/reservas',          reservasRouter);
 app.use('/api/v1/reservas',          reservasQRRouter);       // /:id/qr-checkin
 app.use('/api/v1/reservas/checkin-manual', checkinManualRouter);

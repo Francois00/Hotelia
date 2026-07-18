@@ -20,6 +20,7 @@ const disponiblesQuerySchema = z
   .object({
     fecha_entrada: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato requerido: YYYY-MM-DD'),
     fecha_salida:  z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato requerido: YYYY-MM-DD'),
+    tipo:          z.nativeEnum(TipoHabitacion).optional(),
   })
   .refine((d) => new Date(d.fecha_salida) > new Date(d.fecha_entrada), {
     message: 'fecha_salida debe ser posterior a fecha_entrada',
@@ -41,6 +42,7 @@ const crearSchema = z.object({
   amenidades:        z.unknown().optional(),
   visible_otas:      z.boolean().default(true),
   tipo_custom_id:    z.string().uuid().optional(),
+  ubicacion_descripcion: z.string().max(100).optional(),
 });
 
 const actualizarSchema = crearSchema.partial();
@@ -58,7 +60,7 @@ const reordenarFotosSchema = z.object({
 export async function listar(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const query = listarQuerySchema.parse(req.query);
-    const resultado = await service.listarHabitaciones(query, req.localId);
+    const resultado = await service.listarHabitaciones(query, req.localId, req.empresaId);
     res.json(resultado);
   } catch (err) { next(err); }
 }
@@ -123,7 +125,7 @@ export async function reordenarFotos(req: Request, res: Response, next: NextFunc
 export async function disponibles(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const query = disponiblesQuerySchema.parse(req.query);
-    const habitaciones = await service.habitacionesDisponibles(query, req.localId);
+    const habitaciones = await service.habitacionesDisponibles(query, req.localId, req.empresaId);
     res.json({ data: habitaciones, total: habitaciones.length });
   } catch (err) { next(err); }
 }

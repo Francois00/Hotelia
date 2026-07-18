@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 
 // ─── Payload del token ────────────────────────────────────────────────────────
 
@@ -20,6 +20,9 @@ export interface AuthPayload {
   empresaNombreSistema: string;
   empresaLogoUrl: string | null;
   empresaColorPrimario: string;
+  // ─── Impersonación (superadmin de plataforma "entrando" a una empresa) ────────
+  impersonando?: boolean;
+  superadminOriginalId?: string;
   iat?: number;
   exp?: number;
 }
@@ -28,9 +31,10 @@ export interface AuthPayload {
 declare global {
   namespace Express {
     interface Request {
-      user?:    AuthPayload;
-      localId?: string | null;
-      rawBody?: Buffer;
+      user?:      AuthPayload;
+      localId?:   string | null;
+      empresaId?: string | null;
+      rawBody?:   Buffer;
     }
   }
 }
@@ -49,8 +53,11 @@ function getSecret(): string {
  * Genera un token firmado con expiración de 8 h.
  * Usado por el endpoint POST /api/v1/auth/login.
  */
-export function signToken(payload: Omit<AuthPayload, 'iat' | 'exp'>): string {
-  return jwt.sign(payload, getSecret(), { expiresIn: '8h' });
+export function signToken(
+  payload: Omit<AuthPayload, 'iat' | 'exp'>,
+  expiresIn: SignOptions['expiresIn'] = '8h',
+): string {
+  return jwt.sign(payload, getSecret(), { expiresIn });
 }
 
 /**

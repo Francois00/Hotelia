@@ -26,7 +26,7 @@ function newSessionId(): string {
 
 const BOT_WELCOME: Message = {
   role: 'bot',
-  text: '¡Hola! Soy el Concierge IA del Hotel Hotelia (vía n8n → Llama3). Puedes escribirme como si fueras un huésped de WhatsApp.',
+  text: '¡Hola! Soy el Concierge IA del Hotel Hotelia (Modelo: GPT-4o-mini · OpenAI). Puedes escribirme como si fueras un huésped de WhatsApp.',
   ts: Date.now(),
 }
 
@@ -165,7 +165,7 @@ export default function ConciergeTestPage() {
               </div>
               {m.role === 'bot' && m.tiempo_ms !== undefined && (
                 <p className="text-xs text-text-tertiary mt-1 px-1">
-                  {m.tiempo_ms.toLocaleString()} ms · llama3
+                  {m.tiempo_ms.toLocaleString()} ms · GPT-4o-mini
                   {m.paso && <span className="ml-2 text-purple-400">· {m.paso}</span>}
                 </p>
               )}

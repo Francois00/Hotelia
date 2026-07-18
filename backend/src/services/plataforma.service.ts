@@ -2,6 +2,8 @@ import { RolPersonal } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { AppError } from '../lib/errors';
 import { hashPassword } from './auth.service';
+import { signToken, AuthPayload } from '../middleware/auth';
+import { asegurarCacheCargado, permisosDeRol } from '../lib/rolePermissionCache';
 
 const PLANES_VALIDOS = ['basico', 'estandar', 'premium', 'empresa'];
 const ESTADOS_VALIDOS = ['activa', 'suspendida', 'cancelada', 'prueba'];
@@ -214,6 +216,153 @@ export async function registrarPago(empresaId: string, data: RegistrarPagoInput)
 
     return pago;
   });
+}
+
+const PERSONAL_PARA_TOKEN_SELECT = {
+  id: true,
+  email: true,
+  empresa_id: true,
+  rol_nuevo: { select: { codigo: true, alcance_global: true } },
+  usuario_locales: {
+    where: { activo: true } as const,
+    select: {
+      local_id: true,
+      es_local_principal: true,
+      local: { select: { nombre: true, color_tema: true } },
+      rol: { select: { codigo: true } },
+    },
+  },
+} as const;
+
+/**
+ * Genera un JWT temporal (2h) con la identidad de un usuario admin/dueño de la empresa
+ * indicada, marcado con `impersonando: true`, para que el superadmin de plataforma
+ * pueda entrar a dar soporte sin conocer la contraseña del cliente. Queda registrado
+ * en audit_log para trazabilidad.
+ */
+export async function impersonarEmpresa(
+  empresaId: string,
+  superadmin: { id: string; email: string },
+) {
+  const empresa = await prisma.empresa.findUnique({ where: { id: empresaId } });
+  if (!empresa) throw new AppError('EMPRESA_NO_ENCONTRADA', 404, 'Empresa no encontrada');
+
+  let admin = await prisma.personal.findFirst({
+    where: { empresa_id: empresaId, activo: true, rol_nuevo: { alcance_global: true } },
+    orderBy: { created_at: 'asc' },
+    select: PERSONAL_PARA_TOKEN_SELECT,
+  });
+
+  if (!admin) {
+    // Sin admin_empresa/dueño: usar el primer usuario activo de la empresa (mayor antigüedad)
+    admin = await prisma.personal.findFirst({
+      where: { empresa_id: empresaId, activo: true },
+      orderBy: { created_at: 'asc' },
+      select: PERSONAL_PARA_TOKEN_SELECT,
+    });
+  }
+
+  if (!admin || !admin.rol_nuevo) {
+    throw new AppError(
+      'SIN_USUARIOS_ACTIVOS',
+      400,
+      'La empresa no tiene usuarios activos con un rol asignado para impersonar',
+    );
+  }
+
+  const locales = admin.usuario_locales.map((ul) => ({ local_id: ul.local_id, rol: ul.rol.codigo }));
+
+  const token = signToken(
+    {
+      sub: admin.id,
+      email: admin.email,
+      rolPrincipal: admin.rol_nuevo.codigo,
+      esGlobal: admin.rol_nuevo.alcance_global,
+      locales,
+      empresaId: admin.empresa_id,
+      esSuperadminPlataforma: false,
+      empresaNombreSistema: empresa.nombre_sistema,
+      empresaLogoUrl: empresa.logo_url,
+      empresaColorPrimario: empresa.color_primario,
+      impersonando: true,
+      superadminOriginalId: superadmin.id,
+    },
+    '2h',
+  );
+
+  await prisma.auditLog.create({
+    data: {
+      entidad: 'empresas',
+      entidad_id: empresaId,
+      accion: 'impersonacion',
+      actor_id: superadmin.id,
+      actor_email: superadmin.email,
+      motivo: 'Acceso de soporte vía panel plataforma',
+    },
+  });
+
+  await asegurarCacheCargado();
+  const rolesInvolucrados = new Set([admin.rol_nuevo.codigo, ...locales.map((l) => l.rol)]);
+  const catalogoPermisos: Record<string, string[]> = {};
+  for (const codigo of rolesInvolucrados) {
+    catalogoPermisos[codigo] = permisosDeRol(codigo);
+  }
+
+  return {
+    token,
+    empresa_nombre: empresa.nombre_comercial,
+    expira_en: '2h',
+    catalogoPermisos,
+    localesInfo: admin.usuario_locales.map((ul) => ({
+      local_id: ul.local_id,
+      local_nombre: ul.local.nombre,
+      local_color: ul.local.color_tema,
+      rol: ul.rol.codigo,
+      es_local_principal: ul.es_local_principal,
+    })),
+  };
+}
+
+/**
+ * Restaura la sesión original del superadmin de plataforma a partir del
+ * `superadminOriginalId` embebido en el JWT de impersonación actual.
+ */
+export async function salirImpersonacion(payload: AuthPayload) {
+  if (!payload.impersonando || !payload.superadminOriginalId) {
+    throw new AppError('NO_IMPERSONANDO', 400, 'La sesión actual no es una impersonación');
+  }
+
+  const superadmin = await prisma.personal.findUnique({
+    where: { id: payload.superadminOriginalId },
+    select: {
+      id: true,
+      email: true,
+      activo: true,
+      empresa_id: true,
+      es_superadmin_plataforma: true,
+      rol_nuevo: { select: { codigo: true, alcance_global: true } },
+      empresa: { select: { nombre_sistema: true, logo_url: true, color_primario: true } },
+    },
+  });
+
+  if (!superadmin || !superadmin.activo || !superadmin.rol_nuevo) {
+    throw new AppError('SUPERADMIN_INVALIDO', 401, 'No se pudo restaurar la sesión original');
+  }
+
+  const token = signToken({
+    sub: superadmin.id,
+    email: superadmin.email,
+    rolPrincipal: superadmin.rol_nuevo.codigo,
+    esGlobal: superadmin.rol_nuevo.alcance_global,
+    locales: [],
+    empresaId: superadmin.empresa_id,
+    esSuperadminPlataforma: superadmin.es_superadmin_plataforma,
+    empresaNombreSistema: superadmin.empresa?.nombre_sistema ?? 'Hotelia PMS',
+    empresaLogoUrl: superadmin.empresa?.logo_url ?? null,
+    empresaColorPrimario: superadmin.empresa?.color_primario ?? '#1B3A6B',
+  });
+
+  return { token };
 }
 
 export async function dashboard() {

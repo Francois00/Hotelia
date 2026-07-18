@@ -31,6 +31,9 @@ import GestionPersonalPage from './pages/GestionPersonalPage'
 import ContabilidadPage from './pages/ContabilidadPage'
 import DashboardConsolidadoPage from './pages/DashboardConsolidadoPage'
 import EmpresasPage from './pages/plataforma/EmpresasPage'
+import PlataformaCrmPage from './pages/plataforma/PlataformaCrmPage'
+import GananciaPage from './pages/GananciaPage'
+import BannerImpersonacion from './components/BannerImpersonacion'
 import { useEmpresa } from './hooks/useEmpresa'
 
 const queryClient = new QueryClient({
@@ -77,6 +80,21 @@ function NivelAltoPage({ children }: { children: React.ReactNode }) {
   )
 }
 
+// Panel "Ganancia": exclusivo de la cuenta EMPRESA (admin_empresa/dueño) —
+// no debe aparecer para superadmin_plataforma ni cuentas de local individuales.
+function NivelEmpresaPage({ children }: { children: React.ReactNode }) {
+  const { esGlobal } = useRol()
+  const { esSuperadminPlataforma } = useEmpresa()
+  const token = localStorage.getItem('token')
+  if (!token) return <Navigate to="/login" replace />
+  if (!esGlobal || esSuperadminPlataforma) return <Navigate to="/dashboard" replace />
+  return (
+    <Layout>
+      <ErrorBoundary>{children}</ErrorBoundary>
+    </Layout>
+  )
+}
+
 // Panel de plataforma SaaS: vista separada del PMS, sin Sidebar del hotel.
 // Gateada directamente por el flag esSuperadminPlataforma del JWT (no por el
 // catálogo de permisos normal, que es por-local/por-empresa).
@@ -92,6 +110,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
+        <BannerImpersonacion />
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/login" element={<Login />} />
@@ -129,9 +148,11 @@ export default function App() {
           <Route path="/locales" element={<PermisoPage permiso="locales.gestionar"><GestionLocalesPage /></PermisoPage>} />
           <Route path="/personal" element={<PermisoPage permiso="personal.gestionar"><GestionPersonalPage /></PermisoPage>} />
           <Route path="/contabilidad" element={<PermisoPage permiso="contabilidad.ver"><ContabilidadPage /></PermisoPage>} />
+          <Route path="/ganancia" element={<NivelEmpresaPage><GananciaPage /></NivelEmpresaPage>} />
 
           {/* Plataforma SaaS — superadmin_plataforma */}
           <Route path="/plataforma/empresas" element={<PlataformaRoute><EmpresasPage /></PlataformaRoute>} />
+          <Route path="/plataforma/crm" element={<PlataformaRoute><PlataformaCrmPage /></PlataformaRoute>} />
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>

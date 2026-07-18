@@ -1,5 +1,7 @@
 import { useState, useEffect, type FormEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
 import api from '../../api/client'
+import { guardarSesionOriginal, aplicarSesionImpersonada } from '../../utils/auth'
 
 // Paleta ligada a los theme tokens (theme.css) — cambia sola con [data-theme].
 // El panel mantiene su estética propia (distinta del PMS) pero responde al toggle
@@ -114,8 +116,10 @@ function generarPassword(): string {
   return pass
 }
 
-function NuevaEmpresaModal({ onClose, onSubmit }: { onClose: () => void; onSubmit: (f: FormEmpresa) => Promise<void> }) {
-  const [form, setForm] = useState<FormEmpresa>(FORM_EMPTY)
+function NuevaEmpresaModal({ onClose, onSubmit, initial }: {
+  onClose: () => void; onSubmit: (f: FormEmpresa) => Promise<void>; initial?: Partial<FormEmpresa>
+}) {
+  const [form, setForm] = useState<FormEmpresa>({ ...FORM_EMPTY, ...initial })
   const [saving, setSaving] = useState(false)
   const set = (k: keyof FormEmpresa, v: string) => setForm(f => ({ ...f, [k]: v }))
 
@@ -368,11 +372,13 @@ function DetalleModal({ empresa, onClose }: { empresa: Empresa; onClose: () => v
 }
 
 export default function EmpresasPage() {
+  const navigate = useNavigate()
   const [empresas, setEmpresas] = useState<Empresa[]>([])
   const [dash, setDash] = useState<Dashboard | null>(null)
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showNueva, setShowNueva] = useState(false)
+  const [leadConvirtiendo, setLeadConvirtiendo] = useState<{ id: string } & Partial<FormEmpresa> | null>(null)
   const [pagoEmpresa, setPagoEmpresa] = useState<Empresa | null>(null)
   const [suspenderEmpresa, setSuspenderEmpresa] = useState<Empresa | null>(null)
   const [detalleEmpresa, setDetalleEmpresa] = useState<Empresa | null>(null)
@@ -393,10 +399,28 @@ export default function EmpresasPage() {
     finally { setCargando(false) }
   }
 
-  useEffect(() => { cargar() }, [])
+  useEffect(() => {
+    cargar()
+    const raw = sessionStorage.getItem('crm_lead_convertir')
+    if (raw) {
+      try {
+        const lead = JSON.parse(raw) as { id: string; nombre_empresa?: string; nombre_contacto?: string; email?: string; telefono?: string }
+        setLeadConvirtiendo({
+          id: lead.id,
+          nombre_comercial: lead.nombre_empresa ?? '',
+          email_contacto: lead.email ?? '',
+          telefono_contacto: lead.telefono ?? '',
+          admin_nombre: lead.nombre_contacto ?? '',
+          admin_email: lead.email ?? '',
+        })
+        setShowNueva(true)
+      } catch { /* ignora payload inválido */ }
+      sessionStorage.removeItem('crm_lead_convertir')
+    }
+  }, [])
 
   const crear = async (f: FormEmpresa) => {
-    await api.post('/api/v1/plataforma/empresas', {
+    const { data } = await api.post('/api/v1/plataforma/empresas', {
       nombre_comercial: f.nombre_comercial, razon_social: f.razon_social || undefined, ruc: f.ruc || undefined,
       email_contacto: f.email_contacto, telefono_contacto: f.telefono_contacto || undefined,
       subdominio: f.subdominio, nombre_sistema: f.nombre_sistema, plan: f.plan,
@@ -404,6 +428,11 @@ export default function EmpresasPage() {
       max_usuarios: Number(f.max_usuarios), max_habitaciones_por_local: Number(f.max_habitaciones_por_local),
       admin_nombre: f.admin_nombre, admin_email: f.admin_email, admin_password: f.admin_password,
     })
+    if (leadConvirtiendo?.id) {
+      await api.put(`/api/v1/plataforma/crm/leads/${leadConvirtiendo.id}`, { empresa_id: data?.empresa?.id })
+        .catch(() => {})
+      setLeadConvirtiendo(null)
+    }
     showToast('Empresa creada correctamente')
     await cargar()
   }
@@ -429,11 +458,24 @@ export default function EmpresasPage() {
     await cargar()
   }
 
+  const entrarComoEmpresa = async (empresaId: string) => {
+    try {
+      const { data } = await api.post(`/api/v1/plataforma/empresas/${empresaId}/impersonar`)
+      guardarSesionOriginal()
+      aplicarSesionImpersonada(data)
+      navigate('/')
+      window.location.reload()
+    } catch {
+      showToast('No se pudo iniciar la sesión de soporte')
+    }
+  }
+
   return (
     <div className="pf-root">
       <style>{css}</style>
       <div className="pf-hd">
         <span className="pf-title">🏢 Panel de Plataforma — Hotelia SaaS</span>
+        <button className="pf-act-btn" onClick={() => navigate('/plataforma/crm')}>📇 CRM de leads</button>
         <button className="pf-add" onClick={() => setShowNueva(true)}>+ Nueva empresa</button>
       </div>
 
@@ -476,6 +518,7 @@ export default function EmpresasPage() {
                     <td><span className="pf-badge" style={{ color: info.color }}>{info.icon} {info.label}</span></td>
                     <td>
                       <div className="pf-actions">
+                        <button className="pf-act-btn" onClick={() => entrarComoEmpresa(e.id)}>🔑 Entrar como esta empresa</button>
                         <button className="pf-act-btn" onClick={() => setDetalleEmpresa(e)}>Ver detalle</button>
                         <button className="pf-act-btn" onClick={() => setPagoEmpresa(e)}>Registrar pago</button>
                         {e.estado === 'suspendida'
@@ -491,7 +534,13 @@ export default function EmpresasPage() {
         </div>
       )}
 
-      {showNueva && <NuevaEmpresaModal onClose={() => setShowNueva(false)} onSubmit={crear} />}
+      {showNueva && (
+        <NuevaEmpresaModal
+          onClose={() => { setShowNueva(false); setLeadConvirtiendo(null) }}
+          onSubmit={crear}
+          initial={leadConvirtiendo ?? undefined}
+        />
+      )}
       {pagoEmpresa && (
         <PagoModal empresa={pagoEmpresa} onClose={() => setPagoEmpresa(null)} onSubmit={d => registrarPago(pagoEmpresa.id, d)} />
       )}

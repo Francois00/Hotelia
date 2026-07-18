@@ -221,6 +221,24 @@ export async function crearReserva(data: CrearReservaInput, personalId?: string,
         throw new AppError('HABITACION_NO_DISPONIBLE', 409, 'La habitación no está disponible en esas fechas');
       }
 
+      // Bloqueos importados por iCal desde Booking/Expedia — misma regla de solapamiento,
+      // así el channel manager no permite hacer overbooking sobre una fecha vendida en la OTA.
+      const conflictoIcal = await tx.icalBloqueo.findFirst({
+        where: {
+          habitacion_id: data.habitacion_id,
+          fecha_entrada: { lt: new Date(data.fecha_salida) },
+          fecha_salida:  { gt: new Date(data.fecha_entrada) },
+        },
+        select: { id: true, canal: true },
+      });
+      if (conflictoIcal) {
+        throw new AppError(
+          'HABITACION_NO_DISPONIBLE',
+          409,
+          `La habitación está bloqueada en esas fechas por una reserva en ${conflictoIcal.canal}`,
+        );
+      }
+
       const fechaEntrada = new Date(data.fecha_entrada);
       const fechaSalida  = new Date(data.fecha_salida);
       const numNoches    = calcNumNoches(fechaEntrada, fechaSalida);

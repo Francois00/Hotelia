@@ -44,6 +44,7 @@ export default function Sidebar() {
         <NavItem to="/dashboard" icon="⊞" label="Dashboard" />
         <NavItem to="/crm" icon="⊕" label="CRM" />
         {esNivelAlto && <NavItem to="/revenue" icon="⊠" label="Revenue" />}
+        {esGlobal && !esSuperadminPlataforma && <NavItem to="/ganancia" icon="📈" label="Ganancia" />}
 
         {/* ─── Operaciones ────────────────────────────────────────────── */}
         <GroupLabel label="Operaciones" />

@@ -270,6 +270,7 @@ model Habitacion {
   fotos             Json             @default("[]")
   visible_otas      Boolean          @default(true)
   tipo_custom_id    String?          @db.Uuid
+  ubicacion_descripcion String?      @db.VarChar(100)
   local_id          String           @db.Uuid
   created_at        DateTime         @default(now()) @db.Timestamptz(3)
   updated_at        DateTime         @updatedAt @db.Timestamptz(3)
@@ -279,6 +280,8 @@ model Habitacion {
   reservas              Reserva[]
   tarifas_historial     TarifaHistorial[]
   alertas_mantenimiento AlertaMantenimiento[]
+  ical_conexiones       IcalConexion[]
+  ical_bloqueos         IcalBloqueo[]
 
   @@index([estado])
   @@index([local_id, estado])
@@ -443,6 +446,49 @@ model CanalSyncLog {
   @@index([canal, estado])
   @@index([local_id])
   @@map("canal_sync_log")
+}
+
+/// Conexión iCal por habitación con Booking.com/Expedia — sincronización gratuita
+/// de solo-disponibilidad (sin tarifas/restricciones, sin certificación de partner).
+model IcalConexion {
+  id                String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  habitacion_id     String     @db.Uuid
+  canal             CanalSync
+  /// URL del calendario del canal que IMPORTAMOS (bloquea disponibilidad local)
+  ical_url_externa  String?    @db.Text
+  /// Token único para que el canal IMPORTE nuestro calendario (GET /ical/:token.ics)
+  ical_token_propio String     @unique @default(dbgenerated("encode(gen_random_bytes(32), 'hex')")) @db.VarChar(64)
+  ultima_sync       DateTime?  @db.Timestamptz(3)
+  ultimo_error      String?    @db.Text
+  activo            Boolean    @default(true)
+  created_at        DateTime   @default(now()) @db.Timestamptz(3)
+
+  habitacion Habitacion @relation(fields: [habitacion_id], references: [id], onDelete: Cascade)
+
+  @@index([habitacion_id])
+  @@index([activo])
+  @@map("ical_conexiones")
+}
+
+/// Rango de fechas bloqueado en un canal externo (Booking/Expedia), importado vía iCal.
+/// Se trata como ocupación real para impedir overbooking — no es una Reserva completa
+/// (sin huésped, folio ni pagos) porque el iCal solo informa disponibilidad, no datos del cliente.
+model IcalBloqueo {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  habitacion_id String    @db.Uuid
+  canal         CanalSync
+  fecha_entrada DateTime  @db.Date
+  fecha_salida  DateTime  @db.Date
+  /// UID del VEVENT en el .ics externo — permite upsert idempotente en cada sync
+  uid_externo   String    @db.VarChar(255)
+  created_at    DateTime  @default(now()) @db.Timestamptz(3)
+  updated_at    DateTime  @updatedAt @db.Timestamptz(3)
+
+  habitacion Habitacion @relation(fields: [habitacion_id], references: [id], onDelete: Cascade)
+
+  @@unique([habitacion_id, canal, uid_externo])
+  @@index([habitacion_id, fecha_entrada, fecha_salida])
+  @@map("ical_bloqueos")
 }
 
 /// Reseñas de huéspedes (propias y de canales externos, analizadas con IA)
@@ -658,6 +704,65 @@ model AuditLog {
   @@map("audit_log")
 }
 
+/// Contexto de mercado (eventos, feriados, ferias) que ajusta el pronóstico de
+/// ocupación de una empresa. Alimentado manualmente o por un job de noticias/eventos.
+model ContextoMercado {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  empresa_id        String?   @db.Uuid
+  ciudad            String?   @db.VarChar(100)
+  tipo_evento       String    @db.VarChar(50)
+  descripcion       String    @db.Text
+  fecha_evento      DateTime  @db.Date
+  impacto_estimado  String    @db.VarChar(20)
+  fuente            String?   @db.Text
+  created_at        DateTime  @default(now()) @db.Timestamptz(3)
+
+  empresa Empresa? @relation(fields: [empresa_id], references: [id], onDelete: Cascade)
+
+  @@index([empresa_id, fecha_evento])
+  @@map("contexto_mercado")
+}
+
+// ─── CRM de plataforma: leads/prospectos de EMPRESAS (clientes del SaaS) ───────
+// Separado del CRM de huéspedes (Huesped/CampanaCrm) — aquí los "clientes" del
+// superadmin de plataforma son las empresas que contratan Hotelia, no huéspedes.
+
+model PlataformaLead {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre_contacto   String    @db.VarChar(150)
+  nombre_empresa    String?   @db.VarChar(150)
+  telefono          String?   @db.VarChar(20)
+  email             String?   @db.VarChar(150)
+  origen            String?   @db.VarChar(50)
+  estado            String    @default("nuevo") @db.VarChar(30)
+  empresa_id        String?   @db.Uuid
+  valor_estimado    Decimal?  @db.Decimal(10, 2)
+  notas             String?   @db.Text
+  proxima_accion       String?   @db.Text
+  proxima_accion_fecha DateTime? @db.Date
+  created_at        DateTime  @default(now()) @db.Timestamptz(3)
+  updated_at        DateTime  @updatedAt @db.Timestamptz(3)
+
+  empresa       Empresa?                    @relation(fields: [empresa_id], references: [id])
+  interacciones PlataformaLeadInteraccion[]
+
+  @@index([estado])
+  @@map("plataforma_leads")
+}
+
+model PlataformaLeadInteraccion {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  lead_id     String   @db.Uuid
+  tipo        String   @db.VarChar(30)
+  descripcion String   @db.Text
+  created_at  DateTime @default(now()) @db.Timestamptz(3)
+
+  lead PlataformaLead @relation(fields: [lead_id], references: [id], onDelete: Cascade)
+
+  @@index([lead_id])
+  @@map("plataforma_lead_interacciones")
+}
+
 // ─── SaaS: empresas (nivel superior sobre locales) y suscripciones ─────────────
 
 /// Empresa cliente del SaaS — dueña de uno o más locales, con su propio plan y branding.
@@ -690,6 +795,8 @@ model Empresa {
   locales  Local[]
   personal Personal[]
   pagos    EmpresaPago[]
+  contexto_mercado ContextoMercado[]
+  leads_convertidos PlataformaLead[]
 
   @@map("empresas")
 }

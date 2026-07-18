@@ -194,3 +194,42 @@ El proyecto está en **Fase de consolidación**: el backend (API REST completa),
 4. SUNAT en producción (actualmente en modo beta/sandbox)
 
 ---
+
+## Actualización — Fix habitaciones por local + OTAs iCal + Ganancia + CRM plataforma + OpenAI
+
+- ✅ Habitaciones por local: diagnosticado — el filtro ya funcionaba bien (resolverLocal +
+  habitaciones.service.ts). Fix real aplicado: cuando un admin_empresa/dueño consulta sin
+  X-Local-Id, ahora se acota por `empresa_id` de su propia empresa (antes no filtraba nada,
+  exponiendo habitaciones de otras empresas del SaaS una vez hubiera más de una). Además, el
+  superadmin de plataforma sin X-Local-Id y sin empresa asignada ahora recibe 400 en vez de
+  ver todo sin acotar — debe impersonar una empresa o indicar el local.
+- ✅ Superadmin puede "entrar" a cualquier empresa — impersonación con JWT temporal (2h),
+  banner naranja persistente, botón de retorno, y registro en audit_log.
+- ✅ Channel Manager Booking/Expedia vía iCal (gratis, sync cada 15 min) — export público
+  `GET /ical/:token.ics`, import con `ical_bloqueos` que ahora también bloquean el motor de
+  reservas (no permite overbooking sobre fechas vendidas en la OTA).
+- ✅ Check-in manual: filtro por tipo de habitación + características ampliadas en las cards
+  (ubicación, capacidad total, amenidades completas).
+- ✅ Módulo "Ganancia" — pronóstico de ocupación (solo cuentas admin_empresa/dueño), consume
+  el Prophet forecast ya existente en ia-service + tabla `contexto_mercado` (feriados reales
+  vía librería `holidays`, eventos de turismo como mock marcado a reemplazar).
+- ✅ CRM de plataforma separado (leads de empresas, kanban con drag&drop) — solo superadmin,
+  con flujo de conversión a empresa real.
+- ✅ Concierge IA migrado de Llama3/Ollama a OpenAI GPT-4o-mini — misma máquina de estados,
+  degrada con aviso claro si falta `OPENAI_API_KEY`.
+- 🐛 Bug de enrutamiento descubierto y corregido: varios routers montados en la raíz
+  `/api/v1` (`plataforma.ts`, y los nuevos `empresa.ts`/`plataforma-crm.ts`) usaban
+  `router.use(authenticate, ...)` **sin path**, lo que interceptaba cualquier request bajo
+  `/api/v1/*` montada después — bloqueaba `/habitaciones`, `/reservas`, etc. para roles que
+  no calzaban con ese gate. Corregido acotando esos `router.use()` a su propio prefijo.
+- ⚠️ Drift de schema descubierto (no relacionado a este sprint): `schema.prisma` no incluye
+  varios modelos que SÍ existen en la BD con datos reales — `almacen_articulos` (20 filas),
+  `mantenimiento_registros` (1 fila), `reviews_nlp` (4 filas), y las vacías
+  `solicitudes_huesped`, `campanas_envios`, `encuestas_satisfaccion`. Un `prisma migrate diff`
+  normal generaría `DROP TABLE` para todas ellas — pendiente reconciliar el schema con la BD
+  real antes de confiar en `prisma migrate dev`/`db push` en este proyecto.
+- ⚠️ Pendiente: `OPENAI_API_KEY` real en `backend/.env` (queda vacía a propósito).
+- ⚠️ Pendiente menor: no se agregó UI de edición para `ubicacion_descripcion` en el
+  formulario de habitaciones (el campo y el API ya existen, falta el input en frontend).
+
+---

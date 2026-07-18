@@ -11,6 +11,7 @@ interface Habitacion {
   capacidad: number; capacidad_adultos?: number | null; capacidad_ninos?: number
   tarifa_base: number; tarifa_sugerida_hoy?: number
   descripcion?: string | null; amenidades?: string[] | null
+  ubicacion_descripcion?: string | null
 }
 
 interface Pago { metodo: string; monto: string; referencia: string }
@@ -37,6 +38,14 @@ const METODOS = [
   { value: 'TARJETA_DEBITO', label: '💳 Tarjeta débito' },
   { value: 'TARJETA_CREDITO', label: '💳 Tarjeta crédito' },
   { value: 'TRANSFERENCIA', label: '🏦 Transferencia' },
+]
+
+const TIPOS_HABITACION = [
+  { value: '', label: 'Todos los tipos' },
+  { value: 'SIMPLE', label: 'Simple' },
+  { value: 'DOBLE', label: 'Doble' },
+  { value: 'SUITE', label: 'Suite' },
+  { value: 'FAMILIAR', label: 'Familiar' },
 ]
 
 const DOCUMENTOS = [
@@ -113,6 +122,7 @@ function Paso1({
   const [loading, setLoading] = useState(false)
   const [buscado, setBuscado] = useState(false)
   const [error, setError] = useState('')
+  const [tipoFiltro, setTipoFiltro] = useState('')
 
   const buscar = async () => {
     setError('')
@@ -123,6 +133,7 @@ function Paso1({
           fecha_entrada: data.fecha_entrada,
           fecha_salida:  data.fecha_salida,
           personas:      data.numero_personas,
+          tipo:          tipoFiltro || undefined,
         },
       })
       const arr = Array.isArray(r.data) ? r.data : (r.data.data ?? [])
@@ -189,6 +200,13 @@ function Paso1({
             <input type="number" min={1} value={data.numero_personas}
               onChange={e => onUpdate({ numero_personas: parseInt(e.target.value) || 1 })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de habitación</label>
+            <select value={tipoFiltro} onChange={e => setTipoFiltro(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+              {TIPOS_HABITACION.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+            </select>
           </div>
           <button onClick={buscar} disabled={loading}
             className="w-full py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50">
@@ -284,12 +302,16 @@ function Paso1({
                     className={`border-2 rounded-xl p-4 cursor-pointer transition-all hover:shadow-md ${selected ? 'border-blue-500 bg-info-bg' : 'border-border-primary bg-bg-card hover:border-gray-300'}`}>
                     <div className="flex items-center justify-between mb-1">
                       <span className="font-bold text-text-primary">Hab. {h.numero} — {h.tipo}</span>
-                      <span className="text-xs text-text-secondary">Piso {h.piso}</span>
+                      <span className="text-xs text-text-secondary">📍 Piso {h.piso}{h.ubicacion_descripcion ? ` · ${h.ubicacion_descripcion}` : ''}</span>
                     </div>
-                    <p className="text-xs text-text-secondary mb-2">
-                      👥 {h.capacidad_adultos ?? h.capacidad} adultos
-                      {(Array.isArray(h.amenidades) ? h.amenidades : []).slice(0, 3).map((a: string) => ` · ${a}`).join('')}
+                    <p className="text-xs text-text-secondary mb-1">
+                      👥 Hasta {(h.capacidad_adultos ?? h.capacidad) + (h.capacidad_ninos ?? 0)} personas
                     </p>
+                    {(Array.isArray(h.amenidades) ? h.amenidades : []).length > 0 && (
+                      <p className="text-xs text-text-tertiary mb-2">
+                        {(Array.isArray(h.amenidades) ? h.amenidades : []).join(' · ')}
+                      </p>
+                    )}
                     <div className="flex items-center justify-between">
                       <div>
                         <span className="text-sm font-semibold text-text-primary">{formatCurrency(h.tarifa_base)}/noche</span>

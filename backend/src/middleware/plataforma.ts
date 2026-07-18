@@ -16,3 +16,20 @@ export function requireSuperadminPlataforma(req: Request, res: Response, next: N
   }
   next();
 }
+
+/**
+ * Gate para paneles exclusivos de la cuenta EMPRESA (ej. "Ganancia" / pronóstico
+ * de ocupación): solo admin_empresa/dueño (esGlobal con empresa asignada) — nunca
+ * el superadmin de plataforma (sin empresa) ni cuentas de local individuales.
+ */
+export function requireNivelEmpresa(req: Request, res: Response, next: NextFunction): void {
+  if (!req.user) {
+    res.status(401).json({ code: 'TOKEN_REQUERIDO', message: 'Autenticación requerida' });
+    return;
+  }
+  if (!req.user.esGlobal || req.user.esSuperadminPlataforma || !req.user.empresaId) {
+    res.status(403).json({ code: 'SOLO_NIVEL_EMPRESA', message: 'Acceso restringido a administradores de empresa' });
+    return;
+  }
+  next();
+}

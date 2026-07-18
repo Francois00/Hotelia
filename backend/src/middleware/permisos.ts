@@ -51,7 +51,18 @@ export async function resolverLocal(req: Request, res: Response, next: NextFunct
       res.status(403).json({ code: 'LOCAL_NO_AUTORIZADO', message: 'No tiene acceso a este local' });
       return;
     }
+    if (!localId && !req.user.empresaId) {
+      // Superadmin de plataforma sin empresa asignada: sin X-Local-Id no hay forma de
+      // acotar la consulta a una empresa. Debe indicar el local o usar impersonación
+      // (POST /plataforma/empresas/:id/impersonar) en vez de recibir datos sin acotar.
+      res.status(400).json({
+        code: 'LOCAL_REQUERIDO',
+        message: 'Especifique un local (X-Local-Id) o ingrese como una empresa (impersonación) para acceder a estos datos',
+      });
+      return;
+    }
     req.localId = localId ?? null;
+    req.empresaId = req.user.empresaId;
     next();
     return;
   }
@@ -67,6 +78,7 @@ export async function resolverLocal(req: Request, res: Response, next: NextFunct
   }
 
   req.localId = localId;
+  req.empresaId = req.user.empresaId;
   next();
 }
 
@@ -91,7 +103,15 @@ export function requirePermiso(...codigos: string[]) {
         res.status(403).json({ code: 'LOCAL_NO_AUTORIZADO', message: 'No tiene acceso a este local' });
         return;
       }
+      if (!localId && !req.user.empresaId) {
+        res.status(400).json({
+          code: 'LOCAL_REQUERIDO',
+          message: 'Especifique un local (X-Local-Id) o ingrese como una empresa (impersonación) para acceder a estos datos',
+        });
+        return;
+      }
       req.localId = localId ?? null;
+      req.empresaId = req.user.empresaId;
       next();
       return;
     }
@@ -118,6 +138,7 @@ export function requirePermiso(...codigos: string[]) {
     }
 
     req.localId = localId;
+    req.empresaId = req.user.empresaId;
     next();
   };
 }

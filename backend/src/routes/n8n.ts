@@ -1,5 +1,4 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import axios from 'axios';
 import {
   CanalReserva,
   EstadoHabitacion,
@@ -8,6 +7,7 @@ import {
   TipoDocumento,
 } from '@prisma/client';
 import { prisma } from '../lib/prisma';
+import { extraerJSON } from '../services/concierge.service';
 
 const router = Router();
 
@@ -22,7 +22,7 @@ function authN8n(req: Request, res: Response, next: NextFunction): void {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 1. Interpretar intención del mensaje con Llama3
+// 1. Interpretar intención del mensaje con OpenAI (gpt-4o-mini)
 // ─────────────────────────────────────────────────────────────────────────────
 router.post('/n8n/interpretar-mensaje', authN8n, async (req: Request, res: Response) => {
   const { telefono, mensaje, historial = [] } = req.body as {
@@ -60,15 +60,8 @@ Analiza el mensaje y responde SOLO con JSON:
 Hoy es ${hoy}.`;
 
   try {
-    const ollamaUrl = process.env.OLLAMA_URL ?? 'http://localhost:11434';
-    const r = await axios.post<{ response: string }>(
-      `${ollamaUrl}/api/generate`,
-      { model: 'llama3', system: sistema, prompt, stream: false },
-      { timeout: 25_000 },
-    );
-    const raw  = r.data.response ?? '{}';
-    const match = raw.match(/\{[\s\S]*\}/);
-    const json = JSON.parse(match?.[0] ?? '{}') as Record<string, unknown>;
+    const json = await extraerJSON(prompt, sistema);
+    if (Object.keys(json).length === 0) throw new Error('Respuesta vacía de OpenAI');
     res.json({ ok: true, ...json });
   } catch {
     res.json({
@@ -392,7 +385,7 @@ router.post('/n8n/concierge', authN8n, async (req: Request, res: Response) => {
       respuesta,
       paso_actual: getEstadoPaso(session_id),
       session_id,
-      modelo:      'llama3',
+      modelo:      'gpt-4o-mini',
       tiempo_ms:   Date.now() - t0,
     });
   } catch (e: unknown) {

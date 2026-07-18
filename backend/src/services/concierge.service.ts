@@ -1,4 +1,5 @@
 import axios from 'axios';
+import OpenAI from 'openai';
 import {
   CanalReserva,
   EstadoHabitacion,
@@ -8,9 +9,14 @@ import {
 } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 
-const OLLAMA_URL   = () => process.env.OLLAMA_URL              ?? 'http://localhost:11434';
 const WPP_TOKEN    = () => process.env.WHATSAPP_ACCESS_TOKEN   ?? '';
 const WPP_PHONE_ID = () => process.env.WHATSAPP_PHONE_NUMBER_ID ?? '';
+
+const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
+
+if (!openai) {
+  console.warn('[CONCIERGE] OPENAI_API_KEY no configurada — el concierge no funcionará hasta configurarla');
+}
 
 // ─── Date parser (regex-first, no LLM needed for common patterns) ───────────
 
@@ -128,18 +134,43 @@ export async function enviarWPP(telefono: string, texto: string): Promise<void> 
     });
 }
 
-// ─── Llama3 helper ───────────────────────────────────────────────────────────
+// ─── OpenAI helpers (gpt-4o-mini) ────────────────────────────────────────────
 
-async function llama3(prompt: string, sistema: string): Promise<string> {
+export async function preguntarIA(prompt: string, sistema: string): Promise<string> {
+  if (!openai) return '';
   try {
-    const r = await axios.post<{ response: string }>(
-      `${OLLAMA_URL()}/api/generate`,
-      { model: 'llama3', system: sistema, prompt, stream: false },
-      { timeout: 30_000 },
-    );
-    return r.data.response?.trim() ?? '';
-  } catch {
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: sistema },
+        { role: 'user', content: prompt },
+      ],
+      temperature: 0.4,
+      max_tokens: 300,
+    });
+    return completion.choices[0]?.message?.content?.trim() || '';
+  } catch (err: unknown) {
+    console.error('[OPENAI ERROR]', err instanceof Error ? err.message : err);
     return '';
+  }
+}
+
+export async function extraerJSON(prompt: string, sistema: string): Promise<Record<string, unknown>> {
+  if (!openai) return {};
+  try {
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: `${sistema}\nResponde SOLO con JSON válido, sin texto adicional.` },
+        { role: 'user', content: prompt },
+      ],
+      temperature: 0.1,
+      response_format: { type: 'json_object' },
+    });
+    return JSON.parse(completion.choices[0]?.message?.content ?? '{}') as Record<string, unknown>;
+  } catch (err: unknown) {
+    console.error('[OPENAI JSON ERROR]', err instanceof Error ? err.message : err);
+    return {};
   }
 }
 
@@ -263,7 +294,7 @@ export async function procesarMensaje(
       );
     }
 
-    const resp = await llama3(
+    const resp = await preguntarIA(
       texto,
       'Eres el asistente del Hotel Hotelia en Arequipa, Perú. ' +
       'Responde brevemente en español. Si el cliente quiere reservar, ' +
@@ -285,35 +316,29 @@ export async function procesarMensaje(
       );
     }
 
-    // Fallback: ask Llama3
+    // Fallback: ask OpenAI (extracción de fechas en JSON)
     const hoy = new Date().toISOString().split('T')[0];
-    const extraccion = await llama3(
+    const obj = await extraerJSON(
       `Mensaje del usuario: "${texto}"\nHoy: ${hoy}\n` +
-      `Responde SOLO este JSON con las fechas en YYYY-MM-DD:\n` +
-      `{"entrada":"YYYY-MM-DD","salida":"YYYY-MM-DD"}\n` +
+      `Extrae las fechas de la reserva en formato YYYY-MM-DD.\n` +
+      `Responde con las claves "entrada" y "salida".\n` +
       `Ejemplo: si dice "del 5 al 8 de junio 2026" responde {"entrada":"2026-06-05","salida":"2026-06-08"}`,
-      'Extractor de fechas. Solo JSON puro, sin texto adicional.',
+      'Extractor de fechas de una reserva de hotel.',
     );
 
-    try {
-      const match = extraccion.match(/\{[^}]+\}/);
-      if (match) {
-        const obj = JSON.parse(match[0]) as Record<string, string>;
-        const entrada = obj['entrada'] ?? obj['fecha_entrada'] ?? obj['fecha_inicio'] ??
-                        obj['entry'] ?? obj['check_in'] ?? '';
-        const salida  = obj['salida']  ?? obj['fecha_salida']  ?? obj['fecha_fin']   ??
-                        obj['exit']    ?? obj['check_out'] ?? '';
-        if (entrada && salida && /\d{4}-\d{2}-\d{2}/.test(entrada) && /\d{4}-\d{2}-\d{2}/.test(salida)) {
-          state.fecha_entrada = entrada;
-          state.fecha_salida  = salida;
-          state.paso = 'pidiendo_personas';
-          return (
-            `📅 Perfecto: *${entrada}* al *${salida}*\n\n` +
-            `¿Cuántas personas se hospedarán? 👥`
-          );
-        }
-      }
-    } catch { /* fall through */ }
+    const entrada = String(obj['entrada'] ?? obj['fecha_entrada'] ?? obj['fecha_inicio'] ??
+                      obj['entry'] ?? obj['check_in'] ?? '');
+    const salida  = String(obj['salida']  ?? obj['fecha_salida']  ?? obj['fecha_fin']   ??
+                      obj['exit']    ?? obj['check_out'] ?? '');
+    if (entrada && salida && /\d{4}-\d{2}-\d{2}/.test(entrada) && /\d{4}-\d{2}-\d{2}/.test(salida)) {
+      state.fecha_entrada = entrada;
+      state.fecha_salida  = salida;
+      state.paso = 'pidiendo_personas';
+      return (
+        `📅 Perfecto: *${entrada}* al *${salida}*\n\n` +
+        `¿Cuántas personas se hospedarán? 👥`
+      );
+    }
 
     return (
       'No pude entender las fechas 😅\n\n' +

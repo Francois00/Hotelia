@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { format, parseISO } from 'date-fns'
 import api from '../api/client'
 import ModalConfigCanal from '../components/ModalConfigCanal'
+import ModalConectarIcal from '../components/ModalConectarIcal'
 
 interface SyncLogEntry {
   id: string
@@ -35,6 +36,27 @@ const CANALES: CanalInfo[] = [
   { id: 'web',       nombre: 'Web propia',          icono: '🌐', descripcion: 'Motor de reservas' },
 ]
 
+interface IcalConexion {
+  id: string
+  habitacion_id: string
+  canal: 'BOOKING_COM' | 'EXPEDIA'
+  ical_url_externa: string | null
+  ical_token_propio: string
+  url_exportar: string
+  ultima_sync: string | null
+  ultimo_error: string | null
+  activo: boolean
+  habitacion: { numero: string; tipo: string }
+}
+
+function estadoIcal(c: IcalConexion): { icon: string; label: string } {
+  if (c.ultimo_error) return { icon: '🔴', label: `Error: ${c.ultimo_error}` }
+  if (!c.ical_url_externa) return { icon: '⚪', label: 'Sin URL externa configurada' }
+  if (!c.ultima_sync) return { icon: '⚪', label: 'Aún sin sincronizar' }
+  const minutos = Math.round((Date.now() - new Date(c.ultima_sync).getTime()) / 60000)
+  return { icon: '🟢', label: `Sincronizado hace ${minutos} min` }
+}
+
 function getEstado(canal: CanalNombre, logs: SyncLogEntry[]) {
   const propios = logs.filter(l => l.canal === canal)
   if (propios.length === 0) return { dot: '⚪', label: 'NO CONFIGURADO', cls: 'bg-bg-tertiary text-text-secondary' }
@@ -49,6 +71,8 @@ export default function ChannelManagerPage() {
   const [configCanal, setConfigCanal] = useState<CanalNombre | null>(null)
   const [syncingCanal, setSyncingCanal] = useState<CanalNombre | null>(null)
   const [banner, setBanner] = useState<string | null>(null)
+  const [showConectarIcal, setShowConectarIcal] = useState(false)
+  const [instruccionesAbiertas, setInstruccionesAbiertas] = useState<'BOOKING_COM' | 'EXPEDIA' | null>(null)
 
   const { data: logResp, isLoading: logLoading, refetch } = useQuery<SyncLogResp>({
     queryKey: ['sync-log'],
@@ -58,6 +82,27 @@ export default function ChannelManagerPage() {
   })
 
   const syncLog = logResp?.data ?? []
+
+  const { data: icalConexiones, refetch: refetchIcal } = useQuery<IcalConexion[]>({
+    queryKey: ['ical-conexiones'],
+    queryFn: () => api.get('/api/v1/channel-manager/ical').then(r => r.data?.data ?? []),
+    retry: false,
+    staleTime: 30_000,
+  })
+
+  const copiarUrl = (url: string) => {
+    navigator.clipboard?.writeText(url).catch(() => {})
+    showBanner('URL copiada al portapapeles')
+  }
+
+  const eliminarConexionIcal = async (id: string) => {
+    try {
+      await api.delete(`/api/v1/channel-manager/ical/${id}`)
+      void refetchIcal()
+    } catch {
+      showBanner('No se pudo eliminar la conexión')
+    }
+  }
 
   const showBanner = (msg: string) => {
     setBanner(msg)
@@ -161,6 +206,118 @@ export default function ChannelManagerPage() {
         </div>
       </section>
 
+      {/* ── Sección iCal — Booking/Expedia gratis vía calendario .ics ─── */}
+      <section className="bg-bg-card rounded-2xl border border-border-primary shadow-sm p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-sm font-semibold text-text-primary">Sincronización iCal (Booking / Expedia)</h2>
+            <p className="text-xs text-text-tertiary mt-0.5">
+              Gratis, sin certificación de partner. Solo sincroniza disponibilidad (ocupado/libre) — no tarifas ni restricciones.
+            </p>
+          </div>
+          <button
+            onClick={() => setShowConectarIcal(true)}
+            className="px-3 py-2 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition-colors shrink-0"
+          >
+            + Conectar habitación
+          </button>
+        </div>
+
+        {(!icalConexiones || icalConexiones.length === 0) ? (
+          <p className="text-center text-text-tertiary text-sm py-8">
+            Sin habitaciones conectadas vía iCal todavía.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {icalConexiones.map(c => {
+              const estado = estadoIcal(c)
+              return (
+                <div key={c.id} className="border border-border-primary rounded-xl p-4">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div>
+                      <p className="text-sm font-semibold text-text-primary">
+                        Habitación {c.habitacion.numero} · {c.canal === 'BOOKING_COM' ? 'Booking.com' : 'Expedia'}
+                      </p>
+                      <p className="text-xs text-text-tertiary">{estado.icon} {estado.label}</p>
+                    </div>
+                    <button
+                      onClick={() => void eliminarConexionIcal(c.id)}
+                      className="text-xs text-danger hover:underline"
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+                  <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-text-secondary mb-1">
+                        URL de {c.canal === 'BOOKING_COM' ? 'Booking.com' : 'Expedia'} a importar
+                      </label>
+                      <input
+                        readOnly
+                        value={c.ical_url_externa ?? '(sin configurar)'}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs bg-bg-secondary"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-text-secondary mb-1">
+                        URL para exportar a {c.canal === 'BOOKING_COM' ? 'Booking.com' : 'Expedia'}
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          readOnly
+                          value={c.url_exportar}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs bg-bg-secondary"
+                        />
+                        <button
+                          onClick={() => copiarUrl(c.url_exportar)}
+                          className="px-2 py-2 border border-gray-300 rounded-lg text-xs hover:bg-bg-secondary shrink-0"
+                        >
+                          📋
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        <div className="mt-4 space-y-2">
+          <button
+            onClick={() => setInstruccionesAbiertas(instruccionesAbiertas === 'BOOKING_COM' ? null : 'BOOKING_COM')}
+            className="w-full text-left text-xs font-semibold text-blue-600 hover:underline"
+          >
+            {instruccionesAbiertas === 'BOOKING_COM' ? '▾' : '▸'} Cómo conectar Booking.com
+          </button>
+          {instruccionesAbiertas === 'BOOKING_COM' && (
+            <ol className="text-xs text-text-secondary bg-bg-secondary rounded-lg p-3 space-y-1 list-decimal list-inside">
+              <li>Ve a tu Extranet de Booking.com → Tarifas y disponibilidad → Sincronización de calendarios</li>
+              <li>Pega la URL de exportación de esta habitación (botón 📋 de arriba)</li>
+              <li>Copia la URL de calendario que Booking.com te entrega a ti</li>
+              <li>Pégala arriba en "URL de Booking.com a importar" al crear/editar la conexión</li>
+              <li>La sincronización se actualiza automáticamente cada 15 minutos</li>
+            </ol>
+          )}
+
+          <button
+            onClick={() => setInstruccionesAbiertas(instruccionesAbiertas === 'EXPEDIA' ? null : 'EXPEDIA')}
+            className="w-full text-left text-xs font-semibold text-blue-600 hover:underline"
+          >
+            {instruccionesAbiertas === 'EXPEDIA' ? '▾' : '▸'} Cómo conectar Expedia
+          </button>
+          {instruccionesAbiertas === 'EXPEDIA' && (
+            <ol className="text-xs text-text-secondary bg-bg-secondary rounded-lg p-3 space-y-1 list-decimal list-inside">
+              <li>Ve a Expedia Partner Central → Rate & Availability → iCal</li>
+              <li>Pega la URL de exportación de esta habitación (botón 📋 de arriba)</li>
+              <li>Copia la URL de calendario que Expedia te entrega a ti</li>
+              <li>Pégala arriba en "URL de Expedia a importar" al crear/editar la conexión</li>
+              <li>La sincronización se actualiza automáticamente cada 15 minutos</li>
+            </ol>
+          )}
+        </div>
+      </section>
+
       {/* ── Sección C — Acciones rápidas + Log ───────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Acciones rápidas */}
@@ -236,6 +393,13 @@ export default function ChannelManagerPage() {
           canal={configCanal}
           onClose={() => setConfigCanal(null)}
           onSuccess={() => { setConfigCanal(null); void refetch() }}
+        />
+      )}
+
+      {showConectarIcal && (
+        <ModalConectarIcal
+          onClose={() => setShowConectarIcal(false)}
+          onSuccess={() => { setShowConectarIcal(false); void refetchIcal() }}
         />
       )}
     </div>

@@ -22,13 +22,24 @@ router.post('/chat', async (req: Request, res: Response) => {
     // session_id > telefono > user-scoped stable key (never Date.now() — breaks state)
     const sessionKey = session_id ?? telefono ?? `web_${(req as unknown as { user?: { id?: string } }).user?.id ?? 'anon'}`;
 
+    if (!process.env.OPENAI_API_KEY) {
+      res.json({
+        respuesta: '⚠️ Concierge IA no configurado. Falta OPENAI_API_KEY en el servidor.',
+        modelo: 'gpt-4o-mini',
+        tiempo_ms: Date.now() - t0,
+        paso_actual: 'error',
+        session_id: sessionKey,
+      });
+      return;
+    }
+
     console.log(`[CHAT] session:${sessionKey} paso:${getEstadoPaso(sessionKey)} msg:${mensaje}`);
 
     const respuesta = await procesarMensaje(sessionKey, mensaje);
 
     res.json({
       respuesta:   respuesta || 'Sin respuesta',
-      modelo:      'llama3',
+      modelo:      'gpt-4o-mini',
       tiempo_ms:   Date.now() - t0,
       paso_actual: getEstadoPaso(sessionKey),
       session_id:  sessionKey,

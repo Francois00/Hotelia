@@ -5,6 +5,18 @@ import { requireSuperadminPlataforma } from '../middleware/plataforma';
 import * as service from '../services/plataforma.service';
 
 const router = Router();
+
+// ─── POST /plataforma/salir-impersonacion ──────────────────────────────────────
+// Debe registrarse ANTES del gate de requireSuperadminPlataforma: durante una
+// impersonación el JWT activo es el de un admin_empresa (esSuperadminPlataforma:
+// false), así que esta ruta solo exige estar autenticado y valida el flag
+// `impersonando` internamente.
+router.post('/plataforma/salir-impersonacion', authenticate, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    res.json(await service.salirImpersonacion(req.user!));
+  } catch (err) { next(err); }
+});
+
 router.use(authenticate, requireSuperadminPlataforma);
 
 const crearEmpresaSchema = z.object({
@@ -111,6 +123,18 @@ router.post('/plataforma/empresas/:id/pagos', async (req: Request, res: Response
   try {
     const data = registrarPagoSchema.parse(req.body);
     res.status(201).json(await service.registrarPago(req.params.id, data));
+  } catch (err) { next(err); }
+});
+
+// ─── POST /plataforma/empresas/:empresaId/impersonar ───────────────────────────
+
+router.post('/plataforma/empresas/:empresaId/impersonar', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const resultado = await service.impersonarEmpresa(req.params.empresaId, {
+      id: req.user!.sub,
+      email: req.user!.email,
+    });
+    res.json(resultado);
   } catch (err) { next(err); }
 });
 

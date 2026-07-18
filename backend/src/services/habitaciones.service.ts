@@ -36,6 +36,7 @@ export interface ListarHabitacionesQuery {
 export interface DisponiblesQuery {
   fecha_entrada: string;
   fecha_salida:  string;
+  tipo?:         TipoHabitacion;
 }
 
 export interface CrearHabitacionInput {
@@ -53,6 +54,7 @@ export interface CrearHabitacionInput {
   amenidades?:       unknown;
   visible_otas?:     boolean;
   tipo_custom_id?:   string;
+  ubicacion_descripcion?: string;
 }
 
 export interface ActualizarHabitacionInput extends Partial<CrearHabitacionInput> {}
@@ -115,13 +117,20 @@ export async function sincronizarEstadosHabitaciones(): Promise<void> {
   `;
 }
 
-export async function listarHabitaciones(query: ListarHabitacionesQuery, localId?: string | null) {
+export async function listarHabitaciones(
+  query: ListarHabitacionesQuery,
+  localId?: string | null,
+  empresaId?: string | null,
+) {
   const page  = query.page  ?? 1;
   const limit = Math.min(query.limit ?? 20, 100);
   const hoy   = new Date().toISOString().slice(0, 10);
 
   const where: Prisma.HabitacionWhereInput = {};
   if (localId)                            where.local_id     = localId;
+  // Sin local explícito (dashboard consolidado de admin_empresa/dueno): acotar a
+  // los locales de SU empresa — nunca devolver habitaciones de otras empresas del SaaS.
+  else if (empresaId)                     where.local        = { empresa_id: empresaId };
   if (query.estado)                       where.estado       = query.estado;
   if (query.tipo)                         where.tipo         = query.tipo;
   if (query.piso !== undefined)           where.piso         = query.piso;
@@ -258,6 +267,7 @@ export async function crearHabitacion(data: CrearHabitacionInput, localId: strin
           : Prisma.DbNull,
         visible_otas:      data.visible_otas      ?? true,
         tipo_custom_id:    data.tipo_custom_id     ?? null,
+        ubicacion_descripcion: data.ubicacion_descripcion ?? null,
       },
       include: { tipo_custom: { select: { id: true, nombre: true } } },
     });
@@ -304,6 +314,7 @@ export async function actualizarHabitacion(id: string, data: ActualizarHabitacio
         ...(data.descripcion       !== undefined && { descripcion:       data.descripcion }),
         ...(data.visible_otas      !== undefined && { visible_otas:      data.visible_otas }),
         ...(data.tipo_custom_id    !== undefined && { tipo_custom_id:    data.tipo_custom_id }),
+        ...(data.ubicacion_descripcion !== undefined && { ubicacion_descripcion: data.ubicacion_descripcion }),
         ...(data.amenidades !== undefined && {
           amenidades: data.amenidades != null
             ? (data.amenidades as Prisma.InputJsonValue)
@@ -425,31 +436,45 @@ export async function reordenarFotos(id: string, fotos: string[], localId?: stri
   return fotos;
 }
 
-export async function habitacionesDisponibles(query: DisponiblesQuery, localId?: string | null) {
+export async function habitacionesDisponibles(
+  query: DisponiblesQuery,
+  localId?: string | null,
+  empresaId?: string | null,
+) {
   const entrada = new Date(query.fecha_entrada);
   const salida  = new Date(query.fecha_salida);
 
-  const reservasConflicto = await prisma.reserva.findMany({
-    where: {
-      estado:        { notIn: [EstadoReserva.CANCELADA, EstadoReserva.NO_SHOW] },
-      fecha_entrada: { lt: salida },
-      fecha_salida:  { gt: entrada },
-    },
-    select: { habitacion_id: true },
-  });
+  const [reservasConflicto, bloqueosIcal] = await Promise.all([
+    prisma.reserva.findMany({
+      where: {
+        estado:        { notIn: [EstadoReserva.CANCELADA, EstadoReserva.NO_SHOW] },
+        fecha_entrada: { lt: salida },
+        fecha_salida:  { gt: entrada },
+      },
+      select: { habitacion_id: true },
+    }),
+    prisma.icalBloqueo.findMany({
+      where: { fecha_entrada: { lt: salida }, fecha_salida: { gt: entrada } },
+      select: { habitacion_id: true },
+    }),
+  ]);
 
-  const idsOcupadas = reservasConflicto.map((r) => r.habitacion_id);
+  const idsOcupadas = [
+    ...reservasConflicto.map((r) => r.habitacion_id),
+    ...bloqueosIcal.map((b) => b.habitacion_id),
+  ];
 
   const rows = await prisma.habitacion.findMany({
     where: {
-      ...(localId ? { local_id: localId } : {}),
+      ...(localId ? { local_id: localId } : empresaId ? { local: { empresa_id: empresaId } } : {}),
+      ...(query.tipo ? { tipo: query.tipo } : {}),
       estado: { notIn: [EstadoHabitacion.FUERA_DE_SERVICIO, EstadoHabitacion.MANTENIMIENTO] },
       id:     { notIn: idsOcupadas },
     },
     select: {
       id: true, numero: true, tipo: true, piso: true,
-      capacidad: true, tarifa_base: true, descripcion: true,
-      amenidades: true, fotos: true,
+      capacidad: true, capacidad_adultos: true, tarifa_base: true, descripcion: true,
+      amenidades: true, fotos: true, ubicacion_descripcion: true,
     },
     orderBy: [{ tipo: 'asc' }, { piso: 'asc' }, { numero: 'asc' }],
   });

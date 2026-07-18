@@ -14,6 +14,8 @@ export interface TokenPayload {
   empresaNombreSistema: string
   empresaLogoUrl: string | null
   empresaColorPrimario: string
+  impersonando?: boolean
+  superadminOriginalId?: string
   iat?: number
   exp?: number
 }
@@ -86,4 +88,52 @@ export function tienePermiso(codigo: string): boolean {
   const rol = getRolActivo()
   if (!rol) return false
   return (getCatalogoPermisos()[rol] ?? []).includes(codigo)
+}
+
+// ─── Impersonación (superadmin de plataforma "entrando" a una empresa) ────────
+
+export function estaImpersonando(): boolean {
+  return getUser()?.impersonando === true
+}
+
+const IMPERSONACION_BACKUP_KEY = 'superadmin_session_backup'
+
+/** Guarda la sesión actual del superadmin (antes de impersonar) para poder restaurarla. */
+export function guardarSesionOriginal(): void {
+  const backup = {
+    token: localStorage.getItem('token'),
+    catalogoPermisos: localStorage.getItem('catalogoPermisos'),
+    localesInfo: localStorage.getItem('localesInfo'),
+    activeLocalId: localStorage.getItem('activeLocalId'),
+  }
+  sessionStorage.setItem(IMPERSONACION_BACKUP_KEY, JSON.stringify(backup))
+}
+
+/** Aplica la identidad de la empresa impersonada al storage local, para que el resto de la app la use. */
+export function aplicarSesionImpersonada(data: {
+  token: string
+  catalogoPermisos?: Record<string, string[]>
+  localesInfo?: LocalInfo[]
+}): void {
+  localStorage.setItem('token', data.token)
+  localStorage.setItem('catalogoPermisos', JSON.stringify(data.catalogoPermisos ?? {}))
+  localStorage.setItem('localesInfo', JSON.stringify(data.localesInfo ?? []))
+  const principal = data.localesInfo?.find(l => l.es_local_principal) ?? data.localesInfo?.[0]
+  if (principal) localStorage.setItem('activeLocalId', principal.local_id)
+  else localStorage.removeItem('activeLocalId')
+}
+
+/** Restaura la sesión de superadmin guardada antes de impersonar (respaldo local, sin llamar al backend). */
+export function restaurarSesionOriginalLocal(): void {
+  const raw = sessionStorage.getItem(IMPERSONACION_BACKUP_KEY)
+  if (!raw) return
+  try {
+    const backup = JSON.parse(raw) as Record<string, string | null>
+    for (const [key, value] of Object.entries(backup)) {
+      if (value != null) localStorage.setItem(key, value)
+      else localStorage.removeItem(key)
+    }
+  } finally {
+    sessionStorage.removeItem(IMPERSONACION_BACKUP_KEY)
+  }
 }

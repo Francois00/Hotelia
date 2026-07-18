@@ -9,7 +9,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from apscheduler.schedulers.background import BackgroundScheduler
+
 from routers import forecast, pricing, crm, housekeeping, reviews, mantenimiento, concierge
+from jobs.actualizar_contexto_noticias import actualizar_contexto_mercado
 
 # ─── API Key middleware ───────────────────────────────────────────────────────
 
@@ -64,3 +67,18 @@ app.include_router(concierge.router,     prefix="/ia/v1")
 @app.get("/ia/v1/health")
 async def health():
     return {"status": "ok", "timestamp": datetime.now(timezone.utc).isoformat()}
+
+# ─── Job semanal: contexto de mercado (feriados/eventos para el pronóstico) ────
+
+scheduler = BackgroundScheduler()
+scheduler.add_job(actualizar_contexto_mercado, "cron", day_of_week="sun", hour=3, minute=0)
+
+
+@app.on_event("startup")
+def _iniciar_scheduler() -> None:
+    scheduler.start()
+
+
+@app.on_event("shutdown")
+def _detener_scheduler() -> None:
+    scheduler.shutdown(wait=False)
